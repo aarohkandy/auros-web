@@ -1,0 +1,576 @@
+---
+/**
+ * The four questions.
+ *
+ * `CONFIGURATOR.md`: "Four questions, in plain words, because the reader is an overworked IT
+ * person and not an engineer. The form asks about THEIR SITUATION; the compiler turns that into
+ * technical fields. A question that names a package is a question that has already failed."
+ *
+ * So: no package name, no Flatpak id, no RPM, no locale code and no policy jargon appears in
+ * any label below. "Marathi", not `mr_IN.UTF-8`. "Print", not `cups`. "Who is allowed to change
+ * things", not `policy: managed`. The recipe on the right is where the technical words live,
+ * and seeing the translation happen is most of what makes the panel convincing.
+ *
+ * The whole form ships inside a `<template>`. It renders nothing with JavaScript off, which is
+ * deliberate: Turnstile has no `<noscript>` path and the Worker never accepts a POST without a
+ * token, so a form that appeared to work without JavaScript would be a form that silently
+ * cannot submit. The `<noscript>` fallback in `Configurator.astro` says so in those words.
+ */
+import { ACTIVITIES, AGE_BANDS, COMMON_TIMEZONES, LANGUAGES, POLICIES, SPECIAL_REQUESTS, SWITCH_COMBINATIONS } from "../../lib/catalogue";
+import { configurator, site } from "../../content/copy";
+import MigrationDisclosure from "./MigrationDisclosure.astro";
+
+const latinKeyboards = [...new Set(LANGUAGES.map((l) => l.keyboard))].sort();
+const secondScripts = [...new Set(LANGUAGES.map((l) => l.secondScript).filter(Boolean))].sort() as string[];
+/** Cloudflare Turnstile TEST key. Never a live key in source. */
+const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
+---
+
+<template data-configurator-form>
+  <form class="cfg-form" novalidate>
+    <!-- ── 1 ─────────────────────────────────────────────────────────────────────────── -->
+    <fieldset class="cfg-fieldset">
+      <legend class="cfg-legend"><span class="cfg-legend__n">1</span> Your machines</legend>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-machines">How many machines?</label>
+        <p class="cfg-hint" id="cfg-machines-hint">Roughly is fine. It sets which tier the price comes from, not what gets built.</p>
+        <input
+          class="cfg-input cfg-input--number"
+          id="cfg-machines"
+          name="machines"
+          type="number"
+          inputmode="numeric"
+          min="1"
+          max="5000"
+          step="1"
+          aria-describedby="cfg-machines-hint"
+        />
+      </div>
+
+      <fieldset class="cfg-subfield">
+        <legend class="cfg-label">Roughly what age are they?</legend>
+        <p class="cfg-hint" id="cfg-age-hint">This chooses which virtual machines your image has to boot on before it is published. You can only add tests here, never take one away.</p>
+        <div class="cfg-choices" aria-describedby="cfg-age-hint">
+          {
+            AGE_BANDS.map((band) => (
+              <label class="cfg-choice">
+                <input type="radio" name="age" value={band.id} />
+                <span class="cfg-choice__text">{band.label}</span>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-models">What are they, if you know?</label>
+        <p class="cfg-hint" id="cfg-models-hint">Model names, separated by commas. If you do not know, leave it and tell us later; we will ask before anything is built.</p>
+        <input
+          class="cfg-input"
+          id="cfg-models"
+          name="models"
+          type="text"
+          autocomplete="off"
+          placeholder="Dell Latitude E6440, HP ProBook 650 G1"
+          aria-describedby="cfg-models-hint"
+        />
+      </div>
+
+      <fieldset class="cfg-subfield">
+        <legend class="cfg-label">What kind of place is this?</legend>
+        <div class="cfg-choices">
+          <label class="cfg-choice"><input type="radio" name="orgKind" value="school-or-nonprofit" /><span class="cfg-choice__text">A school or a nonprofit</span></label>
+          <label class="cfg-choice"><input type="radio" name="orgKind" value="business" /><span class="cfg-choice__text">A business</span></label>
+          <label class="cfg-choice"><input type="radio" name="orgKind" value="just-me" /><span class="cfg-choice__text">Just me</span></label>
+        </div>
+      </fieldset>
+
+      <div class="cfg-tier" data-tier aria-live="polite"></div>
+      <p class="cfg-hint">
+        The recipes are public, so building this yourself is $0 and always will be. That option does not
+        go away when you pay us; you are paying for it to be rebuilt and checked every night.
+      </p>
+    </fieldset>
+
+    <!-- ── 2 ─────────────────────────────────────────────────────────────────────────── -->
+    <fieldset class="cfg-fieldset">
+      <legend class="cfg-legend"><span class="cfg-legend__n">2</span> The language you work in</legend>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-language">What language should the machines be in?</label>
+        <p class="cfg-hint" id="cfg-language-hint">{configurator.questions.locale.hint} Choosing a language is also what pulls in the fonts it needs, so there is no font list to get wrong.</p>
+        <select class="cfg-input" id="cfg-language" name="language" aria-describedby="cfg-language-hint">
+          {LANGUAGES.map((l) => <option value={l.name}>{l.name}</option>)}
+        </select>
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-keyboard">What is printed on the keys?</label>
+        <p class="cfg-hint" id="cfg-keyboard-hint">
+          Separate from the language on purpose. The login screen and the disk-unlock prompt appear
+          before any input method is running, so the main layout has to be one that can type a password.
+          A machine in Marathi with plain English keycaps is normal, not a mistake.
+        </p>
+        <select class="cfg-input" id="cfg-keyboard" name="keyboard" aria-describedby="cfg-keyboard-hint">
+          {latinKeyboards.map((k) => <option value={k}>{k}</option>)}
+        </select>
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-second-script">A second layout, for a script the keys do not show</label>
+        <select class="cfg-input" id="cfg-second-script" name="secondScript">
+          <option value="">None</option>
+          {secondScripts.map((s) => <option value={s}>{s}</option>)}
+        </select>
+      </div>
+
+      <div class="cfg-row" data-row="switchWith">
+        <label class="cfg-label" for="cfg-switch">How do people switch between them?</label>
+        <p class="cfg-hint" id="cfg-switch-hint">Say it the way you would say it out loud to a class. A toggle nobody can find is not a feature.</p>
+        <select class="cfg-input" id="cfg-switch" name="switchWith" aria-describedby="cfg-switch-hint">
+          {SWITCH_COMBINATIONS.map((c) => <option value={c}>{c}</option>)}
+        </select>
+      </div>
+    </fieldset>
+
+    <!-- ── 3 ─────────────────────────────────────────────────────────────────────────── -->
+    <fieldset class="cfg-fieldset">
+      <legend class="cfg-legend"><span class="cfg-legend__n">3</span> What people actually do on these</legend>
+      <p class="cfg-hint">
+        Tick what happens on these machines. Everything you leave unticked is named in the remove block
+        on the right, and is deleted from the image rather than hidden behind a setting.
+      </p>
+
+      <div class="cfg-choices cfg-choices--stack">
+        {
+          ACTIVITIES.map((activity) => (
+            <label class="cfg-choice cfg-choice--wide">
+              <input type="checkbox" name="activities" value={activity.id} checked={activity.id === "web"} />
+              <span class="cfg-choice__text">
+                <span class="cfg-choice__label">{activity.label}</span>
+                <span class="cfg-choice__note">{activity.note}</span>
+              </span>
+            </label>
+          ))
+        }
+      </div>
+
+      <label class="cfg-choice cfg-choice--wide cfg-choice--emphasis">
+        <input type="checkbox" name="onlyThese" checked />
+        <span class="cfg-choice__text">
+          <span class="cfg-choice__label">And nothing else</span>
+          <span class="cfg-choice__note">
+            Keep only what is ticked above. Untick this to keep an ordinary desktop and take a few things
+            out of it instead. This one line is the difference between eleven applications and three hundred.
+          </span>
+        </span>
+      </label>
+    </fieldset>
+
+    <!-- ── 4 ─────────────────────────────────────────────────────────────────────────── -->
+    <fieldset class="cfg-fieldset">
+      <legend class="cfg-legend"><span class="cfg-legend__n">4</span> Who is allowed to change things</legend>
+      <div class="cfg-choices cfg-choices--stack">
+        {
+          POLICIES.map((policy) => (
+            <label class="cfg-choice cfg-choice--wide">
+              <input type="radio" name="policy" value={policy.id} />
+              <span class="cfg-choice__text">
+                <span class="cfg-choice__label">{policy.label}</span>
+                <span class="cfg-choice__note">{policy.note}</span>
+              </span>
+            </label>
+          ))
+        }
+      </div>
+
+      <div class="cfg-conditional" data-when-policy="kiosk" hidden>
+        <p class="cfg-hint">
+          A single-purpose machine needs to know what it shows and where that window may go.
+          Read the caveat before treating the site list as a security boundary: it bounds which sites the
+          machine can reach, not what a person can do once they are on one of them.
+        </p>
+        <div class="cfg-row">
+          <label class="cfg-label" for="cfg-kiosk-opens">What page does it open?</label>
+          <input class="cfg-input" id="cfg-kiosk-opens" name="kioskOpens" type="url" placeholder="https://start.example.org/kiosk" autocomplete="off" />
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-label" for="cfg-kiosk-sites">Which sites may that window reach?</label>
+          <p class="cfg-hint" id="cfg-kiosk-sites-hint">Hostnames, separated by commas. No scheme, no path.</p>
+          <input class="cfg-input" id="cfg-kiosk-sites" name="kioskSites" type="text" autocomplete="off" aria-describedby="cfg-kiosk-sites-hint" placeholder="start.example.org, benefits.example.org" />
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-label" for="cfg-kiosk-forget">Wipe the session after how many idle minutes?</label>
+          <p class="cfg-hint" id="cfg-kiosk-forget-hint">This is what stops one visitor's form being on screen for the next one.</p>
+          <input class="cfg-input cfg-input--number" id="cfg-kiosk-forget" name="kioskForgetMinutes" type="number" min="1" max="120" step="1" value="8" aria-describedby="cfg-kiosk-forget-hint" />
+        </div>
+        <div class="cfg-row">
+          <label class="cfg-label" for="cfg-kiosk-restart">Restart every night at</label>
+          <input class="cfg-input cfg-input--number" id="cfg-kiosk-restart" name="kioskRestartAt" type="time" value="03:30" />
+        </div>
+        <label class="cfg-choice cfg-choice--wide">
+          <input type="checkbox" name="kioskPrinting" />
+          <span class="cfg-choice__text"><span class="cfg-choice__label">People at the machine may print</span></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <!-- ── the disclosure, which is not a question ────────────────────────────────────── -->
+    <div class="cfg-block">
+      <MigrationDisclosure />
+
+      <label class="cfg-choice cfg-choice--wide" data-when-policy="open managed locked">
+        <input type="checkbox" name="windowsApps" />
+        <span class="cfg-choice__text">
+          <span class="cfg-choice__label">Install the Windows compatibility layer anyway</span>
+          <span class="cfg-choice__note">
+            This installs the layer. It does not make your programs work. The recipe records, in the file
+            itself, that nothing beyond a list of programs somebody actually sat down and ran is promised —
+            and that list is empty until we have run yours. Send us the list and we go through it by hand.
+          </span>
+        </span>
+      </label>
+
+      <label class="cfg-choice cfg-choice--wide cfg-choice--emphasis">
+        <input type="checkbox" name="acknowledgedMigration" />
+        <span class="cfg-choice__text">
+          <span class="cfg-choice__label">I have read what does not come across</span>
+          <span class="cfg-choice__note">
+            The submit button stays off until this is ticked. It is above the button rather than below it
+            because the organisations that get through a migration knew this on day one.
+          </span>
+        </span>
+      </label>
+    </div>
+
+    <!-- ── the thing a recipe may not do ──────────────────────────────────────────────── -->
+    <fieldset class="cfg-fieldset">
+      <legend class="cfg-legend">Is there anything else you need?</legend>
+      <p class="cfg-hint" id="cfg-asking-hint">
+        These are the requests we get most often. Pick one and the panel shows you what the validator says
+        about it. Some of the answers are no, and the reason a no is worth reading is that it is the same
+        no we give ourselves.
+      </p>
+      <select class="cfg-input cfg-input--wide" id="cfg-asking" name="alsoAsking" aria-describedby="cfg-asking-hint">
+        {SPECIAL_REQUESTS.map((r) => <option value={r.id}>{r.label}</option>)}
+      </select>
+    </fieldset>
+
+    <!-- ── identity: needed to open a pull request, shapes nothing ────────────────────── -->
+    <fieldset class="cfg-fieldset">
+      <legend class="cfg-legend">Before you send it</legend>
+      <p class="cfg-hint cfg-hint--warning">{configurator.privacyWarning}</p>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-build-name">{configurator.questions.orgName.label}</label>
+        <p class="cfg-hint" id="cfg-build-name-hint">{configurator.questions.orgName.hint}</p>
+        <input class="cfg-input" id="cfg-build-name" name="buildName" type="text" autocomplete="organization" aria-describedby="cfg-build-name-hint" />
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-org-name">What name should appear on the machines themselves?</label>
+        <input class="cfg-input" id="cfg-org-name" name="orgDisplayName" type="text" autocomplete="organization" />
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-helpdesk-label">Who does a confused user tell?</label>
+        <p class="cfg-hint" id="cfg-helpdesk-hint">A role and a desk line, never somebody's personal mobile. This repository is public on purpose.</p>
+        <input class="cfg-input" id="cfg-helpdesk-label" name="helpdeskLabel" type="text" placeholder="School IT helpdesk" autocomplete="off" aria-describedby="cfg-helpdesk-hint" />
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-helpdesk-phone">And on what number?</label>
+        <input class="cfg-input" id="cfg-helpdesk-phone" name="helpdeskPhone" type="tel" placeholder="+44 20 7946 0000" autocomplete="off" />
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-timezone">What clock are these machines on?</label>
+        <p class="cfg-hint" id="cfg-timezone-hint">We have guessed from your browser. Change it if the machines are somewhere else.</p>
+        <input class="cfg-input" id="cfg-timezone" name="timezone" type="text" list="cfg-timezones" autocomplete="off" aria-describedby="cfg-timezone-hint" />
+        <datalist id="cfg-timezones">
+          {COMMON_TIMEZONES.map((tz) => <option value={tz}></option>)}
+        </datalist>
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-for">Who are these machines for, in your own words?</label>
+        <p class="cfg-hint" id="cfg-for-hint">
+          We have drafted this from your answers and it keeps up with them until you change a word of it.
+          It is the only part of the file that explains why the rest of it looks the way it does, and it is
+          written for whoever inherits it in eighteen months and has never met you.
+        </p>
+        <textarea class="cfg-input cfg-input--area" id="cfg-for" name="forParagraph" rows="4" aria-describedby="cfg-for-hint"></textarea>
+        <button type="button" class="cfg-button cfg-button--quiet" data-reset-for>Go back to our draft</button>
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-first-boot">What should the first screen say?</label>
+        <p class="cfg-hint" id="cfg-first-boot-hint">Optional. One sentence, in the language you chose. It is the first thing a stranger reads.</p>
+        <input class="cfg-input" id="cfg-first-boot" name="firstBootMessage" type="text" autocomplete="off" aria-describedby="cfg-first-boot-hint" />
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-approver">Who is signing this off?</label>
+        <p class="cfg-hint" id="cfg-approver-hint">
+          The approval itself lives outside this file, so the recipe records a reference rather than the
+          claim. Until that reference resolves the recipe still test-builds, which is what
+          "charged only once the test build passes" needs, but no image reaches a machine.
+        </p>
+        <input class="cfg-input" id="cfg-approver" name="approverName" type="text" autocomplete="name" aria-describedby="cfg-approver-hint" />
+      </div>
+
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-approver-role">And their role?</label>
+        <input class="cfg-input" id="cfg-approver-role" name="approverRole" type="text" autocomplete="organization-title" />
+      </div>
+    </fieldset>
+
+    <!-- ── submit ─────────────────────────────────────────────────────────────────────── -->
+    <div class="cfg-submit">
+      <div class="cf-turnstile" data-sitekey={TURNSTILE_TEST_SITEKEY} data-theme="auto"></div>
+      <p class="cfg-hint">
+        The human check runs before anything is sent, and the server refuses a submission without it.
+        If it has not loaded, this form does not pretend to send: it says so and points you at the email
+        address instead.
+      </p>
+      <button type="submit" class="cfg-button cfg-button--primary" data-submit disabled>
+        {configurator.submitLabel}
+      </button>
+      <p class="cfg-submit__reason" data-submit-reason role="status">{configurator.submitNote}</p>
+      <p class="cfg-hint">
+        Or copy the file above and send it to <a href={`mailto:${site.contactEmail}`}>{site.contactEmail}</a>.
+        That address is a placeholder until a human sets a real one.
+      </p>
+    </div>
+  </form>
+</template>
+
+<style is:global>
+  /* These rules style markup that is cloned out of a <template> at runtime, so they cannot be
+     scoped to this component: Astro's scoping attribute is not applied to nodes the browser
+     clones later. They are all prefixed `cfg-`, which is this component's namespace. */
+
+  .cfg-form {
+    display: grid;
+    gap: 1.25rem;
+    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    color: var(--cfg-ink, #24231f);
+  }
+
+  .cfg-fieldset,
+  .cfg-block {
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-radius: 3px;
+    padding: 1rem;
+    margin: 0;
+    background: var(--cfg-panel, #f4f1ea);
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  .cfg-subfield {
+    border: 0;
+    border-top: 1px solid var(--cfg-rule, #8a7358);
+    padding: 0.75rem 0 0;
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .cfg-legend {
+    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    /* Instrument Serif has 400 normal and 400 italic. There is no bold, and faking one with
+       synthetic weight is the thing the decision sheet says not to do. */
+    font-weight: 400;
+    font-size: 1.5rem;
+    line-height: 1.15;
+    padding: 0;
+  }
+
+  .cfg-legend__n {
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.875rem;
+    color: var(--cfg-ore, #be3a12);
+    margin-right: 0.4rem;
+  }
+
+  .cfg-row {
+    display: grid;
+    gap: 0.3rem;
+  }
+
+  .cfg-label {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .cfg-hint {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+
+  .cfg-hint--warning {
+    border-left: 2px solid var(--cfg-ore, #be3a12);
+    padding-left: 0.6rem;
+  }
+
+  .cfg-input {
+    font: inherit;
+    font-size: 1rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-radius: 3px;
+    background: var(--cfg-field, #ffffff);
+    color: var(--cfg-ink, #24231f);
+    max-width: 34rem;
+    width: 100%;
+  }
+
+  .cfg-input--number {
+    max-width: 9rem;
+  }
+  .cfg-input--wide {
+    max-width: 100%;
+  }
+  .cfg-input--area {
+    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    line-height: 1.5;
+    resize: vertical;
+  }
+
+  .cfg-input:focus-visible,
+  .cfg-choice input:focus-visible,
+  .cfg-button:focus-visible,
+  .cfg-form a:focus-visible {
+    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline-offset: 2px;
+  }
+
+  .cfg-choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+  }
+  .cfg-choices--stack {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .cfg-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    line-height: 1.45;
+    cursor: pointer;
+  }
+  .cfg-choice input {
+    margin-top: 0.25rem;
+    flex: none;
+    /* A 10-year-old laptop with a trackpad, used by somebody in a hurry. */
+    width: 1.05rem;
+    height: 1.05rem;
+    accent-color: var(--cfg-ore, #be3a12);
+  }
+  .cfg-choice--wide {
+    align-items: flex-start;
+  }
+  .cfg-choice__text {
+    display: grid;
+    gap: 0.15rem;
+  }
+  .cfg-choice__label {
+    font-size: 1rem;
+  }
+  .cfg-choice__note {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+  .cfg-choice--emphasis {
+    border-top: 1px solid var(--cfg-rule, #8a7358);
+    padding-top: 0.75rem;
+  }
+
+  .cfg-conditional[hidden] {
+    display: none;
+  }
+  .cfg-conditional {
+    display: grid;
+    gap: 0.75rem;
+    border-top: 1px solid var(--cfg-rule, #8a7358);
+    padding-top: 0.75rem;
+  }
+
+  .cfg-tier {
+    border-top: 1px solid var(--cfg-rule, #8a7358);
+    padding-top: 0.75rem;
+    display: grid;
+    gap: 0.2rem;
+  }
+  .cfg-tier__name {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .cfg-tier__price {
+    margin: 0;
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 1.05rem;
+  }
+  .cfg-tier__note {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+  .cfg-tier[data-conversation="true"] {
+    border-left: 2px solid var(--cfg-ore, #be3a12);
+    padding-left: 0.6rem;
+  }
+
+  .cfg-submit {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .cfg-submit__reason {
+    margin: 0;
+    font-size: 0.875rem;
+    line-height: 1.55;
+    color: var(--cfg-ink, #24231f);
+  }
+
+  .cfg-button {
+    font: inherit;
+    font-size: 0.9375rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-radius: 3px;
+    background: var(--cfg-panel, #f4f1ea);
+    color: var(--cfg-ink, #24231f);
+    cursor: pointer;
+    justify-self: start;
+  }
+  .cfg-button--quiet {
+    font-size: 0.8125rem;
+    padding: 0.3rem 0.6rem;
+  }
+  .cfg-button--primary {
+    background: var(--cfg-ore, #be3a12);
+    border-color: var(--cfg-ore, #be3a12);
+    color: #ffffff;
+  }
+  .cfg-button[disabled] {
+    cursor: not-allowed;
+    background: var(--cfg-panel-deep, #e6e0d2);
+    border-color: var(--cfg-rule, #8a7358);
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+
+  .cfg-form a {
+    color: inherit;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+</style>

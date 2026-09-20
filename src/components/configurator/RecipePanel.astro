@@ -71,7 +71,13 @@ const linesHtml = linesToHtml(initial.lines);
   </div>
 </section>
 
-<style>
+<style is:global>
+  /* GLOBAL, not scoped, and for a mechanical reason: the line spans and the findings blocks are
+     regenerated with innerHTML by `configurator.client.ts`, so they never carry Astro's scoping
+     attribute. Scoped rules would style the first paint and then silently stop applying, which
+     is the sort of bug that makes a panel look broken only after somebody has answered a
+     question. Everything here is namespaced `cfg-`. */
+
   .cfg-panel {
     /* Opaque. The terrain behind this page never reduces the contrast of text. */
     background: var(--cfg-panel, #f4f1ea);
@@ -189,24 +195,24 @@ const linesHtml = linesToHtml(initial.lines);
     margin-left: -0.5rem;
   }
 
+  /* The impossible line. Struck through in ore, but the TEXT stays ink: ore on the dark panel
+     is 2.9:1, and section 7 says AA on every text and panel pair is verified rather than assumed. */
   .cfg-line[data-section="refused"] {
-    color: var(--cfg-ore, #be3a12);
     text-decoration: line-through;
     text-decoration-color: var(--cfg-ore, #be3a12);
+    text-decoration-thickness: 2px;
   }
 
   /* A changed value is a real fact, so it is marked and then settles. It does not pulse, it
-     does not type itself out, and it does not loop. */
+     does not type itself out, and it does not loop. The transition sits on the base rule so
+     that REMOVING the mark fades rather than snapping; under reduced motion there is no
+     transition at all and the mark simply appears and goes. */
   .cfg-line[data-changed] {
     background: var(--cfg-mark, rgba(190, 58, 18, 0.14));
   }
-  .cfg-line[data-changed="settling"] {
-    transition: background 700ms ease-out 300ms;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .cfg-line[data-changed] {
-      transition: none;
+  @media (prefers-reduced-motion: no-preference) {
+    .cfg-line {
+      transition: background 700ms ease-out 300ms;
     }
   }
 

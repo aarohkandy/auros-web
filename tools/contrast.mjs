@@ -55,7 +55,24 @@ const VERBOSE = args.includes("--verbose");
 
 const THRESH = { body: 4.5, large: 3.0, nonText: 3.0 };
 
+/**
+ * WCAG 1.4.11 (non-text contrast) governs user-interface components and graphics needed to
+ * understand content. A purely decorative border is exempt by the success criterion's own words.
+ * So a mark on an interactive element, and any focus indicator, must clear 3:1 or this run fails;
+ * a decorative mark is measured and printed but does not fail the build. Measuring it and then
+ * failing on it would train people to ignore this tool, which costs more than the rule buys.
+ */
+const INTERACTIVE_TAGS = new Set(["a", "button", "input", "select", "textarea", "summary", "label", "output"]);
+function markIsGoverned({ tag, prop, selector }) {
+  if (/outline/.test(prop) || /:focus/.test(selector ?? "")) return true;
+  if (tag && INTERACTIVE_TAGS.has(tag)) return true;
+  if (!tag && /(^|[\s>(.#])(a|button|input|select|textarea|summary|label|output)\b/.test(selector ?? "")) return true;
+  return false;
+}
+
 /* ── colour ─────────────────────────────────────────────────────────────────────────────────── */
+
+const INHERITED_KEYWORDS = new Set(["inherit", "currentcolor", "unset", "initial", "revert", "none", "auto"]);
 
 function parseColor(raw) {
   if (!raw) return null;
@@ -153,16 +170,21 @@ function parseCss(css, origin) {
     }
     const body = text.slice(open + 1, j - 1);
     const decls = {};
+    const important = new Set();
     for (const part of body.split(";")) {
       const idx = part.indexOf(":");
       if (idx === -1) continue;
       const prop = part.slice(0, idx).trim().toLowerCase();
-      const value = part.slice(idx + 1).trim();
+      let value = part.slice(idx + 1).trim();
+      if (/!important\s*$/i.test(value)) {
+        value = value.replace(/\s*!\s*important\s*$/i, "").trim();
+        important.add(prop);
+      }
       if (prop && value) decls[prop] = value;
     }
     for (const selector of prelude.split(",")) {
       const s = selector.trim();
-      if (s) rules.push({ selector: s, decls, at: [...stack], origin, order: rules.length });
+      if (s) rules.push({ selector: s, decls, important, at: [...stack], origin, order: rules.length });
     }
     i = j;
   }
@@ -205,7 +227,11 @@ function readThemes(tokenRules) {
     const inDarkMedia = rule.at.some((a) => /prefers-color-scheme\s*:\s*dark/i.test(a));
     const isRoot = /^:root(?!\[)/.test(rule.selector) || rule.selector === ":root";
     const isDarkAttr = /\[data-theme\s*=\s*["']?dark["']?\]/.test(rule.selector);
-    const isLightGuard = /\[data-theme\s*=\s*["']?light["']?\]/.test(rule.selector);
+    // `:root:not([data-theme="light"])` is a DARK rule guarded against a manual light override, not
+    // a light rule. Strip every :not(...) before asking whether the selector targets light, or the
+    // guard reads as its own opposite and the dark palette leaks into the light theme.
+    const positive = rule.selector.replace(/:not\([^)]*\)/g, "");
+    const isLightGuard = /\[data-theme\s*=\s*["']?light["']?\]/.test(positive);
     for (const [prop, value] of Object.entries(rule.decls)) {
       if (!prop.startsWith("--")) continue;
       if (inDarkMedia && !isLightGuard) dark.set(prop, value);
@@ -279,6 +305,13 @@ const PSEUDO_STATE = /:(hover|focus|focus-visible|focus-within|active|visited|ta
 function parseCompound(text) {
   const out = { tag: null, id: null, classes: [], attrs: [], unsupported: false };
   let rest = text;
+  // Astro's default scoping wraps the component hash in `:where([data-astro-cid-…])`. Dropping the
+  // pseudo-class WITH its contents throws that constraint away, and then one component's `.line`
+  // rule matches another component's `.line` — which is exactly the false failure the first run of
+  // this tool produced against Shiki's code-block spans. So `:where()` and `:is()` contribute their
+  // contents to the compound, and `:not()` is dropped (conservatively widening, never narrowing).
+  rest = rest.replace(/:(?:where|is)\(([^)]*)\)/g, (_m, inner) => inner.split(",")[0]);
+  rest = rest.replace(/:not\([^)]*\)/g, "");
   rest = rest.replace(/::?[a-z-]+(\([^)]*\))?/g, (match) => {
     if (/^::?(before|after|first-line|first-letter|hover|focus|focus-visible|focus-within|active|visited|last-child|first-child|not|is|where|has|target)\b/.test(match)) return "";
     out.unsupported = true;
@@ -305,12 +338,12 @@ function parseSelector(selector) {
     .replace(/:global\(([^)]*)\)/g, "$1")
     .replace(/\s+/g, " ")
     .trim();
-  if (cleaned.includes("~") || cleaned.includes("+")) return { unsupported: true, parts: [] };
+  if (cleaned === ":root") return { unsupported: false, parts: [{ tag: "html", id: null, classes: [], attrs: [], combinator: " " }], state: false, pseudoElement: false };
   const parts = [];
   let combinator = " ";
-  for (const chunk of cleaned.split(" ")) {
-    if (chunk === ">") {
-      combinator = ">";
+  for (const chunk of cleaned.replace(/([>+~])/g, " $1 ").split(" ")) {
+    if (chunk === ">" || chunk === "+" || chunk === "~") {
+      combinator = chunk;
       continue;
     }
     if (!chunk) continue;
@@ -351,7 +384,27 @@ function matches(el, parsed) {
   let idx = parts.length - 2;
   let node = el.parent;
   let combinator = parts[parts.length - 1].combinator;
+  let sibling = el;
   while (idx >= 0) {
+    if (combinator === "+" || combinator === "~") {
+      const siblings = sibling.parent ? sibling.parent.children : [];
+      const at = siblings.indexOf(sibling);
+      let found = null;
+      if (combinator === "+") {
+        const prev = siblings[at - 1];
+        if (prev && matchesCompound(prev, parts[idx])) found = prev;
+      } else {
+        for (let k = at - 1; k >= 0; k--) {
+          if (matchesCompound(siblings[k], parts[idx])) { found = siblings[k]; break; }
+        }
+      }
+      if (!found) return false;
+      combinator = parts[idx].combinator;
+      sibling = found;
+      node = found.parent;
+      idx--;
+      continue;
+    }
     if (combinator === ">") {
       if (!node || !matchesCompound(node, parts[idx])) return false;
       combinator = parts[idx].combinator;
@@ -563,11 +616,31 @@ function measureBuiltPage(file, vars, themeName) {
     const applicable = prepared
       .filter((rule) => matches(el, rule.parsed))
       .sort((a, b) => a.spec - b.spec || a.index - b.index);
+    // The style attribute wins over every non-!important rule, so it is applied last. Shiki writes
+    // code-block colours there; a tool that skipped it would measure a pair that is never painted.
+    const inlineDecls = {};
+    if (el.attrs.style) {
+      for (const part of el.attrs.style.split(";")) {
+        const idx = part.indexOf(":");
+        if (idx === -1) continue;
+        inlineDecls[part.slice(0, idx).trim().toLowerCase()] = part.slice(idx + 1).trim();
+      }
+    }
+    const importantDecls = {};
     for (const rule of applicable) {
+      for (const prop of rule.important ?? []) importantDecls[prop] = rule.decls[prop];
+    }
+    const cascade = [
+      ...applicable,
+      ...(Object.keys(inlineDecls).length ? [{ decls: inlineDecls, parsed: { state: false }, selector: "[style]", origin: page }] : []),
+      ...(Object.keys(importantDecls).length ? [{ decls: importantDecls, parsed: { state: false }, selector: "!important", origin: page }] : []),
+    ];
+    for (const rule of cascade) {
       const vals = declaredColors(rule.decls, vars);
       for (const v of vals) {
         if (!v.color) {
-          unmeasured.push({ why: `could not resolve ${v.prop}: ${v.raw}`, selector: rule.selector, origin: rule.origin });
+          if (!INHERITED_KEYWORDS.has((v.raw ?? "").trim().toLowerCase()))
+            unmeasured.push({ why: `could not resolve ${v.prop}: ${v.raw}`, selector: rule.selector, origin: rule.origin });
           continue;
         }
         if (rule.parsed.state) {
@@ -632,9 +705,13 @@ function measureBuiltPage(file, vars, themeName) {
       const bg = style.effectiveBackground ?? computeFor(el.parent ?? el)?.effectiveBackground;
       if (!bg || mark.color.a === 0) continue;
       const fg = over(mark.color, bg);
+      const governed = markIsGoverned({ tag: el.tag, prop: mark.prop, selector: mark.selector });
       record({
-        theme: themeName, page, selector: `${selectorName} (${mark.prop})`, kind: "non-text mark",
-        fg: hex(fg), bg: hex(bg), value: ratio(fg, bg), required: THRESH.nonText,
+        theme: themeName, page, selector: `${selectorName} (${mark.prop})`,
+        kind: governed ? "non-text mark" : "decorative mark",
+        fg: hex(fg), bg: hex(bg), value: ratio(fg, bg),
+        required: governed ? THRESH.nonText : 0,
+        reference: THRESH.nonText,
         detail: mark.prop, source: "built page",
       });
     }
@@ -654,7 +731,8 @@ function measureDeclared(vars, themeName) {
     const ownSurface = vals.find((v) => v.kind === "surface" && v.color)?.color ?? null;
     for (const v of vals) {
       if (!v.color) {
-        if (v.raw) unmeasured.push({ why: `could not resolve ${v.prop}: ${v.raw}`, selector: rule.selector, origin: rule.origin });
+        if (v.raw && !INHERITED_KEYWORDS.has(v.raw.trim().toLowerCase()))
+          unmeasured.push({ why: `could not resolve ${v.prop}: ${v.raw}`, selector: rule.selector, origin: rule.origin });
         continue;
       }
       if (v.kind === "surface") continue;
@@ -664,11 +742,14 @@ function measureDeclared(vars, themeName) {
       const backdrops = ownSurface ? [["declared in the same rule", ownSurface]] : [...surfaces.entries()];
       for (const [label, bg] of backdrops) {
         const fg = over(v.color, bg);
+        const governed = v.kind !== "text" && markIsGoverned({ prop: v.prop, selector: rule.selector });
+        const kind = v.kind === "text" ? (large ? "large text" : "body text") : governed ? "non-text mark" : "decorative mark";
         record({
           theme: themeName, page: "—", selector: `${rule.selector} (${v.prop})`,
-          kind: v.kind === "text" ? (large ? "large text" : "body text") : "non-text mark",
+          kind,
           fg: hex(fg), bg: hex(bg), value: ratio(fg, bg),
-          required: v.kind === "text" ? (large ? THRESH.large : THRESH.body) : THRESH.nonText,
+          required: v.kind === "text" ? (large ? THRESH.large : THRESH.body) : governed ? THRESH.nonText : 0,
+          reference: THRESH.nonText,
           detail: `${rule.origin} · backdrop ${label}`, source: "declared",
         });
       }
@@ -694,7 +775,7 @@ function table(rows) {
   const body = rows
     .map(
       (r) =>
-        `| ${r.theme} | \`${r.page}\` | \`${r.selector}\` | ${r.kind} | \`${r.fg}\` | \`${r.bg}\` | **${fmt(r.value)}:1** | ${fmt(r.required)}:1 | ${r.value >= r.required ? "pass" : "**FAIL**"} |`,
+        `| ${r.theme} | \`${r.page}\` | \`${r.selector}\` | ${r.kind} | \`${r.fg}\` | \`${r.bg}\` | **${fmt(r.value)}:1** | ${r.required > 0 ? `${fmt(r.required)}:1` : `— (${fmt(r.reference ?? THRESH.nonText)}:1 for reference)`} | ${r.value >= r.required ? "pass" : "**FAIL**"} |`,
     )
     .join("\n");
   return `${head}\n${body}`;
@@ -713,6 +794,7 @@ colour that was typed into it by a person.
 - Pairs measured: **${measurements.length}** (${themeNames.length} themes)
 - Failing: **${findings.length}**
 - Evidence: **${mode === "built page" ? `the built pages in dist/ — ${built.length} page(s), real elements, real cascade` : "the stylesheets' declared pairs; there was no build in dist/ when this ran, so these are pairs the CSS can produce rather than pairs a page was observed to produce"}**
+- Measured from: \`${ROOT}\` (${mode === "built page" ? "a real build of these sources" : "sources only"})
 - Thresholds: body text ${THRESH.body}:1 · large text ${THRESH.large}:1 (≥24px, or ≥18.66px at weight ≥700) · non-text marks ${THRESH.nonText}:1
 
 ## Every failing pair

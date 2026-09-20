@@ -184,7 +184,7 @@ export function checkoutParams ({ tier, devices, recipeName, successUrl, cancelU
 }
 
 /** @param {StripeConfig} cfg @param {ReturnType<typeof checkoutParams>} params @param {string} idempotencyKey */
-export function createCheckoutSession (cfg, params, idempotencyKey) {
+export async function createCheckoutSession (cfg, params, idempotencyKey) {
   return callStripe(cfg, 'POST', '/checkout/sessions', params, { idempotencyKey })
 }
 
@@ -199,7 +199,7 @@ export function createCheckoutSession (cfg, params, idempotencyKey) {
  * @param {{ mode: 'payment'|'subscription', subscriptionId?: string, paymentIntentId?: string }} order
  * @param {string} idempotencyKey
  */
-export function billNow (cfg, order, idempotencyKey) {
+export async function billNow (cfg, order, idempotencyKey) {
   if (order.mode === 'subscription') {
     if (!order.subscriptionId) throw new StripeError('a subscription order with no subscription id cannot be billed', 400)
     return callStripe(cfg, 'POST', `/subscriptions/${order.subscriptionId}`, { trial_end: 'now', proration_behavior: 'none' }, { idempotencyKey })
@@ -220,7 +220,7 @@ export function billNow (cfg, order, idempotencyKey) {
  * @param {{ mode: 'payment'|'subscription', subscriptionId?: string, paymentIntentId?: string }} order
  * @param {string} idempotencyKey
  */
-export function releaseNow (cfg, order, idempotencyKey) {
+export async function releaseNow (cfg, order, idempotencyKey) {
   if (order.mode === 'subscription') {
     if (!order.subscriptionId) throw new StripeError('a subscription order with no subscription id cannot be cancelled', 400)
     return callStripe(cfg, 'DELETE', `/subscriptions/${order.subscriptionId}`, {}, { idempotencyKey })

@@ -1,0 +1,179 @@
+---
+/**
+ * The fifth thing, which is not a question.
+ *
+ * `CONFIGURATOR.md`: "The Windows programs that will not come across. It appears BEFORE the
+ * submit button, not after, and it is NOT DISMISSIBLE."
+ *
+ * So there is no `<details>` here, no "read more", no tab, and no close button. It is open
+ * prose with a checkbox at the end, and the submit button stays disabled until the checkbox is
+ * ticked. Spec section 4.2 is the reason and the spec says why: the organisations that migrate
+ * successfully knew this on day one, and the ones that leave in month two found out in month
+ * two. Putting it after the submit button would be finding out in month two.
+ *
+ * The words come from `src/content/migration`, which another agent wrote. Nothing is restated
+ * here, because two copies of a disclosure is one copy that goes stale.
+ */
+import { getCollection } from "astro:content";
+import { doesNotComeAcrossColumn, migrationPage } from "../../content/copy";
+
+const migration = await getCollection("migration");
+const entries = migration
+  .filter((e) => e.data.onLanding || e.data.verdict === "does-not")
+  .sort((a, b) => a.data.order - b.data.order);
+const doesNot = entries.filter((e) => e.data.verdict === "does-not");
+const conditional = entries.filter((e) => e.data.verdict === "conditional");
+---
+
+<section class="cfg-disclosure" aria-labelledby="cfg-disclosure-title">
+  <h3 class="cfg-disclosure__title" id="cfg-disclosure-title">{doesNotComeAcrossColumn.title}</h3>
+  <p class="cfg-disclosure__standfirst">{doesNotComeAcrossColumn.standfirst}</p>
+
+  <ul class="cfg-disclosure__list">
+    {
+      doesNot.map((entry) => (
+        <li class="cfg-disclosure__item">
+          <p class="cfg-disclosure__name">{entry.data.title}</p>
+          <p class="cfg-disclosure__verdict">{doesNotComeAcrossColumn.verdictLabels["does-not"]}</p>
+          <p class="cfg-disclosure__one-line">{entry.data.oneLine}</p>
+          {entry.data.examples.length > 0 && (
+            <ul class="cfg-disclosure__examples">
+              {entry.data.examples.map((example) => (
+                <li>{example}</li>
+              ))}
+            </ul>
+          )}
+        </li>
+      ))
+    }
+  </ul>
+
+  {
+    conditional.length > 0 && (
+      <div class="cfg-disclosure__conditional">
+        <p class="cfg-disclosure__conditional-note">{migrationPage.conditionalNote}</p>
+        <ul class="cfg-disclosure__list">
+          {conditional.map((entry) => (
+            <li class="cfg-disclosure__item">
+              <p class="cfg-disclosure__name">{entry.data.title}</p>
+              <p class="cfg-disclosure__verdict">{doesNotComeAcrossColumn.verdictLabels.conditional}</p>
+              <p class="cfg-disclosure__one-line">{entry.data.oneLine}</p>
+              {entry.data.howToCheck && (
+                <p class="cfg-disclosure__how">
+                  <span class="cfg-disclosure__how-label">{migrationPage.howToCheckLabel}:</span>{" "}
+                  {entry.data.howToCheck}
+                </p>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  <p class="cfg-disclosure__footnote">{doesNotComeAcrossColumn.footnote}</p>
+  <p class="cfg-disclosure__more">
+    <a href={doesNotComeAcrossColumn.moreLink.href}>{doesNotComeAcrossColumn.moreLink.label}</a>
+  </p>
+</section>
+
+<style>
+  .cfg-disclosure {
+    background: var(--cfg-panel, #f4f1ea);
+    color: var(--cfg-ink, #24231f);
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-left: 3px solid var(--cfg-ore, #be3a12);
+    border-radius: 3px;
+    padding: 1rem;
+    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+  }
+
+  .cfg-disclosure__title {
+    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.5rem;
+    line-height: 1.15;
+    margin: 0 0 0.4rem;
+  }
+
+  .cfg-disclosure__standfirst,
+  .cfg-disclosure__footnote,
+  .cfg-disclosure__conditional-note {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    margin: 0 0 0.75rem;
+  }
+
+  .cfg-disclosure__footnote {
+    border-top: 1px solid var(--cfg-rule, #8a7358);
+    padding-top: 0.75rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .cfg-disclosure__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .cfg-disclosure__item {
+    border-top: 1px solid var(--cfg-rule, #8a7358);
+    padding-top: 0.6rem;
+  }
+
+  .cfg-disclosure__name {
+    margin: 0;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+
+  .cfg-disclosure__verdict {
+    margin: 0.1rem 0 0.3rem;
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.04em;
+    color: var(--cfg-ore, #be3a12);
+  }
+
+  .cfg-disclosure__one-line,
+  .cfg-disclosure__how {
+    margin: 0 0 0.3rem;
+    font-size: 0.875rem;
+    line-height: 1.55;
+  }
+
+  .cfg-disclosure__how-label {
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.8125rem;
+  }
+
+  .cfg-disclosure__examples {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+
+  .cfg-disclosure__conditional {
+    margin-top: 1rem;
+  }
+
+  .cfg-disclosure__more {
+    margin: 0;
+    font-size: 0.875rem;
+  }
+
+  .cfg-disclosure a {
+    color: var(--cfg-ink, #24231f);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+  .cfg-disclosure a:focus-visible {
+    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline-offset: 2px;
+  }
+</style>

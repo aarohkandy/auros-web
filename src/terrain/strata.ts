@@ -167,7 +167,10 @@ export const STRATA: readonly Stratum[] = [
     isImageLayer: false,
     top: 0.175,
     reliefBlocks: 14,
-    paint: { body: PX.GRASS, grain: PX.SOIL_HI, grainDensity: 0.1 },
+    // Turf, not soil. The surface has to be visibly a different material from the topsoil
+    // directly under it, or "your machine" and "your image" read as one band and the diagram
+    // loses its first distinction.
+    paint: { body: PX.GRASS, grain: PX.TREE_LO, grainDensity: 0.16 },
   },
   {
     id: "topsoil",
@@ -176,7 +179,7 @@ export const STRATA: readonly Stratum[] = [
     ownedBy: "you",
     depth: 2,
     isImageLayer: true,
-    top: 0.198,
+    top: 0.19,
     reliefBlocks: 11,
     paint: { body: PX.SOIL_HI, grain: PX.SOIL_LO, grainDensity: 0.22 },
   },

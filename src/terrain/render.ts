@@ -208,6 +208,7 @@ type AnyCtx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
  * The canvas is *block-resolution*. It is CSS that scales it up to 4 px per block with
  * `image-rendering: pixelated`, which is what keeps memory at 1.5 million pixels instead of 24
  * million on a retina display, and is also what guarantees every block edge lands on an integer
+ * auros-allow: 'guarantees' here describes a mechanism (integer alignment), not a promise to a customer.
  * device pixel. Drawing at device resolution and relying on `imageSmoothingEnabled = false`
  * would be the same picture at sixteen times the cost.
  */

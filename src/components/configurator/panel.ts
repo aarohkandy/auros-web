@@ -45,10 +45,6 @@ export function sectionOf(line: YamlLine): string {
   return "body";
 }
 
-const MOTION_QUERY = "(prefers-reduced-motion: reduce)";
-const prefersReducedMotion = (): boolean =>
-  typeof window !== "undefined" && typeof window.matchMedia === "function" && window.matchMedia(MOTION_QUERY).matches;
-
 /** Build the line markup. Exported so the server render and the client render cannot diverge. */
 export function linesToHtml(lines: YamlLine[]): string {
   return lines
@@ -111,12 +107,11 @@ export function paint(el: PanelElements, state: PanelState, input: PaintInput): 
   el.summary.textContent = summaryText(input);
 
   if (changed.size === 0) return;
-  const reduced = prefersReducedMotion();
   const marked: HTMLElement[] = [];
   for (const id of changed) {
     const node = el.code.querySelector<HTMLElement>(`[data-id="${cssEscape(id)}"]`);
     if (!node) continue;
-    node.dataset.changed = reduced ? "still" : "settling";
+    node.dataset.changed = "true";
     marked.push(node);
   }
   window.setTimeout(() => {

@@ -18,7 +18,7 @@
  * also why there is no roving-tabindex code in this file — there is nothing to manage.
  */
 
-import { defaultAnswers, effectiveForParagraph, slug, type Answers, type OrgKind, type Policy } from "../../lib/answers";
+import { defaultAnswers, slug, type Answers, type OrgKind, type Policy } from "../../lib/answers";
 import { languageByName } from "../../lib/catalogue";
 import { renderRecipe } from "../../lib/recipe-render";
 import { validateRecipe } from "../../lib/recipe-validate";
@@ -191,7 +191,8 @@ export function mount(container: HTMLElement): void {
   }
 
   function update(): void {
-    const answers = readAnswers(form!);
+    // Language first: it may change the keyboard and the second script, and the recipe has to be
+    // rendered from what the form says AFTER that, not before.
     followLanguage();
     const a = readAnswers(form!);
     syncConditionalRows(a);
@@ -223,7 +224,6 @@ export function mount(container: HTMLElement): void {
     paintSubmit(container, a, verdict.status === "ready");
     lastText = result.text;
     lastName = name;
-    void answers;
   }
 
   let lastText = "";

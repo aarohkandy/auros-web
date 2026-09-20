@@ -84,7 +84,8 @@ export async function deliver (cfg, message) {
     }
     return { sent: true, reason: 'sent' }
   } catch (e) {
-    // A failed notification must never fail an order that already exists as a pull request.
+    // A notification that could not be delivered does not undo an order that already exists as a
+    // pull request. The PR is the durable record; the email is a convenience on top of it.
     return { sent: false, reason: `could not reach the mail provider (${e instanceof Error ? e.message : String(e)}). The order and the pull request are unaffected.` }
   }
 }

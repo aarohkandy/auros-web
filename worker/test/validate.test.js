@@ -94,8 +94,10 @@ describe('refusals — a recipe may only ADD', () => {
     assert.match(presented.why, /public/i, 'the argument is that the repository is public — that is the reason, and it should be said')
   })
 
-  test('a testimonial is refused, because the website renders what is in these files', () => {
-    const presented = refusalOf({ ...school(), testimonial: 'Best OS ever — a real school' })
+  // auros-allow: the word below is the field being REFUSED, not a claim being made. The gate is right
+  // to look for it and this is the one shape of answer it should get — an annotation in the diff.
+  test('a testimonial is refused, because the website renders what is in these files', () => { // auros-allow: refusal, not claim
+    const presented = refusalOf({ ...school(), testimonial: 'Best OS ever — a real school' }) // auros-allow: refused input
     assert.match(presented.headline, /general claim/i)
   })
 

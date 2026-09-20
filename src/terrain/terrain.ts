@@ -210,10 +210,14 @@ export interface TerrainBuffer {
  * strata that all undulate in sync read as one striped object rather than as separate deposits,
  * and the whole point is that these are separate things stacked on each other.
  *
+ * Exported because `terrain.test.ts` needs the exact boundary of each column to prove that no
+ * ore pixel exists outside a seam band. A test that re-implemented this would be testing its
+ * own copy.
+ *
  * Monotonicity is forced afterwards. Independent noise can cross two boundaries over, and a
  * crossed boundary would draw stratum 2 above stratum 1, which would be a diagram that lies.
  */
-function boundariesAt(
+export function columnBoundaries(
   worldX: number,
   seed: number,
   worldHeight: number,
@@ -303,7 +307,7 @@ export function generateTerrain(req: TerrainRequest = {}): TerrainBuffer {
 
   for (let col = 0; col < width; col++) {
     const worldX = wrap(x0 + col, worldWidth);
-    const rows = boundariesAt(worldX, seed, worldHeight, worldWidth);
+    const rows = columnBoundaries(worldX, seed, worldHeight, worldWidth);
     const horizon = rows[1]!; // top of `surface`
 
     // Ore is clustered by a low-frequency vein field rather than sprinkled uniformly. A uniform
@@ -329,17 +333,17 @@ export function generateTerrain(req: TerrainRequest = {}): TerrainBuffer {
         for (let i = 1; i < rows.length; i++) if (y >= rows[i]!) si = i;
         const s: Stratum = STRATA[si]!;
 
-        // The top block of `surface` is the grass line; below it the surface is already soil,
-        // because a laptop is thin and what is under it is your image.
-        if (si === 1 && y < rows[1]! + 1) {
+        // The very top block of the surface is unbroken turf, so the horizon reads as one
+        // clean line. Everywhere else the layer is its own body with its own grain.
+        if (si === 1 && y === rows[1]!) {
           px = PX.GRASS;
         } else {
-          const body = si === 1 ? PX.SOIL_HI : s.paint.body;
-          const grain = si === 1 ? PX.SOIL_LO : s.paint.grain;
-          const density = si === 1 ? 0.18 : s.paint.grainDensity;
           // Grain is sampled at half resolution so flecks are 2×2 blocks. At one block the
           // texture reads as television static; at two it reads as mineral.
-          px = hash(seed, SALT.grain, worldX >> 1, y >> 1) < density ? grain : body;
+          px =
+            hash(seed, SALT.grain, worldX >> 1, y >> 1) < s.paint.grainDensity
+              ? s.paint.grain
+              : s.paint.body;
         }
 
         // Ore, and only at an image-layer boundary.
@@ -365,7 +369,7 @@ export function generateTerrain(req: TerrainRequest = {}): TerrainBuffer {
   for (let rx = -TREE_HALF_WIDTH; rx < width + TREE_HALF_WIDTH; rx++) {
     const worldX = wrap(x0 + rx, worldWidth);
     if (!isTreeRoot(worldX, seed, worldWidth)) continue;
-    const rows = boundariesAt(worldX, seed, worldHeight, worldWidth);
+    const rows = columnBoundaries(worldX, seed, worldHeight, worldWidth);
     const rootY = rows[1]!;
     const height = 5 + Math.floor(hash(seed, SALT.tree + 1, worldX) * 4); // 5..8 blocks
 

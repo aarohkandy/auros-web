@@ -56,7 +56,7 @@ const { class: className } = Astro.props;
   .prose :global(a) {
     color: var(--ink, #24231f);
     text-decoration-line: underline;
-    text-decoration-color: var(--ore, #be3a12);
+    text-decoration-color: var(--rule, #8a7358);
     text-decoration-thickness: 1px;
     text-underline-offset: 2px;
   }
@@ -66,6 +66,21 @@ const { class: className } = Astro.props;
   .prose :global(code) {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.92em;
+  }
+  /* Astro's Markdown pipeline ships Shiki, and Shiki writes its theme's colours into a `style`
+     attribute on the <pre> — github-dark's #24292e and #e1e4e8, neither of which is in the §7
+     palette and neither of which any token controls. An inline style beats a class, so these two
+     declarations are the one place on this site that needs `!important`. The real fix is one line
+     in `astro.config.*` (`markdown.syntaxHighlight: false`, or Shiki's `css-variables` theme), and
+     that file belongs to another agent; until it lands, the code blocks are on our own panel and
+     our own ink, measured at 12.6:1 rather than on a third-party palette nobody chose. */
+  .prose :global(pre.astro-code) {
+    background-color: var(--panel-deep, #24231f) !important;
+    color: var(--ink-console, #e2ddd0) !important;
+  }
+  .prose :global(pre.astro-code code),
+  .prose :global(pre.astro-code span) {
+    color: inherit !important;
   }
   .prose :global(pre) {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);

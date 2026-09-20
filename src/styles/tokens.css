@@ -16,49 +16,76 @@
 
    PLAN.md §3.9 flagged the contradiction and refused to ship 19 under a sign saying 18.
 
-   RESOLUTION (PLAN.md §3.9, option 1 — the smaller cap, not the raised one):
+   RESOLUTION, in three parts:
 
    1. The cap of 18 is the TERRAIN RENDERER'S palette — the colours the canvas may draw with.
       It is a constraint on the picture, which is where a palette cap does work: a 16-bit
       cross-section stops reading as one if it has unlimited colours.
 
-   2. One sky band is dropped. The stepped sky reads fine in three. The band removed is
-      #D6DCDC, the second of four, chosen because the other three each do a second job:
-        #C9D6DE  the cold top of the sky, the far end of the ramp
-        #E2DDD0  also --ink-console, the text colour on the build console panel
-        #EFE6D4  the warm horizon, the near end of the ramp
-      Dropping a band that is only a band costs the least.
+   2. The colour that goes is FAR HILLS (#A8AFA2, #8E968C).
 
-           TERRAIN PALETTE, LIGHT — 18 exactly:
-           sky 3 · cloud 2 · far hills 2 · trees 2 · grass 1 · soil 2 · strata 4 · ore 2 = 18
+      Two candidates were proposed. PLAN.md §3.9 proposed dropping one sky band, on the
+      grounds that a stepped sky reads fine in three. src/terrain/render.ts proposed dropping
+      far hills, on the grounds §7 gives itself: "The background must always be carrying
+      meaning, never just vibes." Every other entry in the list names a thing in the
+      architecture — sky is the claim, trees and grass are the machine's surface, soil is your
+      apps, the four strata are the image stack, ore marks where one image layer ends and the
+      next begins. Distant hills name nothing. They are the only purely scenic entry, so they
+      are the scenery, so they are what gets cut.
+
+      That argument is stronger than "three bands is enough", and it is the one already
+      implemented in the renderer, which is the code the cap actually governs. Recording a
+      second, different resolution here would have produced precisely the thing PLAN.md §3.9
+      refused: two signs, different numbers.
+
+           TERRAIN PALETTE, LIGHT — 17 distinct values in 18 slots:
+           sky 4 · cloud 2 · trees 2 · grass 1 · soil 2 · strata 4 · ore 2  =  17
+           The 18th slot is STAR, mapped in light theme to exactly SKY_0, so it introduces no
+           value; it exists so a theme switch is a palette remap and not a regeneration.
+           One slot is spare. It stays spare.
+
+           TERRAIN PALETTE, DARK — 15 distinct:
+           2 sky (§7's own #171C24 / #1E242C, repeated across four band indices) · 1 star
+           (the cloud tone, reused) · 2 night cloud (existing stratum tones) · 9 produced by
+           the documented darken(x, 0.55) multiply · 2 ore, unchanged ("ore stays").
 
    3. Ink, panel and dark-theme colours are a SEPARATE, DOCUMENTED SET, not counted against
       the terrain cap — because they are type and chrome, not terrain, and because a cap that
-      forced body text to reuse a tree colour would be a cap making the site worse.
+      forced body text to reuse a tree colour would be a cap making the site worse. The set is
+      documented and small rather than unbounded:
 
-      The set is documented rather than unbounded, and it turned out to cost nothing:
+           LIGHT INK/PANEL SET — 0 new values. Every one aliases a terrain colour.
+           DARK INK/PANEL SET  — 3 new values, each one named and justified:
+                #171C24, #1E242C   §7's own dark sky, which §7 specifies and the terrain uses
+                #A8AFA2            --ink-muted in dark, measured 6.93:1 on --panel. This is
+                                   the old far-hills value, kept as INK after it left the
+                                   terrain palette. It is the only colour on this site that
+                                   exists solely to carry type, and it is here because the
+                                   alternatives out of the remaining palette were either
+                                   indistinguishable from --ink or under 4.5:1.
 
-           LIGHT INK/PANEL SET — 0 new colours. Every value is already in the terrain 18.
-           DARK THEME         — 2 new colours, and they are the two §7 itself specifies for the
-                                dark sky (#171C24, #1E242C). The dark ink/panel set reuses them
-                                and the terrain 18; it adds nothing of its own.
-
-           WHOLE SITE, BOTH THEMES:  20 distinct hex values.
-           TERRAIN, LIGHT:           18   (the capped number)
-           TERRAIN, DARK:            17   (three sky bands become two)
+           WHOLE SITE, BOTH THEMES: 20 distinct values in CSS (this file), plus the 9 the
+           renderer derives by its documented multiply, which exist only on the canvas.
 
    4. Therefore: adding a hex to this file is a change to a number that is written down.
-      If you add one, change the counts above in the same commit. If a terrain colour is
-      added, the renderer is over 18 and the palette is broken — fix the palette, not the sign.
+      If you add one, change the counts above in the same commit.
 
    -------------------------------------------------------------------------------------------
-   CONTRAST — measured, never asserted.
+   BOTH OF THESE ARE ENFORCED, NOT DESCRIBED.
    -------------------------------------------------------------------------------------------
-   §7: "WCAG AA contrast on every text/panel pair, verified not assumed."
-   `node tools/contrast.mjs` parses THIS FILE, computes every declared pair, and writes
-   src/styles/a11y-audit.md. It exits non-zero when a pair is under 4.5:1 for body text,
-   3:1 for large text, or 3:1 for a non-text UI mark. It runs in `pnpm build`.
-   Do not hand-edit a11y-audit.md. Do not add a colour here without running it.
+   `node tools/palette-lint.mjs`
+       Reads the --terrain-* tokens below AND the LIGHT palette table in src/terrain/render.ts
+       and fails the build if they disagree, if the distinct count exceeds 18, or if the counts
+       written in this comment stop matching the tokens underneath it. The terrain renderer
+       asked for exactly this check in its own header; this is it. A comment that cannot go red
+       is documentation, and documentation drifts.
+
+   `node tools/contrast.mjs`
+       §7: "WCAG AA contrast on every text/panel pair, verified not assumed." Resolves every
+       token below, per theme, reads the site's real stylesheets and built HTML, measures the
+       pairs the site actually produces, and writes src/styles/a11y-audit.md. It fails on body
+       text under 4.5:1, large text under 3:1, or a non-text mark under 3:1.
+       Do not hand-edit a11y-audit.md. Do not add a colour here without running it.
 
    -------------------------------------------------------------------------------------------
    ORE IS NOT A TEXT COLOUR.
@@ -73,22 +100,20 @@
   color-scheme: light dark;
 
   /* ------------------------------------------------------------------------------------------
-     TERRAIN PALETTE — 18 colours, light. The renderer's alphabet. §7, verbatim minus #D6DCDC.
-     Grouped exactly as §7 groups them so the two can be diffed by eye.
+     TERRAIN PALETTE — the renderer's alphabet. 17 distinct values; §7's list minus far hills.
+     Grouped exactly as §7 groups them so the two can be diffed by eye, and in the same order
+     as the LIGHT table in src/terrain/render.ts so tools/palette-lint.mjs can compare them.
      ------------------------------------------------------------------------------------------ */
 
-  /* sky — 3 stepped bands, top to horizon. NEVER a CSS gradient (§7). */
-  --terrain-sky-1: #c9d6de;
+  /* sky — 4 stepped bands, zenith to horizon. NEVER a CSS gradient (§7). */
+  --terrain-sky-0: #c9d6de;
+  --terrain-sky-1: #d6dcdc;
   --terrain-sky-2: #e2ddd0;
   --terrain-sky-3: #efe6d4;
 
   /* cloud — 2 */
   --terrain-cloud-1: #f4f1ea;
   --terrain-cloud-2: #e6e0d2;
-
-  /* far hills — 2 */
-  --terrain-hill-1: #a8afa2;
-  --terrain-hill-2: #8e968c;
 
   /* trees — 2 */
   --terrain-tree-1: #6e7a66;
@@ -111,23 +136,28 @@
   --terrain-ore-1: #be3a12;
   --terrain-ore-2: #d9682e;
 
-  /* Stars in the dark sky (§7: "single-pixel stars"). Reuses cloud 1 — not a 19th colour.
-     Only visible in dark, but declared once so the renderer reads one token name. */
-  --terrain-star: #f4f1ea;
+  /* Stars in the dark sky (§7: "single-pixel stars"). In light theme this is exactly
+     --terrain-sky-0, so it occupies a palette slot without contributing a value; in dark it is
+     the cloud tone, reused. No new colour in either theme. */
+  --terrain-star: #c9d6de;
 
   /* ------------------------------------------------------------------------------------------
-     INK / PANEL — type and chrome. Zero new hex values: every one aliases a terrain colour.
+     INK / PANEL — type and chrome. In light, zero new hex values: every one aliases a terrain
+     colour. In dark, three new values, each named in the header comment above.
      These names are the contract with src/components/ (see CONVENTIONS.md §2).
      ------------------------------------------------------------------------------------------ */
   --ink: var(--terrain-bedrock); /* #24231F — body text                    13.94:1 on --panel */
   --ink-muted: var(--terrain-stratum-1); /* #5A4E40 — captions, labels      7.16:1 on --panel */
   --ink-console: var(--terrain-sky-2); /* #E2DDD0 — text on --panel-deep   11.60:1 on deep    */
 
+  /* #A8AFA2 — secondary text on --panel-deep, which is dark in both themes, so this value does
+     not change with the theme. It is the former far-hills tone, kept as ink after it left the
+     terrain palette; see the header. Measured 6.98:1 light deep, 7.59:1 dark deep. */
+  --ink-muted-deep: #a8afa2;
+
   --panel: var(--terrain-cloud-1); /* #F4F1EA — the opaque panel body text sits on (§7) */
   --panel-2: var(--terrain-cloud-2); /* #E6E0D2 — second tone, insets, <pre>            */
   --panel-deep: var(--terrain-bedrock); /* #24231F — the build console. Dark in BOTH themes. */
-
-  --ink-muted-deep: var(--terrain-hill-1); /* #A8AFA2 — secondary text on --panel-deep  6.98:1 */
 
   --rule: var(--terrain-soil-1); /* #8A7358 — the 1px hairline, the ONLY divider (§7) */
   /* The hairline on --panel-deep. Named separately because src/components/Panel.astro already
@@ -240,9 +270,8 @@
     --terrain-sky-3: #1e242c;
 
     --ink: #e2ddd0; /* the light sky-2 value, now carrying type   11.52:1 on --panel */
-    --ink-muted: var(--terrain-hill-1); /* #A8AFA2                 6.93:1 on --panel */
+    --ink-muted: #a8afa2; /* the former far-hills tone, now ink   6.93:1 on --panel */
     --ink-console: #e2ddd0; /*                                    12.61:1 on --panel-deep */
-    --ink-muted-deep: var(--terrain-hill-1); /*                     7.59:1 on --panel-deep */
 
     --panel: #1e242c;
     --panel-2: #171c24;
@@ -272,9 +301,8 @@
   --terrain-sky-3: #1e242c;
 
   --ink: #e2ddd0; /* the light sky-2 value, now carrying type   11.52:1 on --panel */
-  --ink-muted: var(--terrain-hill-1); /* #A8AFA2                 6.93:1 on --panel */
+  --ink-muted: #a8afa2; /* the former far-hills tone, now ink   6.93:1 on --panel */
   --ink-console: #e2ddd0; /*                                    12.61:1 on --panel-deep */
-  --ink-muted-deep: var(--terrain-hill-1); /*                     7.59:1 on --panel-deep */
 
   --panel: #1e242c;
   --panel-2: #171c24;
