@@ -1,0 +1,76 @@
+---
+title: An OS with only what you asked for
+navLabel: Auros
+summary: We take a pile of laptops Windows abandoned and build them an operating system that contains only what your organisation asked for, in your language, under your rules, rebuilt every night.
+layer: sky
+order: 1
+---
+
+## The machines are not broken
+
+A 2014 laptop opens a spreadsheet as fast as it did in 2014. Nothing about it wore out. What
+happened is that the operating system it shipped with stopped being patched, and an unpatched
+machine on a school network is a decision somebody has to defend.
+
+So the machines sit in a cupboard. They are not broken. They are orphaned.
+
+We build them an operating system. Not a general-purpose one with a store and a hundred
+services you did not ask for. One that contains the applications your staff actually open, in
+the language you actually teach in, with the lockdown you actually need, and nothing else at
+all.
+
+## Subtraction is the product
+
+Most software is sold by addition. More features, more integrations, more surface. The thing
+you are buying here is the opposite, and it is worth being precise about what it means.
+
+A package that is not in your image is not disabled, not hidden behind a settings page, and not
+sitting there waiting for somebody to find it. It has been removed from the image, so it is not
+bytes your machines download, not a thing that can be exploited, and not an icon a Year 8 can
+click.
+
+The build reports back what it removed, by name, with the size of each. Not an estimate from
+counting lines in a file. A measurement taken from the image you are about to receive.
+
+Nobody else selling you a computer shows you what they took out.
+
+## What doesn't come across
+
+This is the part most vendors put on page four. It belongs at the top, because the organisations
+that migrate successfully are the ones who knew this on day one, and the ones who leave in month
+two are the ones who found out then.
+
+Windows programs do not come across. Not one of them. Saved passwords in Chrome and Edge do not
+come across, for a reason worth understanding rather than working around. Anything on a hardware
+dongle does not. Anything built on Active Directory does not.
+
+Your files do. Firefox comes across whole. Bookmarks, Wi-Fi, printers and the account name come
+across, and the files are counted and hashed before a single byte of the old system is touched.
+
+The full inventory, including how to test your own programs against the compatibility layer
+before you commit anything, is on its own page and it is the page we would read first.
+
+## Your data is copied before anything is written
+
+The migration has an order to it and the order is not negotiable.
+
+Your files are inventoried, copied to a disk that is not the system disk, and then verified
+twice over: the file count has to match, and every file's hash has to match. If one file
+disagrees, the migration stops and changes nothing. Windows still boots. You try again tomorrow
+or you walk away.
+
+Only after that passes does anything get written to the machine. There is a moment, by design,
+where your data exists in two places and the original disk has not been touched.
+
+That archive stays on your premises. It is never uploaded, and we never receive it.
+
+## We are replaceable on purpose
+
+Every recipe is a public git repository, including yours. If we disappear, you clone it and
+rebuild the same operating system with the same command we use.
+
+That is not generosity and it is not marketing. A company that can hold your operating system
+hostage eventually behaves like one, and a school cannot afford to find out which kind we are
+in four years. So we removed the possibility and then we advertised it.
+
+The instructions are written out in full, with the actual commands, on the replaceable page.

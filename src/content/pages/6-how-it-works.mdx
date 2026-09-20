@@ -1,0 +1,47 @@
+---
+title: How it works
+navLabel: How it works
+summary: Five layers. Fedora at the bottom, your machine at the top, and exactly one image in the middle that is ours.
+layer: bedrock
+order: 6
+---
+
+The background of this site is a cross-section of ground, and it is not decoration. Each stratum
+you scroll through is a layer of the thing we build. The labels in the margin are the real names.
+
+Read from the bottom up.
+
+## Why the shape matters
+
+There is exactly one base image. Not one per customer, not one per hardware generation, not one
+per school. One.
+
+That constraint is what makes the security promise true rather than aspirational. When a serious
+vulnerability lands, there is one file to change. The base rebuilds, every recipe standing on it
+rebuilds, and every machine has it on the next restart. If fixing something ever required
+touching more than one file, the architecture would be wrong and we would have to say so.
+
+The cost of that constraint is that we cannot bend the base for one customer. Not a different
+kernel, not a pinned package version, not a patched driver. A customer who needs one of those is
+a customer we decline, and we would rather lose the sale than quietly grow a second base that
+nobody rebuilds at three in the morning.
+
+## What happens the night a vulnerability is published
+
+1. The nightly build picks up the fix from upstream and rebuilds the base.
+2. Every recipe standing on that base rebuilds automatically.
+3. Each build runs the full check matrix in a virtual machine: it boots, the lockdown is proved
+   to be in force rather than merely configured, every removed package is confirmed absent, every
+   requested package is confirmed present, the locale is what the recipe said, and the signature
+   is verified.
+4. Only on a complete pass does anything publish. The publish step reads the results ledger, and
+   a build with no recorded pass for that exact image cannot be waved through.
+5. Machines pull it in the background and switch on their next restart, keeping the previous
+   image on disk.
+
+If step 3 fails, nothing ships and the morning is spent on it. Some mornings a build goes red
+through no fault of ours, usually because upstream added a dependency that dragged back a package
+one recipe had removed. That is the check doing its job. It is not flakiness and it does not get
+retried away.
+
+## The stack

@@ -1,0 +1,99 @@
+---
+title: Replaceable on purpose
+navLabel: Replaceable
+summary: Every recipe is a public git repository, including yours. Here are the actual commands to rebuild your operating system without us.
+layer: stratum-1
+order: 5
+---
+
+The normal end of a story like this is that the small vendor stops answering email, and a school
+is left with two hundred machines running an operating system that nobody alive can rebuild.
+Everything still works until the day it does not, and then there is no path forward that is not
+a replacement programme.
+
+We designed against that outcome, and the design is the only part of this page worth reading,
+because the promise is only as good as the commands underneath it.
+
+This is also the one page on this site with a command line on it. Nobody using these machines
+should ever need one. The person deciding whether to trust us with two hundred of them deserves
+to see exactly what the escape hatch is.
+
+## What is public
+
+- `auros-recipes` holds every recipe, including yours. The readable file and the Containerfile
+  compiled from it, committed together, so nobody needs our compiler to build it.
+- `auros-base` holds the one base image: the hardening, the policy modules, the update agent,
+  the check matrix, and the workflows that build it.
+- `hardware/compat.tsv` holds what worked on which machine, including the failures.
+
+There is no private key to lose. Images are signed without one, against a public transparency
+log, so verifying a signature never depends on us handing anything over.
+
+Nothing that would stop you rebuilding is held back, and there is no tier of this product where
+that changes.
+
+## Rebuild your image
+
+You need one `x86_64` Linux machine with `podman` installed and about `40 GB` of free disk. You
+do not need an account with us.
+
+```
+git clone https://github.com/aarohkandy/auros-recipes
+cd auros-recipes
+podman build -t myschool:local -f myschool/Containerfile .
+```
+
+That is your operating system, built from your file, with the same packages removed. If the
+registry we publish to is gone too, build the base first and point your recipe at the local
+copy:
+
+```
+git clone https://github.com/aarohkandy/auros-base
+podman build -t auros-base:hardened auros-base
+podman build -t myschool:local \
+  --build-arg BASE=localhost/auros-base:hardened \
+  -f myschool/Containerfile .
+```
+
+## Turn it into a bootable USB stick
+
+```
+mkdir -p out
+podman run --rm --privileged \
+  -v ./out:/output \
+  -v /var/lib/containers/storage:/var/lib/containers/storage \
+  quay.io/centos-bootc/bootc-image-builder:latest \
+  --type iso localhost/myschool:local
+```
+
+The image lands in `out/`. Write it to a stick the way you would write any other.
+
+## Keep your existing machines updating
+
+Machines already running an Auros image do not need reimaging. Push your build to any registry
+you control and point them at it, and they will take their updates from you instead of from us,
+with the same staging and the same automatic rollback.
+
+## Keep the nightly rebuild
+
+The part people forget is that a frozen image is a fine operating system for about a month.
+
+The nightly workflow that rebuilds the base against upstream lives in `auros-base` and runs on
+free CI for public repositories. Fork it and you have the same nightly rebuild and the same
+check matrix, running for you, without us. What you have taken on is that you now own the
+response when an image fails its checks at six in the morning.
+
+That is the actual trade the paid tiers describe. Not access. Attention.
+
+## What forking does not give you
+
+- Our test hardware. The compatibility table is public, but the machines are in a room and you
+  would be building your own evidence for models nobody has tried.
+- Anybody to call. The self-serve tier costs nothing and includes nothing, and both halves of
+  that sentence are meant literally.
+
+## Check that this works before you need it
+
+Do it on a Tuesday when nothing is wrong. Clone the repository, run the build, and see the image
+appear. Ten minutes now is worth more than any promise on this page, and if the commands above
+do not work we would rather hear it from you than have written them.

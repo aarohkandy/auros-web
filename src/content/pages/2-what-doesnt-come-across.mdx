@@ -1,0 +1,56 @@
+---
+title: What doesn't come across
+navLabel: What doesn't come across
+summary: The honest inventory. What survives the move, what does not, and how to test your own programs before you commit anything.
+layer: surface
+order: 2
+---
+
+Every migration has a list like this. Most of them are written after the sale, in a support
+article, in the past tense.
+
+Read it before you spend anything. If something on the does-not side is load-bearing for your
+organisation, the right answer might be that you do not migrate those machines, and we would
+rather you reached that conclusion from this page than from a room full of staff on a Monday.
+
+## One rule that answers most of it
+
+The test is not the brand. The test is how the thing gets onto the machine.
+
+If you reach it by typing an address into a browser, it comes across, because a browser is a
+browser and the new machine has one. Google Workspace, Microsoft 365 on the web, your MIS if it
+is the web version, every service with a login page.
+
+If it has an installer, and it put a shortcut on the desktop, and it appears in Windows under
+Apps and features, it does not come across.
+
+That rule is not a simplification for the website. It is the actual technical boundary, and it
+is why the answer for two products from the same vendor can be different.
+
+## The .exe question, answered properly
+
+There is a compatibility layer that translates what a Windows program asks for into what Linux
+provides. We can install it in your image. It is real and it is not a virtual machine.
+
+We are not going to tell you that your programs work under it. We are going to tell you how to
+find out before you have committed anything, and the detail is in the compatibility entry below.
+The short version is two steps: write down the exact version you run, look it up in the public
+compatibility database, then send us the list and we go through it with you by hand. There is no
+paste-your-list checker on this site and there is not going to be one, for a reason the entry
+explains.
+
+Two answers we already have, read from that database on `2026-09-20`. Microsoft Office rates
+`Garbage`, the lowest rating it has. Adobe Photoshop rates `Silver`, which that database defines
+as having problems with no workaround. Both are therefore on the does-not-come-across list
+rather than in a footnote.
+
+A program running through a translation layer is not running on Windows. Printing breaks first,
+then file dialogs, then anything touching hardware. Anything with a kernel driver, a dongle or
+copy protection does not run at all, and exam lockdown software is built specifically to refuse.
+
+We will never say that .exe files work. We will say which of yours we tested and what happened.
+
+## The inventory
+
+Below is every category, with a verdict on each. A category marked conditional has a test
+attached, and the test is something you can do this week without buying anything.
