@@ -1,0 +1,34 @@
+---
+/**
+ * Stratum — the margin label that names which layer of the real architecture the reader is
+ * passing (§7: each stratum is "labelled in the margin as they pass it").
+ *
+ * THERE IS ONE IMPLEMENTATION AND IT IS NOT THIS FILE.
+ *
+ * `StratumLabel.astro` already does this, and does it the right way: it reads the layer names
+ * from the `layers` content collection rather than restating them, so the margin and the
+ * /how-it-works page cannot drift apart, and a missing collection entry renders nothing at all
+ * instead of a guess. That file was written by the agent that owns `src/content/`.
+ *
+ * The design system's inventory names this primitive `Stratum`. Rather than ship a second margin
+ * label that would immediately start diverging in padding, ore width and label casing, this is
+ * the name pointing at the one implementation. It adds no styles of its own and takes the same
+ * props, so `import Stratum` and `import StratumLabel` are the same component.
+ *
+ * If the two ever need to differ, delete this file rather than growing it — a design system with
+ * two margin labels has no margin label.
+ */
+import StratumLabel from "./StratumLabel.astro";
+import type { LayerEntry } from "./content";
+
+interface Props {
+  /** Which stratum. Matches the terrain renderer's stratum index via the collection's `id`. */
+  layer: LayerEntry["data"]["id"];
+  /** Hide from assistive tech where the same words are already in the page text. */
+  decorative?: boolean;
+}
+
+const { layer, decorative = false } = Astro.props;
+---
+
+<StratumLabel layer={layer} decorative={decorative} />

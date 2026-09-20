@@ -10,7 +10,7 @@ import Panel from "../components/Panel.astro";
 import Prose from "../components/Prose.astro";
 import FaqList from "../components/FaqList.astro";
 import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
-import { site, faqPage } from "../content/copy";
+import { site } from "../content/copy";
 
 const page = await pageByOrder(PAGE_ORDER.faq);
 const { Content } = await renderEntry(page);
@@ -27,21 +27,7 @@ const { Content } = await renderEntry(page);
     <Prose>
       <Content />
     </Prose>
-    <p class="unfinished">{faqPage.unfinishedNote}</p>
   </Panel>
 
   <FaqList />
 </PageShell>
-
-<style>
-  .unfinished {
-    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 0.9rem;
-    line-height: 1.55;
-    max-width: 38rem;
-    margin: 1rem 0 0;
-    padding-left: 0.85rem;
-    border-left: 3px solid var(--ore, #be3a12);
-    color: var(--ink-muted, #5a4e40);
-  }
-</style>

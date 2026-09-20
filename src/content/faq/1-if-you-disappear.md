@@ -11,12 +11,12 @@ commitment to their customers. Here is the command instead.
 ```
 git clone https://github.com/aarohkandy/auros-recipes
 cd auros-recipes
-podman build -t myschool:local -f myschool/Containerfile .
+podman build -t myschool:local -f customers/myschool/Containerfile .
 ```
 
 That builds your operating system. The same one, from the same file, with the same packages
-removed. It needs one Linux machine with `podman` on it and roughly `40 GB` of free disk. It
-does not need an account with us, a licence key, or anything we hold.
+removed. It needs one Linux machine with `podman` on it and a few tens of gigabytes of free
+disk. It does not need an account with us, a licence key, or anything we hold.
 
 If the registry we publish to has gone as well, the base your recipe stands on is a public
 repository too, and you build that first:
@@ -33,5 +33,7 @@ The full instructions, including turning the result into a bootable USB stick an
 existing machines at your own registry so they keep updating, are on the replaceable page. They
 are the same instructions we use, which is the only reason to believe they work.
 
-Nothing about this is generous. A company that can hold your operating system hostage eventually
-behaves like one.
+You do not have to take the commands above on trust either. Every Wednesday at `05:23 UTC`,
+`auros-recipes` runs a workflow called `stranger`: a container with `podman`, `git` and nothing
+of ours, which clones the public repository and runs the command printed on this page, verbatim.
+If it stops producing an image, the build goes red long before you need it to work.

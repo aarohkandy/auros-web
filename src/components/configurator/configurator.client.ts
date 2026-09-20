@@ -242,7 +242,10 @@ export function mount(container: HTMLElement): void {
   form.addEventListener("input", (event) => {
     touched = true;
     const target = event.target as HTMLElement | null;
-    if (target === keyboardNode || target === secondNode) target.dataset.touched = "true";
+    // `target &&` is not redundant: `keyboardNode` and `secondNode` are `HTMLElement | null`, so
+    // when the form has neither field the comparison is `null === null` and the next statement
+    // dereferences null. Caught by `strict` in tsconfig.json.
+    if (target && (target === keyboardNode || target === secondNode)) target.dataset.touched = "true";
     if (target === forNode && forNode) forNode.dataset.edited = "true";
     scheduleRepaint();
   });

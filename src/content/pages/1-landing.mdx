@@ -1,7 +1,7 @@
 ---
 title: An OS with only what you asked for
 navLabel: Auros
-summary: We take a pile of laptops Windows abandoned and build them an operating system that contains only what your organisation asked for, in your language, under your rules, rebuilt every night.
+summary: We take a pile of laptops Windows abandoned and build them an operating system holding the ten or so applications your staff actually open, in the language the class is taught in, rebuilt every night.
 layer: sky
 order: 1
 ---
@@ -29,26 +29,23 @@ sitting there waiting for somebody to find it. It has been removed from the imag
 bytes your machines download, not a thing that can be exploited, and not an icon a Year 8 can
 click.
 
-The build reports back what it removed, by name, with the size of each. Not an estimate from
-counting lines in a file. A measurement taken from the image you are about to receive.
+The build reports back what it removed, by name, with the measured size of each. Not an estimate
+from counting lines in a file. A measurement taken from the image you are about to receive.
 
-Nobody else selling you a computer shows you what they took out.
+The worked example in our public repository puts a floor under it. `must_remove_at_least: 240`
+— if the build cannot take out at least two hundred and forty packages, it fails and nothing
+ships. That is a school writing a minimum for deletion into its own configuration file, which is
+not a field anybody else offers you.
 
-## What doesn't come across
+We have not surveyed what other vendors do, so we are not going to tell you how unusual that
+report is. We will tell you it is the first document we would want if somebody were selling us
+an operating system, and that it is the reason the removal list on your recipe is longer than
+the install list.
 
-This is the part most vendors put on page four. It belongs at the top, because the organisations
-that migrate successfully are the ones who knew this on day one, and the ones who leave in month
-two are the ones who found out then.
+## About the column above
 
-Windows programs do not come across. Not one of them. Saved passwords in Chrome and Edge do not
-come across, for a reason worth understanding rather than working around. Anything on a hardware
-dongle does not. Anything built on Active Directory does not.
-
-Your files do. Firefox comes across whole. Bookmarks, Wi-Fi, printers and the account name come
-across, and the files are counted and hashed before a single byte of the old system is touched.
-
-The full inventory, including how to test your own programs against the compatibility layer
-before you commit anything, is on its own page and it is the page we would read first.
+That is the short list. The full inventory, including how to test your own programs against the
+compatibility layer before you commit anything, is the page we would read first.
 
 ## Your data is copied before anything is written
 

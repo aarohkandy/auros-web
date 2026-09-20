@@ -167,8 +167,15 @@ small {
   font-size: var(--step--1);
 }
 
+/*
+  `var(--ink)`, not `inherit`. They compute to the same colour everywhere on this site, because
+  --ink is remapped by surface rather than by element — but `inherit` is not a value a static
+  analyser can resolve, and tools/contrast.mjs measured every link on the site as #000000 on the
+  dark panel (1.34:1) until this was made explicit. A rule whose colour the audit cannot read is
+  a rule the audit is not checking.
+*/
 a {
-  color: inherit;
+  color: var(--ink);
   text-decoration-line: underline;
   text-decoration-color: var(--ore);
   text-decoration-thickness: 1px;
@@ -190,7 +197,15 @@ a:hover {
    without that file having to change: it writes `var(--ore)`, and here `--ore` is redefined.
 --------------------------------------------------------------------------------------------- */
 .tone-deep,
-.on-deep {
+.on-deep,
+/*
+  A syntax-highlighted code block is a deep surface too: src/components/Prose.astro paints
+  `pre.astro-code` with --panel-deep. It carries no `tone-deep` class because the class comes
+  from Shiki, so it is named here instead. Without this line the focus ring on a focusable code
+  block resolves to the LIGHT ore, #BE3A12, which measures 2.85:1 against #24231F and fails
+  WCAG 1.4.11 — found by tools/contrast.mjs reading the built HTML, not by looking at it.
+*/
+pre.astro-code {
   --ink: var(--ink-console);
   --ink-muted: var(--ink-muted-deep);
   --panel: var(--panel-deep);

@@ -3,10 +3,14 @@
  * The head of a long-form page: the stratum label in the margin, the title, the one-sentence
  * summary the content author wrote. All three come from the page document.
  *
- * It sits on an opaque panel like everything else that is meant to be read. §7 says the background
- * never reduces text contrast; the way to make that true rather than probable is for no reading
- * text anywhere on this site to be drawn over the terrain at all. `tools/contrast.mjs` can measure
- * a panel. It cannot measure a canvas, and a rule that cannot be measured is a rule nobody keeps.
+ * The label is in the MARGIN, in a rail to the left of the panel, which is what §7 asks for —
+ * "labelled in the margin as they pass it" — and what `.with-margin-label` in base.css exists for.
+ * Stacking it above the panel, which is what this file used to do, turns an architectural legend
+ * into a small caption on a card, and loses the one piece of asymmetry §7 specified.
+ *
+ * The panel is still opaque, because §7 says the background never reduces text contrast and the way
+ * to make that true rather than probable is for no reading text on this site to be drawn over the
+ * terrain at all. The label carries its own panel for the same reason; see StratumLabel.astro.
  */
 import StratumLabel from "./StratumLabel.astro";
 import Panel from "./Panel.astro";
@@ -16,29 +20,36 @@ interface Props {
   page: PageEntry;
 }
 const { page } = Astro.props;
+const layer = page.data.layer;
 ---
 
-<Panel tone="panel" as="header" class="page-head">
-  {page.data.layer && <StratumLabel layer={page.data.layer} />}
-  <h1 class="title">{page.data.title}</h1>
-  <p class="summary">{page.data.summary}</p>
-</Panel>
+<div class:list={["page-head", layer && "with-margin-label"]}>
+  {layer && <StratumLabel layer={layer} />}
+  <Panel tone="panel" as="header">
+    <h1 class="title">{page.data.title}</h1>
+    <p class="summary">{page.data.summary}</p>
+  </Panel>
+</div>
 
 <style>
   .page-head {
-    margin: 0 0 1.75rem;
+    margin: 0 0 var(--space-6, 2rem);
   }
+  /*
+    The scale is the one in tokens.css, not a number chosen here. Hierarchy comes from size, case
+    and space — never from weight, because Instrument Serif ships 400 and nothing else (D25).
+  */
   .title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: clamp(2rem, 6vw, 3rem);
-    line-height: 1.05;
+    font-size: clamp(2.25rem, 7vw, var(--step-4, 2.75rem));
+    line-height: 1.02;
     margin: 0 0 0.6rem;
     color: var(--ink, #24231f);
   }
   .summary {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 1.05rem;
+    font-size: var(--step-1, 1.1875rem);
     line-height: 1.5;
     max-width: 40rem;
     margin: 0;

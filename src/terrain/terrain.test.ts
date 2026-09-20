@@ -43,6 +43,8 @@ import {
   columnBoundaries,
   generateClouds,
   generateTerrain,
+  mulberry32,
+  mulberry32Step,
 } from "./terrain";
 
 // ── A runner ──────────────────────────────────────────────────────────────────────────────
@@ -139,6 +141,22 @@ test("Math.random() is never called", () => {
   } finally {
     Math.random = real;
   }
+});
+
+test("the inlined PRNG step is the same function as mulberry32", () => {
+  // `hash()` does not build a closure per call; the generator is 1.4 million calls deep and the
+  // allocation cost more than the arithmetic. This asserts the shortcut is arithmetically the
+  // same draw, because an optimisation that changed the output would change the brand.
+  for (let i = -5000; i < 5000; i += 7) {
+    eq(
+      mulberry32Step((i + 0x6d2b79f5) | 0),
+      mulberry32(i)(),
+      `the inlined step diverged from mulberry32 at seed ${i}`,
+    );
+  }
+  // A fixed vector, so a change to the generator itself is caught rather than being consistent
+  // with a changed self.
+  eq(mulberry32(0x4155524f)().toFixed(12), "0.666776845930", "mulberry32 output vector changed");
 });
 
 test("a different seed produces a different world", () => {

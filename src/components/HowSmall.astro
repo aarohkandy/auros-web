@@ -1,0 +1,87 @@
+---
+/**
+ * How small this is.
+ *
+ * §4.4 forbids inventing customers. It does not forbid saying how few of us there are, and D29
+ * asks for exactly that: where we are early and small, say so, because pretending to be large is
+ * what reads as generated and we have no customers to pretend with anyway.
+ *
+ * The headcount is §9-reserved — a human supplies it — so the blank is rendered as a blank. A
+ * plausible number in that slot would be the one unforced error on a site that spends the rest of
+ * its length refusing to guess.
+ */
+import { howSmall } from "../content/copy";
+import Panel from "./Panel.astro";
+
+interface Props {
+  headingLevel?: 2 | 3;
+}
+const { headingLevel = 2 } = Astro.props;
+const H = `h${headingLevel}` as any;
+---
+
+<Panel tone="panel-2" class="how-small">
+  <H class="title">{howSmall.title}</H>
+
+  <p class="count">
+    <span class="label">People here</span>
+    <span class="value">{howSmall.headcountMono ?? howSmall.blankMono}</span>
+  </p>
+  {!howSmall.headcountMono && <p class="blank-note">{howSmall.blankNote}</p>}
+
+  {howSmall.body.map((paragraph) => <p class="body">{paragraph}</p>)}
+  <p class="closing">{howSmall.closing}</p>
+</Panel>
+
+<style>
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-2, 1.5rem);
+    line-height: 1.15;
+    margin: 0 0 1rem;
+    color: var(--ink, #24231f);
+  }
+  .count {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+    margin: 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+  }
+  .label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    color: var(--ink, #24231f);
+  }
+  .value {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: var(--step-2, 1.5rem);
+    color: var(--ink-muted, #5a4e40);
+  }
+  .blank-note,
+  .body,
+  .closing {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    line-height: 1.6;
+    max-width: 38rem;
+    color: var(--ink, #24231f);
+  }
+  .blank-note {
+    font-size: 0.85rem;
+    margin: 0.5rem 0 1.25rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .body {
+    font-size: 0.95rem;
+    margin: 0 0 0.85rem;
+  }
+  .closing {
+    font-size: 0.95rem;
+    margin: 1.25rem 0 0;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--rule, #8a7358);
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>

@@ -8,9 +8,13 @@ order: 7
 The honest version, because the reassuring version would be found out inside a month.
 
 The base rebuilds every night, but a rebuild only produces new bytes when upstream actually
-changed something. Most nights that is small. Some nights it is a kernel, and a kernel is not
-small. Multiply a not-small night by `180` machines sharing one school uplink and you have a
-morning where nothing else works.
+changed something. Most nights that is small. Some nights it is a kernel.
+
+We measured the bad case on `2026-09-20`. The upstream base is `3.5 GB` compressed —
+`3,758,096,384` bytes, recorded in `auros-base/base.lock` — and it pulled in `58 s` on a CI
+runner sitting on a datacentre uplink. A night that changes a low layer is `3.5 GB` per machine.
+On `180` machines that is a `630 GB` morning on your line, and your line is not a datacentre
+uplink. That is not a theoretical concern. It is a Tuesday.
 
 Four things make it less bad, and they are real today.
 

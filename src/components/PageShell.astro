@@ -23,8 +23,11 @@ interface Props {
   title: string;
   /** One sentence. The meta description. */
   description: string;
-  /** Which stratum of the terrain this page sits at (spec §7). */
-  layer?: Layer;
+  /**
+   * Which stratum of the terrain this page sits at (spec §7). Explicitly `| undefined` because
+   * `exactOptionalPropertyTypes` is on and pages pass a document field that is legitimately absent.
+   */
+  layer?: Layer | undefined;
 }
 
 const { title, description, layer } = Astro.props;

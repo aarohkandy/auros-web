@@ -3,3 +3,7 @@ dist/
 .DS_Store
 *.log
 .wrangler/
+.astro/
+# Upstream TTFs downloaded by tools/fetch-fonts.mjs. The SUBSETS in public/fonts are committed
+# (the site must build with no network); the 1.3 MB of source TTFs are not.
+.font-cache/

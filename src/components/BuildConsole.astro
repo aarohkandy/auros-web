@@ -1,23 +1,44 @@
 ---
 /**
- * BuildConsole — spec §7's replacement for every decorative animation impulse.
+ * BuildConsole — spec §7's replacement for every decorative animation impulse, and D29's living
+ * element. Both rest on the same property, so it is worth stating before the code: **every line
+ * this component renders was printed by a machine that ran.**
  *
- * It streams genuine pipeline output from the Worker's SSE endpoint: `pruning 214 packages`,
- * `booting test vm`, `✓ wifi associates`, `signed · cosign keyless`. Those lines come off the wire
- * or they do not appear.
+ * WHAT IT SHOWS, IN ORDER OF PREFERENCE
  *
- * **If there is no real build to show, it says so.** The server-rendered state of this component is
- * "No build running", and the client can only move it off that state by receiving real events.
- * Nothing in this component or in `build-console.ts` can synthesise a line.
+ *   1. A build happening now, streamed from the Worker's SSE endpoint. Lines land when they land.
+ *   2. Otherwise — which is most of the time — **the last real run**, server-rendered from
+ *      `src/lib/console/last-build.json`, labelled with when it happened and linked to the run so
+ *      a reader can open it and find the same line. That file is written by
+ *      `tools/snapshot-build-log.mjs` out of the GitHub Actions API and committed.
+ *   3. If we have no record of a run at all, it says so, in one sentence, and shows the content
+ *      author's ILLUSTRATION of what build output looks like, carrying `ILLUSTRATION_LABEL`
+ *      visibly in the panel (§4.4, CONFIGURATOR.md constraint 3) rather than in a footnote.
  *
- * The sample block underneath is a different thing on purpose. It is the content author's
- * ILLUSTRATION from `copy.ts` — what a build looks like — and it carries `ILLUSTRATION_LABEL`
- * visibly, in the panel, never in a footnote (spec §4.4, CONFIGURATOR.md constraint 3). It is
- * static, it is outside the live log's DOM, and it is marked in the markup as well as in the words,
- * so a reader and a screen reader both learn what it is before they read a line of it.
+ * There is no fourth state and no filler. Nothing in this component or in `lib/console/` can
+ * synthesise a line of output — no sample array reachable from the live path, no scripted pacing,
+ * no typewriter, no fake latency. A console that could invent output, on a page whose argument is
+ * that we tell you exactly what we removed, would be the worst defect on this site.
+ *
+ * FAILURES ARE SHOWN. The run below this comment, as committed, failed: greenboot's package layout
+ * moved and the build stopped on it. That is left in deliberately. An all-green console is the less
+ * believable one, and the ✗ is the strongest evidence on the page that the gate is real.
+ *
+ * MOTION. It is a log, not an animation. It may move because it is reporting a fact (§7), so live
+ * lines appear as they arrive and the view follows the tail — but only if the reader was already at
+ * the tail, and not at all under `prefers-reduced-motion`. There is no per-line transition in
+ * either mode; a log does not need one to be alive.
  */
 import { buildConsole, ILLUSTRATION_LABEL } from "../content/copy";
 import Panel from "./Panel.astro";
+import {
+  lastBuild,
+  elapsed,
+  formatDuration,
+  shortSha,
+  utcStamp,
+  type BuildLine,
+} from "../lib/console/snapshot";
 
 interface Props {
   /**
@@ -26,64 +47,118 @@ interface Props {
    * line so an interrupted stream resumes (see CONVENTIONS.md §5).
    */
   endpoint?: string;
-  /** Show the labelled illustration of what a build looks like. */
-  showIllustration?: boolean;
   headingLevel?: 2 | 3;
 }
 
-const { endpoint = "/api/build/stream", showIllustration = true, headingLevel = 2 } = Astro.props;
+const { endpoint = "/api/build/stream", headingLevel = 2 } = Astro.props;
 const H = `h${headingLevel}` as any;
+
+const snap = lastBuild;
+const failed = snap?.run.conclusion === "failure";
 
 /**
  * UI strings for states the content file does not cover. Written in the voice of `copy.ts` and kept
  * here rather than added to it, because `src/content/` belongs to another agent. Each one describes
- * an absence accurately: none of them implies a build we cannot show.
+ * an absence or a fact accurately; none of them implies a build we cannot show.
  */
 const strings = {
-  connecting: "connecting",
-  ended: "build finished",
-  unreachable: "no build to show",
-  noteUnreachable:
-    "We cannot reach the build stream from here, so there is nothing to show. There is no stored copy of a build to fall back on, and we would rather show you an empty console than a convincing one.",
-  noteIdle:
-    "Nothing is building at this moment. Builds run nightly and whenever a recipe changes, so this console is empty most of the time, which is the honest state of it.",
+  live: buildConsole.liveLabel,
+  finished: "build finished",
+  nothing: "no build to show",
+  /** The client rewrites {time} as the same instant in the reader's own timezone. */
+  lastBuild: "last build · {time}",
+  nothingNote:
+    "We have no record of a completed run to show you here, and we would rather show you an empty console than a convincing one. Every build we have ever run is public: the workflows and their logs are in the repositories linked in the footer.",
+  noscript:
+    "The live stream needs JavaScript. What you are reading above is the last build that actually ran, rendered into this page when the site was built.",
 };
+
+/** The footer sentence. Two versions because the run's outcome is a fact and it differs. */
+const outcomeNote = failed
+  ? "This run stopped on a ✗, so nothing was published. The publish step reads the attestation ledger and there is no flag that skips it — which is why a red line here is a better advertisement than a green one."
+  : "Every line above had to be green before the :hardened tag could move. The publish step reads the attestation ledger and there is no flag that skips it.";
+
+const logLabel = snap
+  ? `Build output from ${snap.run.repo} run number ${snap.run.runNumber}`
+  : buildConsole.title;
+
+const lines: BuildLine[] = snap?.lines ?? [];
 ---
 
-<Panel tone="deep" class="console" as="section">
+<Panel
+  tone="deep"
+  as="section"
+  class="console"
+  data-build-console
+  data-state={snap ? "snapshot" : "nothing"}
+  data-has-snapshot={snap ? "true" : "false"}
+  data-endpoint={endpoint}
+  data-string-live={strings.live}
+  data-string-finished={strings.finished}
+  data-string-nothing={strings.nothing}
+  data-string-last-build={strings.lastBuild}
+>
   <header class="head">
     <H class="title">{buildConsole.title}</H>
-    <p class="status" data-console-status aria-live="polite">{buildConsole.idleLabel}</p>
+    <p class="status" data-console-status role="status">
+      {snap ? strings.lastBuild.replace("{time}", utcStamp(snap.run.startedAt)) : strings.nothing}
+    </p>
   </header>
   <p class="subtitle">{buildConsole.subtitle}</p>
 
-  <div
-    class="stream"
-    data-build-console
-    data-state="idle"
-    data-endpoint={endpoint}
-    data-string-idle={buildConsole.idleLabel}
-    data-string-live={buildConsole.liveLabel}
-    data-string-connecting={strings.connecting}
-    data-string-ended={strings.ended}
-    data-string-unreachable={strings.unreachable}
-    data-note-unreachable={strings.noteUnreachable}
-    data-note-idle={strings.noteIdle}
-  >
-    <p class="status stream-status" data-console-status aria-live="polite">{buildConsole.idleLabel}</p>
-    <ol class="log" data-console-log aria-label={buildConsole.title}></ol>
-    <p class="note" data-console-note>{strings.noteIdle}</p>
-    <noscript>
-      <p class="note">
-        The live console streams over an event stream, which needs JavaScript. Without it this panel
-        stays empty. The build output it would carry is public: every run and every log is in the
-        repositories linked in the footer.
-      </p>
-    </noscript>
-  </div>
+  {
+    snap && (
+      <div class="run" data-console-run>
+        <p class="run-subject">{snap.run.title}</p>
+        <p class="run-facts">
+          <a class="run-link" href={snap.run.url} rel="noopener">
+            {snap.run.repo} · {snap.run.workflow} #{snap.run.runNumber}
+          </a>
+          <span aria-hidden="true">·</span>
+          <span>{shortSha(snap.run.headSha)}</span>
+          <span aria-hidden="true">·</span>
+          <span>{formatDuration(snap.run.durationSeconds)}</span>
+          <span aria-hidden="true">·</span>
+          <span data-outcome={snap.run.conclusion}>{failed ? "failed" : "passed"}</span>
+          <span aria-hidden="true">·</span>
+          <time data-console-when datetime={snap.run.startedAt}>
+            {utcStamp(snap.run.startedAt)}
+          </time>
+        </p>
+      </div>
+    )
+  }
+
+  <ol class="log" data-console-log role="log" aria-live="off" tabindex="0" aria-label={logLabel}>
+    {
+      lines.map((line) => (
+        <li class="line" data-level={line.level}>
+          <span class="at" aria-hidden="true">
+            {snap ? elapsed(line.at, snap.run.startedAt) : ""}
+          </span>
+          <span class="text">{line.text}</span>
+        </li>
+      ))
+    }
+  </ol>
 
   {
-    showIllustration && (
+    snap ? (
+      <p class="note">
+        {outcomeNote}
+        {snap.linesOmitted > 0 && ` ${snap.linesOmitted} further lines are in the full log.`}
+      </p>
+    ) : (
+      <p class="note">{strings.nothingNote}</p>
+    )
+  }
+
+  <noscript>
+    <p class="note">{snap ? strings.noscript : strings.nothingNote}</p>
+  </noscript>
+
+  {
+    !snap && (
       <div class="illustration">
         <p class="illustration-label">
           <span class="flag">ILLUSTRATION</span>
@@ -91,7 +166,9 @@ const strings = {
         </p>
         <ol class="log sample" aria-label="Illustration of build output">
           {buildConsole.sampleLinesMono.map((line) => (
-            <li class="line">{line}</li>
+            <li class="line" data-level="info">
+              <span class="text">{line}</span>
+            </li>
           ))}
         </ol>
         <dl class="legend">
@@ -108,7 +185,7 @@ const strings = {
 </Panel>
 
 <script>
-  import { mountBuildConsoles } from "./build-console";
+  import { mountBuildConsoles } from "../lib/console/client";
   mountBuildConsoles();
 </script>
 
@@ -122,75 +199,175 @@ const strings = {
     align-items: baseline;
     justify-content: space-between;
     gap: 0.5rem;
-    border-bottom: 1px solid var(--rule, #8a7358);
+    border-bottom: 1px solid var(--rule-deep, #8a7358);
     padding-bottom: 0.5rem;
   }
   .title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.5rem;
-    line-height: 1.1;
+    font-size: var(--step-2, 1.5rem);
+    line-height: var(--leading-tight, 1.1);
     margin: 0;
     color: var(--ink-console, #e2ddd0);
   }
   .status {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.75rem;
+    font-size: var(--step--1, 0.78rem);
     margin: 0;
     color: var(--ink-console, #e2ddd0);
   }
-  /* One status element is enough for a screen reader; the one inside the stream is the live one. */
-  .stream-status {
-    display: none;
+  /* `live` is the one state worth catching out of the corner of an eye, so it is the one state
+     that carries a mark. Ore is never a glyph (CONVENTIONS.md §2), so the mark is a border, and it
+     appears because a build is genuinely running — not because the page wants to look busy. */
+  .console[data-state="live"] .status {
+    border-left: 3px solid var(--ore-deep, #d9682e);
+    padding-left: 0.45rem;
   }
   .subtitle {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 0.9rem;
-    line-height: 1.5;
+    font-size: var(--step-0, 0.9rem);
+    line-height: var(--leading-body, 1.5);
     margin: 0.75rem 0 1rem;
+    max-width: var(--measure, 62ch);
     color: var(--ink-console, #e2ddd0);
   }
+
+  /* ── the run's identity ──────────────────────────────────────────────────────────────────────
+     Deliberately asymmetric: the commit subject is a sentence a person wrote and gets the width of
+     one, while the machine facts sit under it in mono as a single dense line. Not a card grid. */
+  .run {
+    margin: 0 0 0.85rem;
+    border-left: 3px solid var(--ore-deep, #d9682e);
+    padding-left: 0.85rem;
+  }
+  .run-subject {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-1, 1.15rem);
+    line-height: var(--leading-snug, 1.25);
+    margin: 0 0 0.3rem;
+    max-width: 48ch;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .run-facts {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: var(--step--1, 0.72rem);
+    line-height: 1.6;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.45rem;
+    color: var(--ink-muted-deep, #a8afa2);
+  }
+  .run-link {
+    color: var(--ink-console, #e2ddd0);
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+  }
+  .run-facts [data-outcome="failure"]::before {
+    content: "✗ ";
+  }
+  .run-facts [data-outcome="success"]::before {
+    content: "✓ ";
+  }
+
+  /* ── the log ─────────────────────────────────────────────────────────────────────────────────
+     A scroll region, not a truncation: every line is in the DOM, reachable by keyboard and by a
+     screen reader. `role="log"` with `aria-live="off"` is the combination that lets someone READ
+     the log without being read every new line as it lands. */
   .log {
     list-style: none;
     margin: 0;
-    padding: 0;
-    max-height: 18rem;
+    padding: 0.35rem 0;
+    max-height: 22rem;
     overflow-y: auto;
+    overscroll-behavior: contain;
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.78rem;
-    line-height: 1.7;
+    font-size: var(--step--1, 0.72rem);
+    line-height: 1.65;
+    border-top: 1px solid var(--rule-deep, #8a7358);
+    border-bottom: 1px solid var(--rule-deep, #8a7358);
+  }
+  .log:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--ore-deep, #d9682e);
+    outline-offset: var(--focus-ring-offset, 2px);
   }
   .line {
+    display: flex;
+    gap: 0.7rem;
+    padding: 0 0.2rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .at {
+    flex: 0 0 auto;
+    width: 3.2rem;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-muted-deep, #a8afa2);
+  }
+  .text {
     white-space: pre-wrap;
     word-break: break-word;
-    color: var(--ink-console, #e2ddd0);
+    min-width: 0;
   }
+  /* Detail lines recede so the checks stand out. Both are legible; one is louder. */
+  .line[data-level="info"] .text,
+  .line[data-level="note"] .text,
+  .line[data-level="meta"] .text {
+    color: var(--ink-muted-deep, #a8afa2);
+  }
+  /* A step boundary. A hairline is the only divider §7 allows, so a step boundary is a hairline. */
+  .line[data-level="section"] {
+    margin-top: 0.55rem;
+    padding-top: 0.45rem;
+    border-top: 1px solid var(--rule-deep, #8a7358);
+  }
+  .line[data-level="section"]:first-child {
+    margin-top: 0;
+    border-top: 0;
+  }
+  /* Failures are marked, not coloured: ore never carries a glyph (CONVENTIONS.md §2, measured).
+     The ✗ in the line is the real signal and it came off the runner; this is the gutter mark. */
+  .line[data-level="bad"] {
+    border-left: 3px solid var(--ore-deep, #d9682e);
+    padding-left: 0.35rem;
+    margin-left: -0.15rem;
+  }
+  .line[data-level="warn"] {
+    border-left: 1px solid var(--ore-deep, #d9682e);
+    padding-left: 0.45rem;
+    margin-left: 0.05rem;
+  }
+
   .note {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 0.85rem;
-    line-height: 1.5;
-    margin: 0.75rem 0 0;
+    font-size: var(--step-0, 0.85rem);
+    line-height: var(--leading-body, 1.5);
+    margin: 0.8rem 0 0;
+    max-width: var(--measure, 62ch);
     color: var(--ink-console, #e2ddd0);
   }
+
+  /* ── the no-record fallback ──────────────────────────────────────────────────────────────── */
   .illustration {
     margin-top: 1.25rem;
-    border-top: 1px solid var(--rule, #8a7358);
+    border-top: 1px solid var(--rule-deep, #8a7358);
     padding-top: 1rem;
-    border-left: 3px solid var(--ore, #be3a12);
+    border-left: 3px solid var(--ore-deep, #d9682e);
     padding-left: 0.85rem;
   }
   .illustration-label {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 0.82rem;
-    line-height: 1.5;
+    font-size: var(--step-0, 0.82rem);
+    line-height: var(--leading-body, 1.5);
     margin: 0 0 0.75rem;
     color: var(--ink-console, #e2ddd0);
   }
   .flag {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.7rem;
+    font-size: var(--step--1, 0.7rem);
     letter-spacing: 0.08em;
-    border: 1px solid var(--rule, #8a7358);
+    border: 1px solid var(--rule-deep, #8a7358);
     border-radius: 2px;
     padding: 0.1rem 0.35rem;
     margin-right: 0.5rem;
@@ -198,10 +375,7 @@ const strings = {
   }
   .sample {
     max-height: none;
-    color: var(--ink-console, #e2ddd0);
-  }
-  .sample .line {
-    color: var(--ink-console, #e2ddd0);
+    border: 0;
   }
   .legend {
     margin: 1rem 0 0;
@@ -214,19 +388,29 @@ const strings = {
   }
   .legend dt {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.75rem;
+    font-size: var(--step--1, 0.75rem);
     color: var(--ink-console, #e2ddd0);
   }
   .legend dd {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 0.85rem;
-    line-height: 1.5;
+    font-size: var(--step-0, 0.85rem);
+    line-height: var(--leading-body, 1.5);
     margin: 0;
     color: var(--ink-console, #e2ddd0);
   }
-  @media (min-width: 40rem) {
-    .legend {
-      grid-template-columns: repeat(3, 1fr);
+
+  @media (max-width: 30rem) {
+    /* The elapsed gutter is the first thing to go on a narrow screen: it is orientation, and the
+       line itself is the fact. */
+    .at {
+      display: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    /* No auto-scroll (the client checks the same query) and no smooth scrolling anywhere in here.
+       The log stays complete in the DOM and fully readable; what is removed is the movement. */
+    .log {
+      scroll-behavior: auto;
     }
   }
 </style>

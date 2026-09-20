@@ -3,14 +3,38 @@
  * The landing page.
  *
  * Assembled from documents, not written here: the hero strings are `copy.hero`, the column is the
- * `migration` entries the content author marked `onLanding`, and the long-form argument is
- * `src/content/pages/1-landing.mdx` rendered whole. No sentence on this page was written by the
- * agent that built this template.
+ * `migration` entries the content author marked `onLanding`, the recipe is copied out of a public
+ * committed file, and the long-form argument is `src/content/pages/1-landing.mdx` rendered whole.
+ * No sentence on this page was written by the agent that built this template.
  *
- * Order is the spec's, not a layout preference. §6D: "Above the fold: a column titled *what
- * doesn't come across*, naming Windows programs explicitly. This converts organisations; hiding it
- * loses them at month two." So it is beside the hero, before the argument, and on a phone it is the
- * second thing on the page rather than the ninth.
+ * ── THE ORDER, AND WHY IT IS THIS ORDER ────────────────────────────────────────────────────────
+ *
+ * §6D: "Above the fold: a column titled *what doesn't come across*, naming Windows programs
+ * explicitly. This converts organisations; hiding it loses them at month two." So it is beside the
+ * hero, before the argument, and on a phone it is the second thing on the page rather than the
+ * ninth.
+ *
+ * D29 names the build console "the hero's living element", and §7 says it "replaces every
+ * decorative animation impulse". It used to be the fourth block, under roughly four screens of
+ * static prose, which meant a visitor scrolled past everything on the site that is genuinely
+ * happening to reach it. It is now the second thing in the fold, at full width, because it is the
+ * widest-format content here and because it should be larger than the sales pitch.
+ *
+ * ── SHAPE ──────────────────────────────────────────────────────────────────────────────────────
+ *
+ * The four regions used to be four full-width panels at one width with one rhythm: `margin: 2rem 0`
+ * on each, identical padding, identical border. A reader's eye had nowhere to land. They are now
+ * different shapes on purpose, which is D29 item 4:
+ *
+ *   fold        hero 1fr | inventory 1.4fr — the honest list wider than the pitch
+ *   console     full 72rem, wider than anything above it, with the measurement beside it
+ *   argument    one measure, left-aligned, in the margin-label rail
+ *   recipe      full width — the file is the product and it is the widest object
+ *   safety      panel-2, a different weight from the three above it
+ *   how small   panel-2, narrow, last
+ *
+ * `.stratum-section` gives the descent the vertical distance §7's terrain needs behind it; it was
+ * written for this and used by nothing.
  *
  * The hero carries no stratum label. The sky layer's name in the collection IS the headline, so a
  * margin label there would print the same sentence twice; the labels start at the surface, which is
@@ -21,9 +45,11 @@ import Panel from "../components/Panel.astro";
 import Prose from "../components/Prose.astro";
 import WhatDoesntComeAcross from "../components/WhatDoesntComeAcross.astro";
 import BuildConsole from "../components/BuildConsole.astro";
+import RecipeExcerpt from "../components/RecipeExcerpt.astro";
+import HowSmall from "../components/HowSmall.astro";
 import StratumLabel from "../components/StratumLabel.astro";
 import FactList from "../components/FactList.astro";
-import { hero, site, migrationSafety } from "../content/copy";
+import { hero, site, migrationSafety, measured } from "../content/copy";
 import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
 
 const page = await pageByOrder(PAGE_ORDER.landing);
@@ -31,7 +57,7 @@ const { Content } = await renderEntry(page);
 ---
 
 <PageShell title={`${site.name} — ${hero.headline}`} description={page.data.summary} layer="sky">
-  <div class="above-the-fold">
+  <div class="above-the-fold stratum-section">
     <Panel tone="panel" class="hero">
       <h1 class="headline">{hero.headline}</h1>
       <p class="standfirst">{hero.standfirst}</p>
@@ -40,29 +66,66 @@ const { Content } = await renderEntry(page);
         <a class="cta" href={hero.secondaryCta.href}>{hero.secondaryCta.label}</a>
       </p>
       <p class="price-note">{hero.priceNoteMono}</p>
+
+      <!--
+        The real first-boot message out of the public example recipe. `lang="mr"` because the
+        string is Marathi and the browser should say so to a screen reader and to the font
+        stack — `src/styles/fonts.css` gates the 261 KB Devanagari subset behind a unicode-range,
+        so this is the first string on the site that actually fetches it.
+      -->
+      <figure class="first-boot">
+        <figcaption class="first-boot-lead">{hero.firstBoot.lead}</figcaption>
+        <blockquote class="first-boot-message" lang="mr">{hero.firstBoot.messageMono}</blockquote>
+        <p class="first-boot-gloss">{hero.firstBoot.gloss}</p>
+        <p class="first-boot-source">{hero.firstBoot.sourceMono}</p>
+        <p class="first-boot-note">{hero.firstBoot.note}</p>
+      </figure>
     </Panel>
 
     <WhatDoesntComeAcross headingLevel={2} />
+
+    <div class="console-row">
+      <div class="with-margin-label">
+        <StratumLabel layer="stratum-2" />
+        <div class="console-body">
+          <BuildConsole showIllustration={true} />
+
+          <Panel tone="panel-2" class="measured">
+            <p class="measured-label">{measured.label}</p>
+            <p class="measured-big">{measured.bigMono}</p>
+            <p class="measured-caption">{measured.caption}</p>
+            <p class="measured-consequence-figure">{measured.consequenceMono}</p>
+            <p class="measured-caption">{measured.consequence}</p>
+            <p class="measured-source">
+              {measured.sourceMono} ·
+              <a href={measured.sourceLink.href} rel="noreferrer">{measured.sourceLink.label}</a>
+            </p>
+          </Panel>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="body">
-    <Panel tone="panel">
+  <div class="argument stratum-section">
+    <div class="with-margin-label">
       <StratumLabel layer="surface" />
-      <Prose>
-        <Content />
-      </Prose>
-    </Panel>
+      <Panel tone="panel">
+        <Prose>
+          <Content />
+        </Prose>
+      </Panel>
+    </div>
   </div>
 
-  <div class="console-section">
-    <Panel tone="panel" class="console-label">
-      <StratumLabel layer="stratum-2" />
-    </Panel>
-    <BuildConsole />
+  <div class="recipe-section stratum-section">
+    <div class="with-margin-label">
+      <StratumLabel layer="stratum-1" />
+      <RecipeExcerpt headingLevel={2} />
+    </div>
   </div>
 
-  <div class="safety">
-    <Panel tone="panel">
+  <div class="safety stratum-section">
+    <Panel tone="panel-2">
       <h2 class="section-title">{migrationSafety.title}</h2>
       <FactList facts={migrationSafety.steps} ordered />
       <p class="safety-body">{migrationSafety.body}</p>
@@ -70,35 +133,72 @@ const { Content } = await renderEntry(page);
       <p class="safety-note">{migrationSafety.noBootMediaNote}</p>
     </Panel>
   </div>
+
+  <div class="small-section">
+    <HowSmall headingLevel={2} />
+  </div>
 </PageShell>
 
 <style>
+  /* ── The fold ────────────────────────────────────────────────────────────────────────────────
+     Two unequal columns, and the wide one is the list of things we cannot do for you. That is the
+     argument §6D makes in words, made here in geometry. `WhatDoesntComeAcross` already sets its
+     own internal columns to 1.35fr/1fr — the component had an opinion and the page did not. */
   .above-the-fold {
     display: grid;
     gap: 1rem;
-    margin-bottom: 2rem;
+    padding-block-start: 0;
   }
   @media (min-width: 64rem) {
     .above-the-fold {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+      align-items: start;
+    }
+    /* The console is the widest-format content on the page, so it gets the whole width. */
+    .console-row {
+      grid-column: 1 / -1;
+      margin-top: 1.5rem;
+    }
+  }
+  .console-row {
+    margin-top: 0.5rem;
+  }
+  .console-body {
+    display: grid;
+    gap: 1rem;
+  }
+  @media (min-width: 72rem) {
+    .console-body {
+      grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
       align-items: start;
     }
   }
+
+  /* ── Type. The scale exists in tokens.css and was ignored by five nearby guesses. ──────────── */
   .headline {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: clamp(2.25rem, 7vw, 3.5rem);
+    font-size: clamp(2.5rem, 8vw, var(--step-5, 3.75rem));
     line-height: 1.02;
     margin: 0 0 0.75rem;
     color: var(--ink, #24231f);
   }
   .standfirst {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 1.05rem;
-    line-height: 1.55;
+    font-size: var(--step-1, 1.1875rem);
+    line-height: 1.5;
     margin: 0 0 1.25rem;
     color: var(--ink, #24231f);
   }
+  .section-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-3, 2rem);
+    line-height: 1.15;
+    margin: 0 0 1rem;
+    color: var(--ink, #24231f);
+  }
+
   .ctas {
     display: flex;
     flex-wrap: wrap;
@@ -130,22 +230,94 @@ const { Content } = await renderEntry(page);
     margin: 0;
     color: var(--ink-muted, #5a4e40);
   }
-  .body,
-  .console-section,
-  .safety {
-    margin: 2rem 0;
+
+  /* ── The first-boot message ──────────────────────────────────────────────────────────────── */
+  .first-boot {
+    margin: 1.5rem 0 0;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule, #8a7358);
   }
-  .console-label {
-    margin-bottom: 0.75rem;
+  .first-boot-lead,
+  .first-boot-note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
   }
-  .section-title {
+  .first-boot-message {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.75rem;
-    line-height: 1.15;
-    margin: 0 0 1rem;
+    font-size: var(--step-2, 1.5rem);
+    line-height: 1.5;
+    margin: 0.85rem 0 0.5rem;
+    padding-left: 0.85rem;
+    border-left: 1px solid var(--rule, #8a7358);
     color: var(--ink, #24231f);
   }
+  .first-boot-gloss {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    font-style: italic;
+    margin: 0 0 0.35rem 0.85rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .first-boot-source {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.7rem;
+    margin: 0 0 0.85rem 0.85rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+
+  /* ── The measurement beside the console ──────────────────────────────────────────────────── */
+  .measured-label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .measured-big {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-4, 2.75rem);
+    line-height: 1.05;
+    margin: 0.35rem 0 0.75rem;
+    color: var(--ink, #24231f);
+  }
+  .measured-consequence-figure {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step-1, 1.1875rem);
+    margin: 1rem 0 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule, #8a7358);
+    color: var(--ink, #24231f);
+  }
+  .measured-caption {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.85rem;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .measured-source {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.7rem;
+    line-height: 1.6;
+    margin: 0.85rem 0 0;
+    padding-top: 0.6rem;
+    border-top: 1px solid var(--rule, #8a7358);
+    color: var(--ink-muted, #5a4e40);
+  }
+
+  /* ── The argument. Prose is one measure wide; the panel around it was the thing that was
+     too wide, so the panel is constrained rather than the type re-capped. ─────────────────── */
+  .argument :global(.panel) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
+  }
+
   .safety-body,
   .safety-note {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
@@ -158,5 +330,12 @@ const { Content } = await renderEntry(page);
   .safety-note {
     font-size: 0.88rem;
     color: var(--ink-muted, #5a4e40);
+  }
+
+  .small-section {
+    padding-block-end: var(--space-8, 64px);
+  }
+  .small-section :global(.panel) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
   }
 </style>

@@ -16,10 +16,13 @@ on top of that goes away with it. The Group Policy that maps the H: drive, the l
 keeps Year 8 out of the control panel, the software you push at half past three, the printer
 that knows who is printing.
 
-Some of this has an equivalent on our side. Lockdown does, and it is stronger than Group Policy
-because it is compiled into the image rather than applied to it. Some of it does not, and some
-of it would need us to change the base image, which is the one thing our architecture does not
-allow for any customer at any price.
+Some of this has an equivalent on our side. Lockdown does, and it is harder to undo on the
+machine, because it is compiled into the image rather than applied to it — an image with no
+control panel in it has no control panel to re-enable. That is a narrower claim than it sounds:
+it does not replace what Group Policy did for drive mappings, software deployment, proxy
+settings or printer identity, and those are four of the things listed above as going away. Some
+of the rest would need us to change the base image, which is the one thing our architecture does
+not allow for any customer at any price.
 
 So this is a conversation before a purchase, not a surprise afterwards. Ask us. If the answer is
 that your requirement needs a fork of the base, we will tell you that we decline, and you will

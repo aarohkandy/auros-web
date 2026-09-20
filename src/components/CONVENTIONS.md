@@ -1,10 +1,15 @@
 # Conventions these components assume
 
 Written by the agent that owns `src/pages/`, `src/components/` (except `configurator/`) and
-`auros-web/tools/`. At the time these files were written the scaffold did not exist: there was no
-`package.json`, no `astro.config.*`, no `src/layouts/`, no `src/styles/` and no `src/terrain/`.
-Those are owned by other agents and were not created here. So everything below is an **assumed
-contract**, written down so a mismatch is a one-line fix in a file I own rather than a hunt.
+`auros-web/tools/`.
+
+These files were written before the scaffold existed — no `package.json`, no `astro.config.*`, no
+`src/layouts/`, no `src/styles/`, no `src/terrain/` — so each coupling to another agent's work was
+written down here as an assumed contract first and then checked against the real thing when it
+landed. All of them held: `BaseLayout.astro` takes the props below, `tokens.css` defines the token
+names below, and `configurator/Configurator.astro` is the component `src/pages/configure.astro`
+mounts. What follows is therefore the contract as it stands, not a guess.
+
 
 ## 1. The layout
 
@@ -37,16 +42,22 @@ the moment it does.
 | `--panel-2` | `#E6E0D2` | the second panel tone, insets |
 | `--panel-deep` | `#24231F` | the build console's panel |
 | `--rule` | `#8A7358` | the 1px hairline, the only divider (§7) |
-| `--ore` | `#BE3A12` | layer-boundary marks, focus ring, the ILLUSTRATION flag |
+| `--ore` | `#BE3A12` | layer-boundary marks, the ILLUSTRATION flag |
 | `--ore-2` | `#D9682E` | the second ore tone |
+| `--focus` | `#BE3A12` light / `#D9682E` dark | the focus ring; it flips in dark so it keeps 3:1 |
+| `--page-bg` | `#EFE6D4` | the page behind the panels |
 | `--font-display` | Instrument Serif | headings only, **400 only — this face has no bold** |
 | `--font-ui` | IBM Plex Sans | UI and prose |
 | `--font-mono` | IBM Plex Mono | anything factual: prices, config, logs, paths |
 
-**Ore is never text.** Measured, not assumed: `#BE3A12` on the dark panel `#1E242C` is 2.83:1 and
-`#D9682E` is 4.39:1 — both under 4.5:1. So ore appears as a border, a background or a mark, and
-text is `--ink` / `--ink-muted` / `--ink-console`. `tools/contrast.mjs` re-measures this against
-whatever `src/styles/` actually defines and fails the build if a real pair comes in under AA.
+**Ore is never text, and it is not every mark either.** Measured, not assumed: `#BE3A12` on the
+dark panel `#1E242C` is 2.83:1 and `#D9682E` is 4.39:1 — both under 4.5:1 — so text is
+`--ink` / `--ink-muted` / `--ink-console`. Ore is also not used for a mark that WCAG 1.4.11
+governs: a link underline and an interactive border have to clear 3:1 in both themes, `--ore-2`
+misses that on `--panel-2` at 2.67:1, and `--rule` clears it everywhere (3.41:1 to 3.91:1), so
+those use `--rule`. Ore stays on decoration — the layer-boundary marks and the ILLUSTRATION flag.
+`tools/contrast.mjs` re-measures all of this against what `src/styles/` actually defines, page by
+built page, and fails the build if a governed pair comes in under AA.
 
 Dark theme is the styles agent's to define. These components assume it redefines the same token
 names under `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`, and never that a

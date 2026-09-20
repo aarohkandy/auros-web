@@ -558,8 +558,17 @@ function declaredColors(decls, vars) {
   for (const [prop, kind] of COLOR_PROPS) {
     if (!(prop in decls)) continue;
     const parsed = prop === "background" ? colorFromShorthand(decls[prop], vars) : resolveColor(decls[prop], vars);
-    if (parsed) out.push({ prop, kind, color: parsed });
-    else out.push({ prop, kind, color: null, raw: decls[prop] });
+    if (parsed) {
+      out.push({ prop, kind, color: parsed });
+      continue;
+    }
+    // A `background` shorthand with no colour in it paints no colour — `background: 0 0` is how a
+    // minifier writes `transparent`. That is an answer, not a failure to resolve one.
+    if (prop === "background" && !/#|rgb|hsl|var\(/i.test(decls[prop])) {
+      out.push({ prop, kind, color: { r: 0, g: 0, b: 0, a: 0 } });
+      continue;
+    }
+    out.push({ prop, kind, color: null, raw: decls[prop] });
   }
   for (const [prop, kind] of SHORTHAND) {
     if (!(prop in decls)) continue;
@@ -572,6 +581,21 @@ function declaredColors(decls, vars) {
 const themeNames = [["light", themes.light], ["dark", themes.dark]];
 
 /* ---- Mode A: the built pages, when there are any ---- */
+
+function distStylesheets() {
+  const out = [];
+  if (!existsSync(DIST)) return out;
+  const walkDir = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      const st = statSync(p);
+      if (st.isDirectory()) walkDir(p);
+      else if (extname(p) === ".css") out.push(p);
+    }
+  };
+  walkDir(DIST);
+  return out;
+}
 
 function distPages() {
   if (!existsSync(DIST)) return [];
@@ -589,12 +613,39 @@ function distPages() {
 }
 
 function measureBuiltPage(file, vars, themeName) {
-  const html = readFileSync(file, "utf8");
+  // Another process may be rebuilding dist/ underneath this run. A page that vanishes mid-read is
+  // reported as unmeasured rather than crashing the gate — but it is never silently counted as a pass.
+  let html;
+  try {
+    html = readFileSync(file, "utf8");
+  } catch (e) {
+    unmeasured.push({ why: `page disappeared while reading it (${e.code ?? e.message}) — rebuild and re-run`, selector: relative(ROOT, file), origin: "dist/" });
+    return;
+  }
   const page = "/" + relative(DIST, file).replace(/index\.html$/, "").replace(/\\/g, "/");
   const root = parseHtml(html);
 
-  // The page's own <style> blocks are part of the cascade for this page.
-  const pageRules = [...allRules];
+  /**
+   * The cascade for a built page is the CSS the BROWSER loads: the stylesheets this page links,
+   * plus its own inline <style>. Not the `<style>` blocks in `src/`, which are unscoped source —
+   * Astro adds the `[data-astro-cid-…]` scope when it compiles them. Measuring the source blocks
+   * against a built page lets one component's `.title` rule match another component's `.title`
+   * element, which is a false reading, and the first run of this tool produced exactly that.
+   */
+  const pageRules = [];
+  const linked = [...html.matchAll(/<link[^>]+rel=["']?stylesheet["']?[^>]*>/gi)]
+    .map((m) => /href=["']([^"']+)["']/i.exec(m[0])?.[1])
+    .filter(Boolean);
+  const sheets = linked.length
+    ? linked.map((href) => join(DIST, href.replace(/^\//, "")))
+    : distStylesheets();
+  for (const sheet of sheets) {
+    if (!existsSync(sheet)) {
+      unmeasured.push({ why: "a stylesheet this page links was not found in dist/", selector: sheet, origin: page });
+      continue;
+    }
+    for (const rule of parseCss(readFileSync(sheet, "utf8"), relative(ROOT, sheet))) pageRules.push(rule);
+  }
   for (const m of html.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/g)) {
     for (const rule of parseCss(m[1], page)) pageRules.push(rule);
   }
@@ -640,8 +691,42 @@ function measureBuiltPage(file, vars, themeName) {
       ...(Object.keys(inlineDecls).length ? [{ decls: inlineDecls, parsed: { state: false }, selector: "[style]", origin: page }] : []),
       ...(Object.keys(importantDecls).length ? [{ decls: importantDecls, parsed: { state: false }, selector: "!important", origin: page }] : []),
     ];
+
+    /*
+     * CUSTOM PROPERTIES ARE SCOPED TO AN ELEMENT AND THEY INHERIT.
+     *
+     * `vars` is the page-level map, resolved from :root. That is not what a browser computes: a
+     * rule like
+     *
+     *     .tone-deep { --ink-muted: var(--ink-muted-deep); --focus: var(--ore-deep); }
+     *
+     * redefines those names for that element AND every descendant, which is how src/styles/base.css
+     * gives the build console — a dark panel in BOTH themes — the ink and the ore that were
+     * measured against a dark background.
+     *
+     * Reading `var(--ink-muted)` out of the root map instead reports the LIGHT value on a dark
+     * panel. That produced ~40 findings on this site that no browser would ever paint, which is
+     * the worst thing an audit can do: it makes the real findings unreadable and it teaches
+     * everyone to skim the output.
+     *
+     * So each element inherits its parent's map and applies its own `--*` declarations on top.
+     * Declarations from state rules (`:hover`, `:focus-visible`) are excluded — a custom property
+     * set only while an element is focused is not in effect for the element's resting colours.
+     */
+    const parent = el.parent && el.parent.tag !== "#root" ? computeFor(el.parent) : null;
+    let elVars = parent?.vars ?? vars;
+    let ownVars = null;
     for (const rule of cascade) {
-      const vals = declaredColors(rule.decls, vars);
+      if (rule.parsed?.state) continue;
+      for (const [prop, value] of Object.entries(rule.decls)) {
+        if (!prop.startsWith("--")) continue;
+        if (!ownVars) ownVars = new Map(elVars);
+        ownVars.set(prop, value);
+      }
+    }
+    if (ownVars) elVars = ownVars;
+    for (const rule of cascade) {
+      const vals = declaredColors(rule.decls, elVars);
       for (const v of vals) {
         if (!v.color) {
           if (!INHERITED_KEYWORDS.has((v.raw ?? "").trim().toLowerCase()))
@@ -657,15 +742,15 @@ function measureBuiltPage(file, vars, themeName) {
         else own.marks.push({ ...v, selector: rule.selector, origin: rule.origin });
       }
       if (rule.parsed.state) continue;
-      if (rule.decls["font-size"]) own.fontSize = toPx(resolveValue(rule.decls["font-size"], vars));
-      if (rule.decls["font-weight"]) own.fontWeight = resolveValue(rule.decls["font-weight"], vars);
+      if (rule.decls["font-size"]) own.fontSize = toPx(resolveValue(rule.decls["font-size"], elVars));
+      if (rule.decls["font-weight"]) own.fontWeight = resolveValue(rule.decls["font-weight"], elVars);
       if (rule.decls["font"]) {
-        const fm = /(\d+(?:\.\d+)?(?:px|rem|em))/.exec(resolveValue(rule.decls["font"], vars) || "");
+        const fm = /(\d+(?:\.\d+)?(?:px|rem|em))/.exec(resolveValue(rule.decls["font"], elVars) || "");
         if (fm) own.fontSize = toPx(fm[1]);
       }
     }
-    const parent = el.parent && el.parent.tag !== "#root" ? computeFor(el.parent) : null;
     const resolvedStyle = {
+      vars: elVars,
       color: own.color ?? parent?.color ?? null,
       background: own.background,
       effectiveBackground: null,
@@ -706,7 +791,12 @@ function measureBuiltPage(file, vars, themeName) {
       }
     }
 
-    for (const mark of [...style.marks, ...style.state.filter((s) => s.kind === "mark")]) {
+    const focusable =
+      INTERACTIVE_TAGS.has(el.tag) ||
+      el.attrs.tabindex !== undefined ||
+      el.attrs.contenteditable !== undefined;
+    const stateMarks = style.state.filter((s) => s.kind === "mark" && (focusable || !/:focus/.test(s.selector ?? "")));
+    for (const mark of [...style.marks, ...stateMarks]) {
       const bg = style.effectiveBackground ?? computeFor(el.parent ?? el)?.effectiveBackground;
       if (!bg || mark.color.a === 0) continue;
       const fg = over(mark.color, bg);

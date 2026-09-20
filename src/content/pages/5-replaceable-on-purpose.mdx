@@ -34,13 +34,14 @@ that changes.
 
 ## Rebuild your image
 
-You need one `x86_64` Linux machine with `podman` installed and about `40 GB` of free disk. You
-do not need an account with us.
+You need one `x86_64` Linux machine with `podman` installed and a few tens of gigabytes of free
+disk. We have not measured the working set of a full build yet, so we are not going to print a
+number you would size a disk from. You do not need an account with us.
 
 ```
 git clone https://github.com/aarohkandy/auros-recipes
 cd auros-recipes
-podman build -t myschool:local -f myschool/Containerfile .
+podman build -t myschool:local -f customers/myschool/Containerfile .
 ```
 
 That is your operating system, built from your file, with the same packages removed. If the
@@ -52,8 +53,12 @@ git clone https://github.com/aarohkandy/auros-base
 podman build -t auros-base:hardened auros-base
 podman build -t myschool:local \
   --build-arg BASE=localhost/auros-base:hardened \
-  -f myschool/Containerfile .
+  -f customers/myschool/Containerfile .
 ```
+
+`BASE` is a build argument in every compiled Containerfile, and its default is the base we
+publish. Overriding it is the only way anything outside a recipe can change what an image is
+built on, and it exists for exactly this paragraph.
 
 ## Turn it into a bootable USB stick
 
@@ -68,6 +73,24 @@ podman run --rm --privileged \
 
 The image lands in `out/`. Write it to a stick the way you would write any other.
 
+## The one thing that goes stale
+
+The base image names a specific upstream image by its exact fingerprint, and the people who
+publish that image delete old ones on a schedule — roughly three months, or sooner once enough
+newer releases have shipped. A recipe you pulled out of a drawer after a year will name a
+foundation that no longer exists, and the build will stop with a message saying the image is
+unknown.
+
+The fix is to move the pin forward to a current upstream image and rebuild, which is a one-line
+change to a file in `auros-base` and then the check matrix. We also keep our own copy of the
+exact pinned image, so in the ordinary case the old pin still resolves — but that copy is in our
+registry, and this page is about the day our registry is gone.
+
+We would rather write this down than let you discover it. A rebuild instruction that works on
+the day it is published and fails silently two years later is the failure mode this entire page
+exists to prevent, and pretending it does not apply to us would be the same mistake in a
+different coat.
+
 ## Keep your existing machines updating
 
 Machines already running an Auros image do not need reimaging. Push your build to any registry
@@ -78,8 +101,8 @@ with the same staging and the same automatic rollback.
 
 The part people forget is that a frozen image is a fine operating system for about a month.
 
-The nightly workflow that rebuilds the base against upstream lives in `auros-base` and runs on
-free CI for public repositories. Fork it and you have the same nightly rebuild and the same
+The nightly workflow that rebuilds the base against upstream lives in `auros-base`, fires at
+`04:17 UTC`, and runs on free CI for public repositories. Fork it and you have the same nightly rebuild and the same
 check matrix, running for you, without us. What you have taken on is that you now own the
 response when an image fails its checks at six in the morning.
 
@@ -87,13 +110,25 @@ That is the actual trade the paid tiers describe. Not access. Attention.
 
 ## What forking does not give you
 
-- Our test hardware. The compatibility table is public, but the machines are in a room and you
-  would be building your own evidence for models nobody has tried.
+- Our test hardware, when we have any. As of `2026-09-20` we have not imaged a single physical
+  machine, and `hardware/compat.tsv` is a header row with nothing under it. Everything proven so
+  far was proven in a virtual machine, which cannot tell you about your wireless chipset, your
+  trackpad or your firmware. Forking does not change that. It means the empty table is yours to
+  fill.
 - Anybody to call. The self-serve tier costs nothing and includes nothing, and both halves of
   that sentence are meant literally.
 
-## Check that this works before you need it
+## You do not have to take this on trust
 
-Do it on a Tuesday when nothing is wrong. Clone the repository, run the build, and see the image
-appear. Ten minutes now is worth more than any promise on this page, and if the commands above
-do not work we would rather hear it from you than have written them.
+Every Wednesday at `05:23 UTC` the recipes repository runs a workflow called `stranger`. It gets
+a container with `podman`, `git` and nothing of ours — no Node, no toolchain, no account, no
+working tree — clones the public repository the way the paragraph above tells you to, and runs
+the command printed on this page, verbatim. If an image does not come out, the build goes red.
+It goes red before you ever need it to work.
+
+That job exists because the page a sceptical IT person reads first is the worst possible place
+for an untested claim.
+
+Then do it yourself anyway, on a Tuesday when nothing is wrong. Clone the repository, run the
+build, watch the image appear. If the commands above do not work, we would rather hear it from
+you than have written them.

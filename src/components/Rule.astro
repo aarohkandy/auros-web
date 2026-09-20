@@ -1,0 +1,63 @@
+---
+/**
+ * A hairline.
+ *
+ * §7: "Hairline 1px rules are the only divider." So this is the only divider component on the
+ * site, and it is 1px in `var(--rule)`. There is no thick variant and there is no `--rule-strong`
+ * to reach for; `tools/ink-lint.mjs` fails the build on a >1px border that is not an ore mark.
+ *
+ * Semantics, which are the reason this is a component and not a `<hr>` people copy around:
+ *   - A rule that separates two sections of content is a `<hr>`: a real thematic break, announced.
+ *   - A rule that is a drawn line inside one block — under a heading, above a total — is
+ *     DECORATION, and gets `role="presentation"`, so a screen reader does not narrate a topic
+ *     change that did not happen. That is the `decorative` prop, and it defaults to true, because
+ *     most lines on most pages are drawn and not meant.
+ */
+interface Props {
+  /**
+   * `true` (default): a drawn line, hidden from assistive technology.
+   * `false`: a genuine thematic break between two sections, announced as one.
+   */
+  decorative?: boolean;
+  /** Vertical space above and below, as a --space-* step name. `none` for a flush rule. */
+  space?: "none" | "tight" | "normal" | "loose";
+  /** On the deep console panel, the hairline needs the tone measured against a dark surface. */
+  tone?: "default" | "deep";
+  class?: string;
+}
+
+const { decorative = true, space = "normal", tone = "default", class: className } = Astro.props;
+---
+
+<hr
+  class:list={["rule", `space-${space}`, `tone-${tone}`, className]}
+  role={decorative ? "presentation" : undefined}
+/>
+
+<style>
+  .rule {
+    border: 0;
+    border-block-start: var(--hairline) solid var(--rule);
+    /* Not `height: 1px; background: ...` — a border renders at exactly one device-independent
+       pixel and does not disappear at a fractional zoom the way a 1px box sometimes does. */
+    height: 0;
+    width: 100%;
+  }
+
+  .tone-deep {
+    border-block-start-color: var(--rule-deep);
+  }
+
+  .space-none {
+    margin: 0;
+  }
+  .space-tight {
+    margin-block: var(--space-3);
+  }
+  .space-normal {
+    margin-block: var(--space-5);
+  }
+  .space-loose {
+    margin-block: var(--space-7);
+  }
+</style>

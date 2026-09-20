@@ -1,6 +1,6 @@
 ---
 question: What about a machine that will not boot afterwards?
-shortAnswer: Your files are still in the verified archive, untouched. The most common cause is a firmware setting and we can tell you which one.
+shortAnswer: Your files are still in the verified archive, untouched. The cause we expect most often is a firmware setting, and we can tell you which one.
 group: hardware
 order: 6
 ---
@@ -10,11 +10,16 @@ count and hash before anything was written to the machine. A machine that fails 
 machine that has gone back to being a dead laptop. It is not a machine that has taken your files
 with it.
 
-The most common cause on this generation of hardware is Secure Boot. Fedora's boot loader is
-signed by a Microsoft certificate authority that some business firmware from that era ships
+The cause we expect most often on this generation of hardware is Secure Boot, though we have
+not yet measured that across real machines and will say so until we have. Fedora's boot loader
+is signed by a Microsoft certificate authority that some business firmware from that era ships
 switched off. Where that is the case the machine refuses the image until the setting is changed
-in firmware, which is a per-machine visit and a thirty-second job once you know which setting it
-is.
+in firmware. That is a per-machine visit: quick on any one laptop, and worth budgeting across
+the fleet rather than per machine, because somebody is walking to each one that needs it.
+
+None of this should be the first you hear of it. The inventory entry on firmware settings and
+BitLocker covers all three of the things that break *one restart*, and the tool checks for them
+before it copies a single file.
 
 We test against that case on purpose. The check matrix includes a profile with Secure Boot on
 and the standard keys enrolled, and a profile with legacy BIOS only, because a 2012 machine is

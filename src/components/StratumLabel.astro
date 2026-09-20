@@ -49,29 +49,66 @@ const ownedBy = data ? layerStack.ownedByLabels[data.ownedBy] : undefined;
 }
 
 <style>
+  /*
+    The label is a margin label, so it sits in the rail beside the stratum rather than on top of
+    the panel — `.with-margin-label` in base.css is the grid that puts it there, and §7's "labelled
+    in the margin as they pass it" is the sentence that asks for it.
+
+    It carries its own opaque background because in the rail there is no panel under it and §7 says
+    the terrain never reduces the contrast of text. A label drawn straight onto the canvas is a pair
+    `tools/contrast.mjs` cannot measure, and a rule nobody can measure is a rule nobody keeps.
+
+    No ore. Ore marks a layer boundary in the terrain, the ILLUSTRATION flag and the focus ring, and
+    nothing else on this site — an accent on every block is not an accent, it is a card decoration.
+    The hairline is §7's only divider and it is what separates this from what it labels.
+  */
   .stratum {
-    border-left: 3px solid var(--ore, #be3a12);
-    padding: 0.35rem 0 0.35rem 0.75rem;
-    margin: 0 0 1.25rem;
+    background-color: var(--panel, #f4f1ea);
+    border-block-start: 1px solid var(--rule, #8a7358);
+    padding: 0.55rem 0.75rem 0.7rem 0;
+    margin: 0 0 1rem;
     max-width: 16rem;
   }
   .margin-label,
   .ref {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.75rem;
+    font-size: var(--step--1, 0.8125rem);
+    line-height: 1.4;
     margin: 0;
     color: var(--ink-muted, #5a4e40);
   }
+  .margin-label {
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+  }
   .name {
-    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
-    font-size: 0.95rem;
-    margin: 0.15rem 0;
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-1, 1.1875rem);
+    line-height: 1.2;
+    margin: 0.3rem 0 0.15rem;
     color: var(--ink, #24231f);
   }
   .owned {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.8rem;
-    margin: 0.15rem 0 0;
+    line-height: 1.4;
+    margin: 0.3rem 0 0;
     color: var(--ink-muted, #5a4e40);
+  }
+
+  /*
+    In the rail, the label holds beside its section while the reader passes it — which is what "as
+    they pass it" describes. It only sticks where the rail exists; stacked above a panel on a
+    narrow screen, sticking would pin a caption over the text it captions.
+    Sticky is a position, not an animation: nothing here moves relative to the scroll.
+  */
+  @media (min-width: 64rem) {
+    .stratum {
+      position: sticky;
+      top: var(--space-6, 32px);
+      margin-bottom: 0;
+      padding-block-end: 0.9rem;
+    }
   }
 </style>

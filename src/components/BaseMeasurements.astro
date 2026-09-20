@@ -1,0 +1,141 @@
+---
+/**
+ * The measured facts about the base image, from the file that records them.
+ *
+ * This is the block beside the build console, and it exists because of what D29 says life is made
+ * of: "Real digests, real package counts, the real 3.5 GB." Every value here is read at build time
+ * from `auros-base/base.lock` by `src/components/facts.ts`. Nothing is rounded for effect and there
+ * is no figure in it that somebody chose.
+ *
+ * The size is set large — larger than any heading on the landing page — because it is the one thing
+ * on the page that is a measurement rather than a claim, and because a number that big and that
+ * specific is the fastest way to tell a reader that somebody actually ran this.
+ *
+ * It is deep-toned so that it and the console read as one dark band. §7's ink rules apply as
+ * everywhere: a hairline, no shadow, no radius past 3px, nothing moves.
+ */
+import Panel from "./Panel.astro";
+import { base, schedules } from "./facts";
+
+interface Props {
+  headingLevel?: 2 | 3;
+  class?: string;
+}
+const { headingLevel = 2, class: className } = Astro.props;
+const H = `h${headingLevel}` as any;
+
+/** Every row is a fact and every value is mono. The label is not a fact and is not mono. */
+const rows = [
+  { label: "upstream", value: base.upstreamMono },
+  { label: "pinned", value: base.digestMono },
+  { label: "resolved", value: base.resolvedAtMono },
+  { label: "rebuilds", value: `${schedules.nightlyMono}, nightly` },
+];
+---
+
+<Panel tone="deep" as="section" class:list={["measured", className]}>
+  <H class="title">What the base weighs</H>
+
+  <p class="figure">{base.sizeMono}</p>
+  <p class="figure-what">
+    What a machine pulls when the layer underneath it changes — <span class="mono"
+      >{base.bytesMono}</span
+    > bytes, compressed. Most nights nothing changes and it pulls almost nothing. Some nights it is a
+    kernel and it is this.
+  </p>
+
+  <dl class="rows">
+    {
+      rows.map((row) => (
+        <div class="row">
+          <dt>{row.label}</dt>
+          <dd class="mono">{row.value}</dd>
+        </div>
+      ))
+    }
+  </dl>
+
+  <p class="provenance">
+    {
+      base.live
+        ? `Read from ${base.sourcePath} when this page was built. CI resolves that file; nobody types it.`
+        : `Transcribed from ${base.sourcePath} on ${base.transcribedOn}. This build could not open the file itself, so it is showing the transcription and saying so.`
+    }
+  </p>
+</Panel>
+
+<style>
+  .measured {
+    /* The rows are long strings of hex. They wrap; they are never truncated with an ellipsis,
+       because a digest you cannot read all of is a digest you cannot check. */
+    overflow-wrap: anywhere;
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-2, 1.5rem);
+    line-height: 1.1;
+    margin: 0 0 0.75rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  /* The one number on the landing page bigger than the headline. It is a measurement. */
+  .figure {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+    font-size: clamp(2.75rem, 11vw, var(--step-5, 3.75rem));
+    line-height: 1;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .figure-what {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0 0 1.25rem;
+    max-width: 32rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .mono {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+  }
+  .rows {
+    margin: 0;
+    display: grid;
+    gap: 0.4rem;
+    border-block-start: 1px solid var(--rule, #8a7358);
+    padding-block-start: 0.85rem;
+  }
+  .row {
+    display: grid;
+    gap: 0.1rem;
+  }
+  .rows dt {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted-deep, #a8afa2);
+  }
+  .rows dd {
+    margin: 0;
+    font-size: 0.76rem;
+    line-height: 1.5;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .provenance {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    margin: 1rem 0 0;
+    color: var(--ink-muted-deep, #a8afa2);
+  }
+  /* A label column once there is room for one. 9rem, the same rhythm the console legend uses. */
+  @media (min-width: 30rem) {
+    .row {
+      grid-template-columns: 6.5rem minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: baseline;
+    }
+  }
+</style>

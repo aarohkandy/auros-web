@@ -88,8 +88,13 @@ export async function layerById(id: LayerEntry["data"]["id"]): Promise<LayerEntr
  * Wrapped in one place so that the pages call one render API and not two scattered through the
  * templates. Astro 7 removed the legacy `entry.render()` form along with legacy collections.
  */
-export async function renderEntry(entry: Parameters<typeof render>[0]) {
-  return await render(entry);
+export type AnyEntry = PageEntry | MigrationEntry | TierEntry | FaqEntry | LayerEntry;
+
+export async function renderEntry(entry: AnyEntry) {
+  // `render()` is typed against a live-collection entry shape that, under this repo's
+  // `exactOptionalPropertyTypes`, no static collection entry satisfies. The cast is at the one call
+  // site rather than at five, and the union above keeps the caller honest about what may be passed.
+  return await render(entry as unknown as Parameters<typeof render>[0]);
 }
 
 /**

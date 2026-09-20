@@ -1,0 +1,125 @@
+---
+/**
+ * `hardware/compat.tsv`, printed with as many rows as it has.
+ *
+ * SPEC §8 says to build this file from hour one because after fifty rows it is the thing a
+ * competitor cannot copy quickly. It currently has a header row and nothing under it, because no
+ * physical machine has been imaged yet. Every other page on this site would describe that table.
+ * This prints it.
+ *
+ * The row count, and the column names, are read from the file at build time. If somebody adds a row
+ * tomorrow the page stops saying the table is empty, without anybody editing a sentence — which is
+ * the only version of this block worth shipping, since the one way it could become a lie is by
+ * being maintained by hand.
+ *
+ * The scroll box is horizontal and belongs to the table, not to the page: seventeen columns do not
+ * fit on a phone and shrinking them to fit would make the row unreadable in exchange for a layout
+ * that looks tidier. It is focusable so it can be scrolled from a keyboard.
+ */
+import Panel from "./Panel.astro";
+import { compat } from "./facts";
+
+interface Props {
+  headingLevel?: 2 | 3;
+  class?: string;
+}
+const { headingLevel = 2, class: className } = Astro.props;
+const H = `h${headingLevel}` as any;
+---
+
+<Panel tone="panel" as="section" class:list={["compat", className]}>
+  <H class="title">The compatibility table, as it stands today</H>
+
+  <p class="body">
+    One row per machine we have actually imaged and checked: wireless, trackpad, suspend,
+    brightness, the things that decide whether a laptop is usable rather than whether it boots. It
+    is public, it is the file we quote from, and right now it has
+    <span class="mono">{compat.rowCount}</span>
+    {compat.rowCount === 1 ? "row" : "rows"} in it. Showing you that is worth more than describing a
+    full one, and anybody claiming a full one on their own website is asking you to take their word
+    for it.
+  </p>
+
+  <div class="scroller" tabindex="0" role="region" aria-label="Hardware compatibility table">
+    <table>
+      <thead>
+        <tr>
+          {compat.columnsMono.map((column) => <th scope="col">{column}</th>)}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="empty" colspan={compat.columnsMono.length}>
+            no rows yet · no physical machine has been imaged
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="provenance">
+    <span class="mono">{compat.sourcePath}</span>, read when this page was built. Everything proven
+    so far was proven in a virtual machine, which cannot tell you about your wireless chipset, your
+    trackpad or your firmware.
+  </p>
+</Panel>
+
+<style>
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-2, 1.5rem);
+    line-height: 1.15;
+    margin: 0 0 0.75rem;
+    color: var(--ink, #24231f);
+  }
+  .body {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: var(--measure, 38rem);
+    margin: 0 0 1.1rem;
+    color: var(--ink, #24231f);
+  }
+  .mono {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-variant-numeric: tabular-nums;
+  }
+  .scroller {
+    overflow-x: auto;
+    border-block: 1px solid var(--rule, #8a7358);
+  }
+  .scroller:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--focus, #be3a12);
+    outline-offset: 2px;
+  }
+  table {
+    border-collapse: collapse;
+    width: max-content;
+    min-width: 100%;
+  }
+  th {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-weight: 400;
+    font-size: 0.72rem;
+    text-align: start;
+    white-space: nowrap;
+    padding: 0.5rem 0.9rem 0.5rem 0;
+    color: var(--ink-muted, #5a4e40);
+    border-block-end: 1px solid var(--rule, #8a7358);
+  }
+  .empty {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.78rem;
+    padding: 0.85rem 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .provenance {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    max-width: var(--measure, 38rem);
+    margin: 0.9rem 0 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>

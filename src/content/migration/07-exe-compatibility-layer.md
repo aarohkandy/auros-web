@@ -10,9 +10,11 @@ examples:
 howToCheck: >
   Write down the exact program name and the exact version you run, not the current one on the
   vendor's site. Look it up yourself in the WineHQ Application Database at appdb.winehq.org, and
-  read the rating for your version rather than the newest. Then send us the list and we will go
-  through it with you by hand, against that database and against our own notes from machines we
-  have built. Do this for every program you cannot live without, before you order.
+  read the rating for your version rather than the newest. Then send us the list and we will read
+  it with you, entry by entry, in that same public database. What you get from us is a careful
+  reading of somebody else's evidence. We have not put these programs on a machine, we are not
+  offering to, and we have no results of our own to add. Do this for every program you cannot live
+  without, before you order.
 onLanding: false
 order: 7
 ---
@@ -40,6 +42,17 @@ that person, or not migrating that person.
 **What tends to work.** Self-contained programs that draw a window, read and write files, and
 ask nothing else of the machine. Older utilities. Single-purpose tools written years ago that
 your school never replaced because they still do the job.
+
+**What a real answer looks like.** The worked example recipe in our public repository carries two
+Windows programs, tested on `2026-09-11`, with the result written into the file:
+
+- `Vidyalaya School ERP desktop client` — *works with caveats*. Prints report cards. The
+  fingerprint attendance module cannot see the reader.
+- `Tally.ERP` — *fails*. Crashes during licence activation. The office PC stays on Windows for
+  Tally.
+
+One yes with a hole in it and one flat no, in a configuration file, where the next person to ask
+can find them. A recipe that only recorded the yeses would be worth nothing to that person.
 
 **What does not work, and will not.** Anything with a kernel driver. Anything with a hardware
 dongle. Anything with copy protection or anti-tamper. Anything expecting to install a service

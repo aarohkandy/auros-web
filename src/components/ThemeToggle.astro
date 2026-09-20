@@ -1,0 +1,124 @@
+---
+/**
+ * The theme override. §7: "`prefers-color-scheme` respected with a manual override."
+ *
+ * THREE STATES, NOT TWO. "Match system" is the default and it is a real option, not the absence
+ * of a choice: a reader whose machine switches at sunset should get a site that switches with it,
+ * and a two-state toggle silently opts them out of that the first time they touch it.
+ *
+ * MECHANISM
+ *   match  → the `data-theme` attribute is removed; tokens.css falls through to the media query
+ *   light  → data-theme="light"; the media query's `:not([data-theme="light"])` guard stands down
+ *   dark   → data-theme="dark"
+ * The attribute lives on `<html>`, which is also where src/terrain/parallax.ts reads it
+ * (`document.documentElement.dataset.theme`) and where its MutationObserver is watching, so
+ * changing it here repaints the terrain with no further coupling between the two files.
+ *
+ * WHY A `<select>`
+ * It is a one-of-three choice, which is what a select is. It arrives keyboard-complete, it is
+ * announced correctly by every screen reader, it works with a switch device and with voice
+ * control, and it has no ARIA for us to get subtly wrong. Three styled buttons with `aria-pressed`
+ * would look more designed and be worse.
+ *
+ * NO-JS
+ * With scripting off this control cannot work, so it is not shown: `.theme-toggle` is
+ * `display: none` until the inline script in Base.astro adds `.js` to `<html>`. A dead control
+ * is worse than no control — §6D requires the site to work with JS disabled, and with JS
+ * disabled the correct behaviour is `prefers-color-scheme`, which needs nothing from us.
+ *
+ * PERSISTENCE
+ * `localStorage`, every access wrapped in try/catch. It throws outright in Safari's private mode
+ * and under a blocked-cookies policy, and a school laptop locked down by the IT person we are
+ * selling to is exactly where that happens. A failure to remember is not a failure to work.
+ */
+import { footer } from "../content/copy";
+
+const t = footer.themeToggle;
+const id = "auros-theme-select";
+---
+
+<div class="theme-toggle">
+  <label class="label" for={id}>{t.label}</label>
+  <select id={id} class="select" data-theme-select>
+    <option value="match">{t.system}</option>
+    <option value="light">{t.light}</option>
+    <option value="dark">{t.dark}</option>
+  </select>
+</div>
+
+<script is:inline>
+  (function () {
+    var KEY = "auros-theme";
+    var select = document.querySelector("[data-theme-select]");
+    if (!select) return;
+
+    function read() {
+      try {
+        var v = window.localStorage.getItem(KEY);
+        return v === "light" || v === "dark" ? v : "match";
+      } catch (e) {
+        // Storage blocked. The site still works; it just will not remember.
+        return "match";
+      }
+    }
+
+    function apply(value) {
+      var root = document.documentElement;
+      if (value === "light" || value === "dark") root.setAttribute("data-theme", value);
+      else root.removeAttribute("data-theme");
+      try {
+        if (value === "match") window.localStorage.removeItem(KEY);
+        else window.localStorage.setItem(KEY, value);
+      } catch (e) {
+        /* nothing to do, and nothing to tell the reader about */
+      }
+    }
+
+    select.value = read();
+    select.addEventListener("change", function () {
+      apply(select.value);
+    });
+
+    // Another tab changed it. Keep the two in step rather than letting them disagree.
+    window.addEventListener("storage", function (event) {
+      if (event.key !== KEY) return;
+      var v = read();
+      select.value = v;
+      apply(v);
+    });
+  })();
+</script>
+
+<style>
+  /* Hidden until the inline script in Base.astro proves scripting is on. See the header. */
+  .theme-toggle {
+    display: none;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  :global(html.js) .theme-toggle {
+    display: flex;
+  }
+
+  .label {
+    font-family: var(--font-ui);
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+
+  .select {
+    font-family: var(--font-ui);
+    font-size: var(--step--1);
+    color: var(--ink);
+    background-color: var(--panel);
+    border: var(--hairline) solid var(--rule);
+    border-radius: var(--radius);
+    padding: var(--space-1) var(--space-2);
+  }
+
+  .select:focus-visible {
+    outline: var(--focus-ring-width) solid var(--focus);
+    outline-offset: var(--focus-ring-offset);
+  }
+</style>

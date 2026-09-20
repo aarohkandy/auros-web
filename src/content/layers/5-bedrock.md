@@ -18,6 +18,13 @@ We pin it by digest rather than by name, so a build today and a build next Tuesd
 exactly the same rock. Moving that pin is a deliberate act with a rebuild and a full check matrix
 behind it, not something that happens to us overnight.
 
-This is also the floor under the promise that you can rebuild without us. If we vanish and the
-registry we publish to vanishes with us, the thing at the bottom is still there and still
-maintained by people who never heard of us.
+This is also the floor under the promise that you can rebuild without us. The project at the
+bottom is still there and still maintained by people who never heard of us.
+
+One honest caveat about *the pin*, as opposed to the project. The upstream registry deletes old
+images on a schedule of its own — roughly three months, or sooner once enough newer releases
+have shipped. So a recipe left alone for a year names a foundation that upstream has since
+removed, and rebuilding it means moving the pin forward to a current one first. We keep a copy
+of the exact pinned image in our own registry so that this does not bite, which helps right up
+until our registry is the one that has gone. Neither of those is a reason not to publish the
+rebuild instructions. Both are reasons to run them occasionally rather than trusting them.

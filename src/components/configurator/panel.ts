@@ -60,7 +60,11 @@ export function linesToHtml(lines: YamlLine[]): string {
         .join(" ");
       return `<span ${attrs}>${escapeText(line.text)}</span>`;
     })
-    .join("\n");
+    // Joined with nothing, not with a newline. Each line is a block element inside a `<pre>`,
+    // so a literal newline between them is a SECOND line break and the file renders
+    // double-spaced. Selecting and copying still yields one newline per line, because that is
+    // what a block element does.
+    .join("");
 }
 
 function escapeText(s: string): string {

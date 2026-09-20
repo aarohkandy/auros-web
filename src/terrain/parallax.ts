@@ -386,8 +386,11 @@ function css(o: CssOptions): string {
   top: 0;
   left: 0;
   display: block;
-  image-rendering: pixelated;
+  /* crisp-edges first as the fallback; pixelated is the value §7 names and it must be the one
+     that wins wherever it is understood. Declared the other way round, browsers that support
+     both -- which is now most of them -- silently take crisp-edges. Measured in the harness. */
   image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 .auros-terrain__ground { width: ${o.worldCssWidth}px; height: ${o.worldCssHeight}px; }
 .auros-terrain__clouds { width: ${o.cloudCssWidth}px; height: ${o.cloudCssHeight}px; }

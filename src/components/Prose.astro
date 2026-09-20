@@ -73,10 +73,13 @@ const { class: className } = Astro.props;
      declarations are the one place on this site that needs `!important`. The real fix is one line
      in `astro.config.*` (`markdown.syntaxHighlight: false`, or Shiki's `css-variables` theme), and
      that file belongs to another agent; until it lands, the code blocks are on our own panel and
-     our own ink, measured at 12.6:1 rather than on a third-party palette nobody chose. */
+     our own ink — the same pair as every other <pre> — rather than on a third-party palette nobody
+     chose. Shiki also puts `tabindex="0"` on the <pre>, so this pair has to carry a focus ring too:
+     against --panel-2 that ring measures 4.25:1, and against the dark slab this override used to
+     produce it was 2.85:1 and failed. */
   .prose :global(pre.astro-code) {
-    background-color: var(--panel-deep, #24231f) !important;
-    color: var(--ink-console, #e2ddd0) !important;
+    background-color: var(--panel-2, #e6e0d2) !important;
+    color: var(--ink, #24231f) !important;
   }
   .prose :global(pre.astro-code code),
   .prose :global(pre.astro-code span) {

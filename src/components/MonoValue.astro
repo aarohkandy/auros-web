@@ -1,0 +1,98 @@
+---
+/**
+ * A fact, set in IBM Plex Mono.
+ *
+ * §7: "Anything factual — specs, prices, config, logs: IBM Plex Mono." That is a rule about
+ * TRUTH-STATUS, not about emphasis, and this component exists so the distinction survives being
+ * used a hundred times. The convention `src/content/config.ts` already states:
+ *
+ *     "If a string is not a fact, it does not get mono. Emphasis is not a reason."
+ *
+ * So: a price is mono. A digest is mono. A package count is mono. "Only what you asked for" is
+ * not mono, however much a designer wants the texture.
+ *
+ * WHY IT IS NOT JUST A CLASS
+ * Three things a bare `<span class="mono">` gets wrong and this does not:
+ *
+ *   1. `font-variant-numeric: tabular-nums`, so a column of prices lines up. IBM Plex Mono is
+ *      monospaced, but its default figures still benefit, and the same token gets used on the
+ *      proportional Devanagari fallback where it matters a great deal.
+ *   2. `lang` and direction are left alone, so a Marathi value renders in the Devanagari face
+ *      through the unicode-range rules in fonts.css without any per-call handling.
+ *   3. An optional `label`, which is the pattern §7's factual strings almost always appear in —
+ *      a name and a value — rendered so the label is UI type and the value is mono, and so a
+ *      screen reader reads them as one phrase instead of two orphans.
+ */
+interface Props {
+  /** The label. UI type, not mono — it is a name, not a fact. Omit for a bare value. */
+  label?: string;
+  /**
+   * The value. Rendered mono. Passed as a prop rather than a slot when it is a plain string, so
+   * the component can also expose it to assistive technology as part of one phrase.
+   */
+  value?: string;
+  /**
+   * A longer reading of the value for assistive technology, where the written form is a
+   * shorthand a screen reader would mangle. e.g. value "$15" · announce "15 US dollars".
+   * Never used to say something the visible text does not.
+   */
+  announce?: string;
+  /** The element to render. A value inside prose is a `span`; a standalone fact is a `p`. */
+  as?: "span" | "p" | "dd" | "div" | "td";
+  /** `deep` picks the tones measured against the console panel. */
+  tone?: "default" | "deep";
+  class?: string;
+}
+
+const {
+  label,
+  value,
+  announce,
+  as = "span",
+  tone = "default",
+  class: className,
+} = Astro.props;
+
+const Tag = as;
+---
+
+<Tag class:list={["mono-value", `tone-${tone}`, className]}>
+  {label && <span class="label">{label}</span>}
+  <span class="value" aria-hidden={announce ? "true" : undefined}>
+    {value}<slot />
+  </span>
+  {announce && <span class="visually-hidden">{announce}</span>}
+</Tag>
+
+<style>
+  .mono-value {
+    display: inline;
+  }
+
+  .label {
+    font-family: var(--font-ui);
+    color: var(--ink-muted);
+    font-size: var(--step--1);
+  }
+
+  .label + .value {
+    margin-inline-start: 0.4em;
+  }
+
+  .value {
+    font-family: var(--font-mono);
+    /* Figures in a column line up. This is the reason a price table reads as a table. */
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+    /* A digest or a long path must be able to break rather than push a phone into a
+       horizontal scroll. §6D requires the site to work on a phone. */
+    overflow-wrap: anywhere;
+  }
+
+  .tone-deep .value {
+    color: var(--ink-console);
+  }
+  .tone-deep .label {
+    color: var(--ink-muted-deep);
+  }
+</style>

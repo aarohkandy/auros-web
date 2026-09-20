@@ -71,11 +71,26 @@ export const nav = {
 export const hero = {
   headline: "An OS with only what you asked for",
   standfirst:
-    "Your 2012 to 2018 laptops are not broken. Windows stopped patching them. We build them an operating system that contains the applications your staff actually open, in your language, under your rules, rebuilt every night so it is still patched in four years.",
+    "Your 2012 to 2018 laptops are not broken. Windows stopped patching them, which is a different problem with a different fix. We build them an operating system holding the ten or so applications your staff actually open and nothing else, in the language the class is taught in, rebuilt every night so it is still patched in four years.",
+  /**
+   * The real `first_boot_message` from `auros-recipes/customers/example-school/recipe.yaml` — a
+   * committed public file carrying `# ILLUSTRATIVE EXAMPLE — not a customer` on line 1.
+   *
+   * Printed rather than described. The site said "in your language" four times and never once
+   * showed a language, and the 261 KB Devanagari subset in `public/fonts/` has been sitting
+   * behind a `unicode-range` waiting for a string that already existed in the repository.
+   */
+  firstBoot: {
+    lead: "The worked example in our public recipes repository is a Marathi-medium secondary school. Its laptops finish setting themselves up and say this:",
+    messageMono: "नमस्कार! काही अडचण असल्यास शिक्षकांना सांगा.",
+    gloss: "Hello. If something goes wrong, tell a teacher.",
+    sourceMono: "auros-recipes/customers/example-school/recipe.yaml",
+    note: "One line of a file anyone can read, and most of the argument. A shared classroom laptop greets a fourteen-year-old in the language the lesson is in, because somebody wrote that sentence down and the build put it in the image. Nobody has to find a setting.",
+  },
   primaryCta: { label: "Configure a build", href: "/configure" },
   secondaryCta: { label: "Read what doesn't come across", href: "/what-doesnt-come-across" },
   /** Sits under the CTAs. A fact, so it renders mono. */
-  priceNoteMono: "$79 one machine · $15 per device per year for schools · $0 self-serve",
+  priceNoteMono: "$79 one machine · $15 per device per year for schools, 25 minimum · $0 self-serve",
 } as const;
 
 /**
@@ -158,15 +173,15 @@ export const replacementComparison = {
     {
       keyMono: "C",
       label: "What Auros costs for those machines",
-      hint: "A multiplied by $15, per year.",
+      hint: "A multiplied by $15, per year, with a 25-device minimum — so below 25 machines the figure is 25 × $15.",
     },
   ],
   /** Rendered in mono next to the inputs. */
-  formulaMono: "C = A × $15 per year",
+  formulaMono: "C = max(A, 25) × $15 per year",
   body: [
     "Compare A × B against C. You have both numbers and we have neither, which is why the page does the arithmetic and not the arguing.",
     "If B is effectively zero because you were never going to replace them, then the comparison is C against nothing, and the question stops being financial. It becomes whether a machine that still works but no longer receives security updates is something you are willing to keep on a network with children on it. That is a risk decision and we are not going to dress it up as a saving.",
-    "There is a third column nobody puts in the spreadsheet: the machines you keep and do nothing about. That is the most common outcome in this situation and it has a cost too. We are not going to estimate it for you.",
+    "There is a third column nobody puts in the spreadsheet: the machines you keep and do nothing about. That column has a cost too, and we are not going to estimate it for you.",
   ],
   noFigureNote:
     "We do not print a savings figure. We have no customers, so any figure would be invented, and a number you cannot check is worth less than no number at all.",
@@ -220,24 +235,30 @@ export const buildConsole = {
   title: "Build output",
   liveLabel: "live",
   idleLabel: "No build running",
-  subtitle: "Real output from the build pipeline. It is more interesting than an animation and it is true.",
+  subtitle:
+    "The base rebuilds at 04:17 UTC, and again whenever a recipe changes. Free CI runs its schedules late, so in practice it is a little after that. Most of the time this panel is empty. That is what a maintained image looks like from the outside.",
   /** ILLUSTRATION. Never presented as a build we ran for a customer. Mono, obviously. */
   sampleLinesMono: [
     "resolving base  ghcr.io/ublue-os/aurora:stable",
-    "pinned          sha256:… recorded in base.lock",
+    "pinned          sha256:911281f2aaa42bfd…c28d0d2f1 · 3.5 GB · 58 s",
     "installing      11 packages",
-    "pruning         214 packages",
-    "removal report  written · 3.9 GB reclaimed",
+    "pruning         240 packages · recipe floor was 240",
+    "removal report  written · every size measured from this image, none estimated",
     "booting test vm uefi-modern",
     "check S1        base pinned by digest",
     "check S3        prune assertions · 0 survivors",
     "check S4        keep assertions · 11 present",
-    "check B4        locale · keyboard",
+    "check B4        locale mr_IN · keyboard us",
     "check S8        signed · cosign keyless",
     "published       only because every check above passed",
   ],
+  /**
+   * Four entries, not three. Three equal terms in three equal columns is the card grid D29 bans
+   * wearing a different hat. This is a glossary and now reads as one.
+   */
   legend: [
-    { label: "pruning", meaning: "Packages deleted from the image. Not disabled. Deleted." },
+    { label: "pinned", meaning: "The digest out of base.lock. Check S1 fails the build if FROM resolves to anything else. A tag is a moving target: two builds a day apart would be different operating systems wearing one name." },
+    { label: "pruning", meaning: "Packages deleted from the image. Not disabled. Deleted. The recipe sets a floor on it — the worked example says must_remove_at_least: 240 — and a build that removes fewer than that fails." },
     { label: "check", meaning: "A binary test from the matrix. Mostly worked is a fail." },
     { label: "published", meaning: "The publish step reads the results ledger. There is no flag that skips it." },
   ],
@@ -257,16 +278,18 @@ export const layerStack = {
 
 export const faqPage = {
   title: "Questions",
-  standfirst:
-    "Ordered by how much they should affect your decision, not by how well they make us look.",
+  /*
+   * A `standfirst` and an `unfinishedNote` used to live here. Both said what
+   * `src/content/pages/4-faq.mdx` already says at the top of the same page, and the note was
+   * printed two inches under the document containing it, in a different typeface. Deleted
+   * rather than reworded. The page did not need the sentence three times.
+   */
   groupLabels: {
     trust: "If something goes wrong with us",
     operations: "Running it",
     data: "Your data",
     hardware: "The machines",
   },
-  unfinishedNote:
-    "Where the honest answer is that something is designed and not built, it says so. An answer that is true in December is worth more than an answer that is impressive in September.",
 } as const;
 
 export const replaceable = {
@@ -277,13 +300,13 @@ export const replaceable = {
   requirements: [
     { label: "One Linux machine", value: "x86_64" },
     { label: "Container tooling", value: "podman" },
-    { label: "Free disk", value: "40 GB" },
+    { label: "Free disk", value: "a few tens of GB" },
     { label: "An account with us", value: "none" },
   ] satisfies Fact[],
-  terminalNote:
-    "This is the only page on this site with a command line on it. Nobody using these machines should ever need one.",
-  verifyNote:
-    "Run these on a Tuesday when nothing is wrong. Ten minutes now is worth more than any promise on this page.",
+  /*
+   * `terminalNote` and `verifyNote` were here, printed directly above the document that makes
+   * both points in its own words. Deleted. The requirements are all this panel needs.
+   */
 } as const;
 
 export const migrationSafety = {
@@ -294,13 +317,211 @@ export const migrationSafety = {
     { label: "Copy", value: "to a disk that is not the system disk" },
     { label: "Verify", value: "file count and per-file hash" },
     { label: "Report what was in use", value: "locked files are listed, never dropped quietly" },
-    { label: "Only then write", value: "any mismatch aborts and changes nothing" },
+    { label: "Only then write", value: "a mismatch is retried once, then listed by name — nothing is written until that list is empty" },
   ] satisfies Fact[],
-  body: "There is a moment, by design, where your data exists in two places and the original disk has not been touched. Ignoring that ordering is how other people have destroyed other people's data.",
+  body: "Step five is the one other tools skip. A file Windows has locked while the machine is running cannot always be read cleanly, so the run produces a list of the files it could not copy and puts that list in front of you before you decide anything. A gap you can see is a problem. A gap nobody mentioned is a disaster.",
   archiveNote:
     "The archive is written to your disk, on your premises. It is never uploaded and we never receive it.",
   noBootMediaNote:
     "The Windows program does not write your USB stick. Writing boot media means raw writes to a disk on a machine we do not own, with no undo. The media is made once, elsewhere, and the same stick does every machine.",
+} as const;
+
+/**
+ * The number this product is most uncomfortable about, set in the largest type on the site.
+ *
+ * `docs/evidence/2026-09-20-runner-probe.md` calls 3.5 GB "the most consequential number in the
+ * probe" and works out the 630 GB consequence for a 180-machine site. It is an argument against
+ * us — a nightly rebuild is a real cost on a real school uplink — and it is measured, sourced and
+ * reopenable, which is why it goes large rather than into a footnote.
+ *
+ * A site that prints its worst measurement bigger than its headline is doing something a
+ * generated one cannot, because a generated one has no measurements.
+ */
+export const measured = {
+  label: "Measured, on a CI runner",
+  bigMono: "3.5 GB",
+  caption:
+    "What one machine pulls on a night when a low layer of the base changes. Compressed, 3,758,096,384 bytes, pinned in base.lock and timed at 58 s on a datacentre uplink that is nothing like yours.",
+  consequenceMono: "× 180 machines = 630 GB",
+  consequence:
+    "That is a morning where nothing else on your line works, and the caching mirror that fixes it is a design requirement rather than a feature — we have not built it. The FAQ question about one uplink is the honest version of this and it is the one we would read before ordering.",
+  sourceMono: "docs/evidence/2026-09-20-runner-probe.md",
+  sourceLink: {
+    label: "The CI run that produced it",
+    href: "https://github.com/aarohkandy/auros-base/actions/runs/35538612202",
+  },
+  faqLink: { label: "Updates on a 180-machine site with one uplink", href: "/faq" },
+} as const;
+
+/**
+ * A worked recipe, shown rather than described.
+ *
+ * Every line below is copied verbatim out of `auros-recipes/customers/example-school/recipe.yaml`,
+ * which is committed, public, and carries `# ILLUSTRATIVE EXAMPLE — not a customer` as its first
+ * line. §4.4 is satisfied by the artefact itself; `flagNote` carries that label onto the page too,
+ * because a reader should not have to open the repository to learn what they are looking at.
+ *
+ * Spec §6D calls the `remove:` block "the single most persuasive object on the site". It was
+ * living behind four form questions on /configure, which meant a visitor who did not fill in a
+ * form never saw the argument the company is built on.
+ */
+export const recipeExcerpt = {
+  title: "A recipe, in full",
+  flagNote:
+    "Illustrative example, not a customer. Example Vidyalaya does not exist. The file does — it is committed in the public recipes repository and the nightly build compiles it like any other.",
+  sourceMono: "auros-recipes/customers/example-school/recipe.yaml",
+  standfirst:
+    "This is the whole product in one file. Not a summary of it, not a screenshot of a dashboard: the file, which is also the thing that gets built.",
+  /** The install side. Ten applications, named. */
+  keep: {
+    label: "apps",
+    valuesMono: [
+      "Calculator",
+      "Document Viewer",
+      "Files",
+      "Firefox",
+      "GCompris",
+      "Google Chrome",
+      "Image Viewer",
+      "Scratch",
+      "Text Editor",
+      "VLC Media Player",
+    ],
+    note: "Ten. That is the list a teacher would give you if you asked, and it is short because real ones are.",
+  },
+  /** The removal side, which is longer, and looks it. */
+  remove: {
+    label: "prune",
+    linesMono: [
+      "keep_only_the_apps_above: true",
+      "also_keep: [printing]",
+      "also_remove: [developer tools, games, remote desktop,",
+      "              sample wallpapers and media, virtualisation]",
+      "must_remove_at_least: 240",
+    ],
+    note: "The last line is the one worth arguing about. A customer wrote a floor on deletion into their own recipe: if the build cannot take out at least 240 packages, fail the build and do not ship it. Nobody selling you a computer offers you that field.",
+  },
+  /** The texture a real file has and a marketing page never does. */
+  detailsMono: [
+    { label: "machines", value: "180 · dell-latitude-e6440, hp-probook-650-g1, lenovo-thinkpad-t440" },
+    { label: "language", value: "Marathi · second script Marathi (InScript)" },
+    { label: "switch scripts with", value: "Windows key + Spacebar" },
+    { label: "updates", value: "install_between 21:00-05:00" },
+    { label: "size budget", value: "9 GB" },
+    { label: "policy", value: "managed" },
+    { label: "approved by", value: "A. Deshmukh · IT Coordinator · 2026-09-18" },
+  ] satisfies Fact[],
+  /** Two honest .exe results, with dates, sitting in the same file. */
+  windowsApps: {
+    label: "windows_apps.tested",
+    standfirst:
+      "And the part a sales page would have left out. Two Windows programs, tested on 2026-09-11, written into the recipe with the result:",
+    rows: [
+      {
+        appMono: "Vidyalaya School ERP desktop client",
+        resultMono: "works with caveats",
+        note: "Prints report cards. The fingerprint attendance module cannot see the reader.",
+      },
+      {
+        appMono: "Tally.ERP",
+        resultMono: "fails",
+        note: "Crashes during licence activation. The office PC stays on Windows for Tally.",
+      },
+    ],
+    closing:
+      "One of those is a no. It is in the file because the answer to a Windows program is a fact about that program, and a recipe that only recorded the yeses would be worth nothing to the next school that asked.",
+  },
+  moreLink: { label: "Write your own", href: "/configure" },
+} as const;
+
+/**
+ * The compatibility table, shown in the state it is actually in.
+ *
+ * `hardware/compat.tsv` is a header row and nothing under it. Spec §8 calls the filled version
+ * "the thing competitors cannot copy quickly" — after fifty rows. We have none. Inventing rows
+ * would breach §4.4; describing the file as though it had rows would be the same lie in a softer
+ * voice. So the columns are printed and the emptiness is printed with them.
+ */
+export const compatTable = {
+  title: "The compatibility table, as of today",
+  columnsMono: [
+    "model",
+    "year",
+    "source",
+    "cpu",
+    "ram_gb",
+    "firmware",
+    "wifi",
+    "trackpad",
+    "suspend",
+    "brightness",
+    "gpu",
+    "audio",
+    "webcam",
+    "verdict",
+    "notes",
+    "tested_on",
+    "tester",
+  ],
+  emptyStateMono: "no rows yet",
+  asOfMono: "2026-09-20",
+  body: [
+    "Seventeen columns, a header row, and nothing under it. No physical machine has been imaged. Everything proven so far was proven in a virtual machine, and a virtual machine has no wireless chipset, no trackpad, no backlight and no vendor firmware, so it cannot tell you the four things you most want to know about a 2014 ProBook.",
+    "A lint rule stops a row sourced from a virtual machine claiming a physical-only column, which is a strange thing to build before you have any rows. We built it first on purpose. The moment the first three laptops are imaged, the temptation to let a vm row quietly fill a hardware column is at its highest, and a rule written afterwards is a rule written by someone who already wants the answer.",
+    "When a row lands it will include the failures. A table with no crosses in it is a table nobody measured.",
+  ],
+} as const;
+
+/**
+ * How small this is.
+ *
+ * §4.4 forbids inventing customers. It does not forbid saying how few of us there are, and D29
+ * asks for exactly that: "where we are early and small, SAY SO. That is inviting."
+ *
+ * The headcount itself is §9-reserved — only a human supplies it — so the blank stays visible on
+ * the page rather than being filled with a plausible number. Guessing at our own size on a site
+ * that refuses to guess at anything else would be the one unforced error here.
+ */
+export const howSmall = {
+  title: "How small this is",
+  headcountMono: null as string | null,
+  blankMono: "——",
+  blankNote:
+    "That blank is a blank because a person here has to fill it in, and this site does not invent numbers about itself any more than it invents them about you.",
+  body: [
+    "Auros is newer and smaller than the tone of a website usually admits. There is no sales team. There is no support rota. The plan had the base image booting by the end of the first day and it is late, and it is late for a reason worth writing down: four assumptions about upstream turned out to be wrong, and two of them would have produced a green build that was not actually safe.",
+    "Finding them cost hours. Not finding them would have cost a customer.",
+    "Today: no physical machine has been imaged. The base builds in CI and produces a bootable disk image; whether it reaches a login prompt is under test rather than proven. Propagation from base to recipe to a running machine is built and untested. Those three sentences are the current state of the thing, and you can check every one of them against the gate table in the public repository.",
+  ],
+  closing:
+    "That is an odd way to open a sale and it is the reason the recipes are public. A company this size that could not be replaced has no business holding two hundred machines hostage, so we removed the possibility first and built the product second.",
+} as const;
+
+/**
+ * What this site is standing on. Facts with sources, in mono, in the footer.
+ *
+ * Copied by hand from `auros-base/base.lock`, `auros-base/.github/workflows/nightly.yml` and
+ * `auros-recipes/.github/workflows/replaceable.yml`. Those files are in different repositories
+ * from this one, so nothing here is read at build time and nothing here should be trusted over
+ * them. If this page and `base.lock` ever disagree, believe `base.lock` — CI writes it, a person
+ * wrote this.
+ */
+export const provenance = {
+  title: "What this site is standing on",
+  facts: [
+    {
+      label: "Upstream base, pinned",
+      value: "sha256:911281f2aaa42bfd17532c5cef917aba8d7ac8c0faeb1c1edc6a43dc28d0d2f1",
+    },
+    { label: "Resolved", value: "2026-09-20T21:25:07Z · 3,758,096,384 bytes · 3.5 GB · pulled in 58 s" },
+    { label: "Base rebuild", value: "04:17 UTC nightly · auros-base/.github/workflows/nightly.yml" },
+    {
+      label: "Replaceability test",
+      value: "Wednesdays 05:23 UTC · auros-recipes/.github/workflows/replaceable.yml",
+    },
+  ] satisfies Fact[],
+  note:
+    "The cron is at 04:17 rather than 04:00 because GitHub queues an enormous number of on-the-hour jobs and runs them late. An odd minute is the cheapest thing that helps, and it is the sort of detail that only gets written down by somebody who watched a build sit in a queue.",
 } as const;
 
 export const footer = {

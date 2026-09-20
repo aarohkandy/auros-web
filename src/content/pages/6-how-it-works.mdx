@@ -39,9 +39,11 @@ nobody rebuilds at three in the morning.
 5. Machines pull it in the background and switch on their next restart, keeping the previous
    image on disk.
 
-If step 3 fails, nothing ships and the morning is spent on it. Some mornings a build goes red
-through no fault of ours, usually because upstream added a dependency that dragged back a package
-one recipe had removed. That is the check doing its job. It is not flakiness and it does not get
-retried away.
+If step 3 fails, nothing ships and the morning is spent on it.
+
+The check that catches the interesting case is `S3`, the prune assertion. It re-reads the built
+image and fails if a package the recipe removed has come back as somebody else's dependency.
+That is the failure we expect to see most of, because upstream adds dependencies and upstream
+does not know what we deleted. It is not flakiness and it does not get retried away.
 
 ## The stack

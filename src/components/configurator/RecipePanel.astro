@@ -177,6 +177,10 @@ const linesHtml = linesToHtml(initial.lines);
   .cfg-line {
     display: block;
     min-height: 1.55em;
+    /* A hanging indent, so a line long enough to wrap still reads as one line of YAML rather
+       than as a new key at column zero. 2ch is the width of one indent level. */
+    padding-left: 2ch;
+    text-indent: -2ch;
   }
 
   .cfg-line[data-kind="comment"] {
@@ -191,13 +195,13 @@ const linesHtml = linesToHtml(initial.lines);
   /* THE PRUNE BLOCK. Marked, never hidden, never smaller. */
   .cfg-line[data-section="prune"] {
     border-left: 2px solid var(--ore, #be3a12);
-    padding-left: 0.5rem;
+    padding-left: calc(2ch + 0.5rem);
     margin-left: -0.5rem;
   }
 
   /* The impossible line. Struck through in ore, but the TEXT stays ink: ore on the dark panel
      is 2.9:1, and section 7 says AA on every text and panel pair is verified rather than assumed. */
-  .cfg-line[data-section="refused"] {
+  .cfg-line[data-section="refused"][data-kind="key"] {
     text-decoration: line-through;
     text-decoration-color: var(--ore, #be3a12);
     text-decoration-thickness: 2px;

@@ -1,0 +1,244 @@
+---
+/**
+ * A worked recipe, shown rather than described.
+ *
+ * Spec §6D calls the `remove:` block "the single most persuasive object on the site". Until now it
+ * existed only inside the configurator, behind four form questions, which meant a visitor who did
+ * not fill in a form never saw the argument the company is built on. The landing page argued
+ * subtraction in prose and then did not show any.
+ *
+ * Every string rendered here is copied out of `auros-recipes/customers/example-school/recipe.yaml`,
+ * a committed public file whose first line is `# ILLUSTRATIVE EXAMPLE — not a customer`. §4.4 is
+ * satisfied by the artefact itself, and the flag below carries that label onto the page so nobody
+ * has to open the repository to learn what they are looking at.
+ *
+ * The two columns are deliberately unequal, and the removal column is the wide one. D29: "the
+ * removal list is longer than the install list and looks it."
+ */
+import { recipeExcerpt } from "../content/copy";
+import Panel from "./Panel.astro";
+import FactList from "./FactList.astro";
+
+interface Props {
+  headingLevel?: 2 | 3;
+}
+const { headingLevel = 2 } = Astro.props;
+const H = `h${headingLevel}` as any;
+const Hsub = `h${headingLevel + 1}` as any;
+---
+
+<Panel tone="panel" class="recipe">
+  <header class="head">
+    <H class="title">{recipeExcerpt.title}</H>
+    <p class="source">{recipeExcerpt.sourceMono}</p>
+  </header>
+
+  <p class="flag-note">
+    <span class="flag">ILLUSTRATION</span>
+    {recipeExcerpt.flagNote}
+  </p>
+
+  <p class="standfirst">{recipeExcerpt.standfirst}</p>
+
+  <div class="two">
+    <section class="keep">
+      <Hsub class="block-title">{recipeExcerpt.keep.label}</Hsub>
+      <ul class="values" role="list">
+        {recipeExcerpt.keep.valuesMono.map((value) => <li>{value}</li>)}
+      </ul>
+      <p class="block-note">{recipeExcerpt.keep.note}</p>
+    </section>
+
+    <section class="remove">
+      <Hsub class="block-title">{recipeExcerpt.remove.label}</Hsub>
+      <ol class="lines" role="list">
+        {recipeExcerpt.remove.linesMono.map((line) => <li>{line}</li>)}
+      </ol>
+      <p class="block-note">{recipeExcerpt.remove.note}</p>
+    </section>
+  </div>
+
+  <FactList facts={recipeExcerpt.detailsMono} class="details" />
+
+  <section class="tested">
+    <Hsub class="block-title">{recipeExcerpt.windowsApps.label}</Hsub>
+    <p class="tested-standfirst">{recipeExcerpt.windowsApps.standfirst}</p>
+    <dl class="results">
+      {
+        recipeExcerpt.windowsApps.rows.map((row) => (
+          <div class="result">
+            <dt>
+              <span class="app">{row.appMono}</span>
+              <span class="verdict">{row.resultMono}</span>
+            </dt>
+            <dd>{row.note}</dd>
+          </div>
+        ))
+      }
+    </dl>
+    <p class="closing">{recipeExcerpt.windowsApps.closing}</p>
+  </section>
+
+  <p class="more">
+    <a href={recipeExcerpt.moreLink.href}>{recipeExcerpt.moreLink.label}</a>
+  </p>
+</Panel>
+
+<style>
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-3, 2rem);
+    line-height: 1.1;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+  .source,
+  .values,
+  .lines,
+  .app,
+  .verdict {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+  }
+  .source {
+    font-size: 0.75rem;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .flag-note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin: 0.85rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule, #8a7358);
+    color: var(--ink-muted, #5a4e40);
+  }
+  .flag {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 2px;
+    padding: 0.1rem 0.35rem;
+    margin-right: 0.5rem;
+    white-space: nowrap;
+    color: var(--ink, #24231f);
+  }
+  .standfirst {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1rem;
+    line-height: 1.55;
+    max-width: 34rem;
+    margin: 1rem 0 1.5rem;
+    color: var(--ink, #24231f);
+  }
+
+  /* Unequal on purpose: what was deleted is the longer list and gets the longer column. */
+  .two {
+    display: grid;
+    gap: 1.5rem;
+  }
+  @media (min-width: 48rem) {
+    .two {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+      align-items: start;
+      gap: 2rem;
+    }
+  }
+  .block-title {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-weight: 400;
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    margin: 0 0 0.6rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+    color: var(--ink-muted, #5a4e40);
+  }
+  .values,
+  .lines {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 0.8rem;
+    line-height: 1.75;
+    color: var(--ink, #24231f);
+  }
+  .lines {
+    white-space: pre-wrap;
+  }
+  .block-note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    margin: 0.85rem 0 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+
+  .details {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule, #8a7358);
+  }
+
+  .tested {
+    margin-top: 1.75rem;
+  }
+  .tested-standfirst,
+  .closing {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 0 0 1rem;
+    color: var(--ink, #24231f);
+  }
+  .closing {
+    margin: 1rem 0 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .results {
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .result {
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+  }
+  .result dt {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.75rem;
+  }
+  .app {
+    font-size: 0.82rem;
+    color: var(--ink, #24231f);
+  }
+  .verdict {
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .result dd {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin: 0.25rem 0 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .more {
+    margin: 1.5rem 0 0;
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+  }
+</style>

@@ -3,19 +3,21 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "auros.org \u2014 static site. Astro, static output, no client framework for content pages (spec \u00a76D).",
+  "description": "auros.org — static site. Astro, static output, no client framework for content pages (spec §6D).",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro check --minimumseverity error && astro build",
-    "build:nocheck": "astro build",
-    "preview": "astro preview",
-    "astro": "astro",
-    "fonts": "node tools/fetch-fonts.mjs",
+    "//build": "The gates run in the order that makes a failure cheap to read: the two source lints first (they need no build), then types, then the build, then the contrast audit — which MUST run last because it measures the built HTML, not the sources.",
+    "build": "pnpm run lint && astro check --minimumSeverity error && astro build && pnpm run contrast",
+    "lint": "node tools/palette-lint.mjs && node tools/ink-lint.mjs",
+    "check": "astro check --minimumSeverity error",
     "contrast": "node tools/contrast.mjs",
-    "audit:a11y": "node tools/contrast.mjs --write"
+    "audit:a11y": "node tools/contrast.mjs --write",
+    "fonts": "node tools/fetch-fonts.mjs",
+    "preview": "astro preview",
+    "astro": "astro"
   },
   "dependencies": {
     "@astrojs/mdx": "8.0.1",
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@types/node": "^26.6.2",
     "typescript": "^5.9.2"
   }
 }

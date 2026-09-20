@@ -1,0 +1,133 @@
+---
+/**
+ * The first thing the machine says.
+ *
+ * This site claims "in your language" on almost every page and, until now, never once showed a
+ * language. The sentence below is the `first_boot_message` field of the example recipe in the
+ * public recipes repository, read at build time. It is Marathi, and it says: hello, tell a teacher
+ * if something goes wrong.
+ *
+ * Two reasons it is set large rather than quoted in a footnote. It is the only thing on this site
+ * written for the person who ends up using the machine rather than the person buying it. And the
+ * typeface for it is already built and shipped — `public/fonts/ibm-plex-sans-devanagari-400.woff2`,
+ * declared under all three family names in `src/styles/fonts.css` with a `unicode-range` that keeps
+ * it from being fetched by a reader who never sees a Devanagari character.
+ *
+ * `lang` is set on the sentence itself, which is what makes a screen reader switch voices and what
+ * lets the browser pick the right face. Without it this is decoration.
+ */
+import Panel from "./Panel.astro";
+import { exampleRecipe } from "./facts";
+
+interface Props {
+  headingLevel?: 2 | 3;
+  class?: string;
+}
+const { headingLevel = 2, class: className } = Astro.props;
+const H = `h${headingLevel}` as any;
+---
+
+<Panel tone="panel-2" as="section" class:list={["first-boot", className]}>
+  <H class="label">What it says when it starts</H>
+
+  <p class="sentence" lang={exampleRecipe.firstBootLang}>{exampleRecipe.firstBootMessage}</p>
+
+  <p class="gloss">
+    <span class="lang">{exampleRecipe.language}.</span> Hello — if something is wrong, tell a teacher.
+    It is in the image, not a setting somebody has to find, and it is the line a pupil reads before
+    anybody has explained anything to them.
+  </p>
+
+  <dl class="detail">
+    <div class="detail-row">
+      <dt>switch scripts</dt>
+      <dd class="mono">{exampleRecipe.switchScriptsWithMono}</dd>
+    </div>
+    <div class="detail-row">
+      <dt>updates install</dt>
+      <dd class="mono">{exampleRecipe.updatesWindowMono}, so nobody watches a progress bar in a lesson</dd>
+    </div>
+  </dl>
+
+  <p class="provenance">{exampleRecipe.illustrationNote} <span class="mono">{exampleRecipe.sourcePath}</span></p>
+</Panel>
+
+<style>
+  .label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin: 0 0 0.85rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  /*
+    Instrument Serif has no Devanagari; fonts.css declares IBM Plex Sans Devanagari under the same
+    family name for exactly this run of text, so this renders in a real face rather than in
+    whatever a 2014 laptop happens to have. It is proportional, and that is the honest trade —
+    the note is in fonts.css.
+  */
+  .sentence {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: clamp(1.6rem, 5.5vw, var(--step-4, 2.75rem));
+    line-height: 1.35;
+    margin: 0 0 0.9rem;
+    color: var(--ink, #24231f);
+  }
+  .gloss {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    max-width: 34rem;
+    margin: 0 0 1.1rem;
+    color: var(--ink, #24231f);
+  }
+  .lang {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.85rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .detail {
+    margin: 0;
+    display: grid;
+    gap: 0.35rem;
+    border-block-start: 1px solid var(--rule, #8a7358);
+    padding-block-start: 0.8rem;
+  }
+  .detail-row {
+    display: grid;
+    gap: 0.1rem;
+  }
+  .detail dt {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.72rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .detail dd {
+    margin: 0;
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ink, #24231f);
+  }
+  .mono {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+  }
+  .provenance {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    margin: 1rem 0 0;
+    max-width: 34rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  @media (min-width: 34rem) {
+    .detail-row {
+      grid-template-columns: 9rem minmax(0, 1fr);
+      gap: 0.75rem;
+      align-items: baseline;
+    }
+  }
+</style>

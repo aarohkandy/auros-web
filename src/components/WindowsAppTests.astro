@@ -1,0 +1,153 @@
+---
+/**
+ * Two Windows programs, tested, with the dates and the results — including the one that failed.
+ *
+ * The rest of this site argues about `.exe` files in the abstract for about seventy lines. The
+ * example recipe in the public repository has two rows that end the argument faster than the
+ * seventy lines do: one program that works with a named caveat, and one that does not work at all,
+ * with the sentence the school wrote about what they are doing instead.
+ *
+ * The failure is first. Not for balance — because it is the more useful of the two, and because a
+ * page that leads with the success is a page that has decided to sell rather than to tell you.
+ *
+ * Both rows are labelled as what they are: an illustration in a public file whose first line says
+ * no organisation named in it exists (§4.4).
+ */
+import Panel from "./Panel.astro";
+import { exampleRecipe, exampleWindowsApps } from "./facts";
+import { ILLUSTRATION_LABEL } from "../content/copy";
+
+interface Props {
+  headingLevel?: 2 | 3;
+  class?: string;
+}
+const { headingLevel = 2, class: className } = Astro.props;
+const H = `h${headingLevel}` as any;
+
+/** The failure first. See the note above. */
+const rows = [...exampleWindowsApps].sort((a, b) => (a.resultMono === "fails" ? -1 : b.resultMono === "fails" ? 1 : 0));
+---
+
+<Panel tone="panel" as="section" class:list={["tests", className]}>
+  <H class="title">What two of them did when somebody ran them</H>
+
+  <p class="illustration-label">
+    <span class="flag">ILLUSTRATION</span>
+    {ILLUSTRATION_LABEL}
+  </p>
+
+  <ul class="rows" role="list">
+    {
+      rows.map((row) => (
+        <li class="row">
+          <p class="app">{row.appMono}</p>
+          <p class="meta">
+            <span class:list={["result", row.resultMono === "fails" && "result-fails"]}>
+              {row.resultMono}
+            </span>
+            <span class="date">tested {row.dateMono}</span>
+          </p>
+          <p class="note">{row.note}</p>
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="provenance">
+    {exampleRecipe.illustrationNote} <span class="mono">{exampleRecipe.sourcePath}</span>
+  </p>
+</Panel>
+
+<style>
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-2, 1.5rem);
+    line-height: 1.15;
+    margin: 0 0 0.75rem;
+    color: var(--ink, #24231f);
+  }
+  .illustration-label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    margin: 0 0 1.1rem;
+    max-width: var(--measure, 38rem);
+    color: var(--ink-muted, #5a4e40);
+  }
+  /* Ore, here, marks an illustration. That is one of the three jobs it has on this site. */
+  .flag {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--ore, #be3a12);
+    border-radius: 2px;
+    padding: 0.1rem 0.35rem;
+    margin-right: 0.5rem;
+    white-space: nowrap;
+    color: var(--ink, #24231f);
+  }
+  .rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .row {
+    border-block-start: 1px solid var(--rule, #8a7358);
+    padding-block: 0.85rem;
+  }
+  .app {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.95rem;
+    line-height: 1.35;
+    margin: 0 0 0.3rem;
+    color: var(--ink, #24231f);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.85rem;
+    align-items: baseline;
+    margin: 0 0 0.45rem;
+  }
+  .result {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink, #24231f);
+  }
+  /* The failure is marked by a rule under it as well as by the word, because colour alone is not
+     a signal and because the word is the signal. */
+  .result-fails {
+    /* 1px, not 2px. §7: "Hairline 1px rules are the only divider", and tools/ink-lint.mjs fails
+       the build on a thicker one that is not an ore mark. The mark still does its job — the word
+       is the signal and this underlines it — at the weight the design system allows. */
+    border-block-end: var(--hairline, 1px) solid var(--rule, #8a7358);
+  }
+  .date {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.72rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    max-width: var(--measure, 38rem);
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+  .mono {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+  }
+  .provenance {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    max-width: var(--measure, 38rem);
+    margin: 1rem 0 0;
+    padding-block-start: 0.85rem;
+    border-block-start: 1px solid var(--rule, #8a7358);
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>

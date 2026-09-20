@@ -1,0 +1,32 @@
+---
+/**
+ * `BaseLayout` — the name `src/components/PageShell.astro` imports.
+ *
+ * WHY THERE ARE TWO NAMES FOR ONE SHELL
+ * The pages and the layout were built in parallel by two agents. The pages agent wrote down the
+ * contract it needed before the layout existed (`src/components/CONVENTIONS.md` §1) and named it
+ * `BaseLayout.astro`; the design system's own inventory calls the shell `Base.astro`. Rather
+ * than rename a file another agent is importing — and rather than leave `PageShell` falling
+ * through to its deliberately-ugly no-layout fallback — this is the second name, and it forwards.
+ *
+ * It holds no markup, no styles and no props of its own. `Base.astro` is the shell.
+ *
+ * If the two names ever stop being the same thing, delete this file and change the one import in
+ * `PageShell.astro`. Per CONVENTIONS.md §1 that is a one-line fix and nothing else moves.
+ */
+import Base from "./Base.astro";
+import type { Layer } from "./Base.astro";
+
+interface Props {
+  title: string;
+  description: string;
+  layer?: Layer;
+  noindex?: boolean;
+}
+
+const { title, description, layer, noindex } = Astro.props;
+---
+
+<Base title={title} description={description} layer={layer} noindex={noindex}>
+  <slot />
+</Base>

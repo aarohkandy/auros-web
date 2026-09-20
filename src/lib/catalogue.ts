@@ -307,7 +307,7 @@ export const SPECIAL_REQUESTS: SpecialRequest[] = [
   { id: "none", label: "No — the questions above cover it", apply: () => {} },
   {
     id: "pin-version",
-    label: "Keep the browser on the version we have tested against our systems",
+    label: "Keep the browser pinned to the version currently in use here",
     apply: (r) => { r.pin = "the browser version we tested"; },
   },
   {

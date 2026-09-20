@@ -1,0 +1,371 @@
+---
+/**
+ * AUROS — the shell. Every page on this site renders inside this file.
+ *
+ * ──────────────────────────────────────────────────────────────────────────────────────────
+ * WHAT IT OWNS
+ *   the document, <head>, the font preloads, the theme resolution, the terrain mount point,
+ *   the skip link, the header and nav, <main>, the footer.
+ *
+ * WHAT IT DOES NOT OWN
+ *   the terrain itself (src/terrain/, another agent), the page bodies (src/pages/, another
+ *   agent), and any sentence of copy — every string below comes from src/content/copy.ts.
+ *
+ * ──────────────────────────────────────────────────────────────────────────────────────────
+ * NO FLASH OF THE WRONG THEME
+ *
+ * The theme script is `is:inline` and it is the FIRST thing in <head>, before the stylesheets.
+ * That ordering is the whole mechanism, and each half of it matters:
+ *
+ *   - inline, because a bundled `<script>` is fetched, and anything fetched can paint first.
+ *     Astro would hash and externalise it without `is:inline`, and the flash would come back
+ *     in production while looking fine in dev.
+ *   - before the stylesheets, because the attribute it sets is what the stylesheets select on.
+ *     Set it after, and the first paint uses the OS preference and then corrects itself, which
+ *     is the flash.
+ *
+ * It reads one key and sets one attribute. It does not touch the DOM beyond <html>, so it
+ * cannot be blocked on anything, and every storage access is inside try/catch because
+ * `localStorage` THROWS — not returns null — in Safari private browsing and under a
+ * blocked-site-data policy. A school laptop managed by the IT person we are selling to is
+ * exactly where that happens.
+ *
+ * It also adds `.js` to <html>. That is how the theme control knows it can be shown: with
+ * scripting off, `prefers-color-scheme` is already correct and a dead control would be worse
+ * than none (§6D: "Works with JS disabled").
+ *
+ * ──────────────────────────────────────────────────────────────────────────────────────────
+ * FONTS
+ *
+ * Self-hosted subsets from public/fonts, built by `node tools/fetch-fonts.mjs`. Two faces are
+ * preloaded — the display serif and the UI sans at 400 — because they are the two that draw the
+ * first screen. The other five are not: preloading a face the first screen does not use is a
+ * request competing with one it does, which is a Lighthouse cost pretending to be an
+ * optimisation. The Devanagari face in particular is 261 KB and must stay lazy; `unicode-range`
+ * in fonts.css means a reader of the English site never fetches it at all.
+ * ──────────────────────────────────────────────────────────────────────────────────────────
+ */
+import "../styles/tokens.css";
+import "../styles/fonts.css";
+import "../styles/base.css";
+
+import SkipLink from "../components/SkipLink.astro";
+import ThemeToggle from "../components/ThemeToggle.astro";
+import { a11y, footer, nav, site } from "../content/copy";
+
+export type Layer = "sky" | "surface" | "topsoil" | "stratum-1" | "stratum-2" | "bedrock";
+
+interface Props {
+  /** The <title>. A name, not a sentence. */
+  title: string;
+  /** One sentence. The meta description. */
+  description: string;
+  /** Which stratum of the terrain this page sits at (§7). Sets `data-layer` for the renderer. */
+  layer?: Layer;
+  /** Set on the one page that should not be indexed. */
+  noindex?: boolean;
+}
+
+const { title, description, layer, noindex = false } = Astro.props;
+
+const path = Astro.url.pathname;
+/** `/pricing` and `/pricing.html` are the same page; the build emits `format: 'file'`. */
+const isCurrent = (href: string) =>
+  path === href || path === `${href}.html` || path === `${href}/`;
+
+/*
+  The build emits `format: 'file'`, so a route's real path is `/pricing.html` and the canonical
+  says so. The one exception is the index: `/index.html` and `/` are the same document, and
+  pointing the home page's canonical at `/index.html` splits it from every inbound link, which
+  all point at `/`.
+*/
+const canonicalPath = Astro.url.pathname.replace(/\/index\.html$/, "/");
+const canonical = Astro.site ? new URL(canonicalPath, Astro.site).href : undefined;
+---
+
+<!doctype html>
+<html lang="en" data-layer={layer}>
+  <head>
+    <!--
+      FIRST. Before the stylesheets. See the header of this file for why both halves of that
+      sentence are load-bearing.
+    -->
+    <script is:inline>
+      (function () {
+        var root = document.documentElement;
+        try {
+          var stored = window.localStorage.getItem("auros-theme");
+          if (stored === "light" || stored === "dark") root.setAttribute("data-theme", stored);
+        } catch (e) {
+          /* Storage is blocked. prefers-color-scheme still applies; nothing else to do. */
+        }
+        root.classList.add("js");
+      })();
+    </script>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {canonical && <link rel="canonical" href={canonical} />}
+    {noindex && <meta name="robots" content="noindex" />}
+
+    <!--
+      The browser chrome follows the theme. Two entries rather than one: a single theme-color
+      would tint the address bar with the light panel on a device in dark mode.
+      The values are §7's, and they are the same two the dark sky uses.
+    -->
+    <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#171c24" media="(prefers-color-scheme: dark)" />
+
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/instrument-serif-400.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/ibm-plex-sans-400.woff2" crossorigin />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={site.name} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    {canonical && <meta property="og:url" content={canonical} />}
+    <!--
+      No og:image. §4.5 bans remote images and we have no rendered card to serve; an og:image
+      pointing at nothing is worse than none. Add one when a real asset exists.
+    -->
+  </head>
+
+  <body>
+    <SkipLink />
+
+    <!--
+      The terrain mounts here. src/terrain/parallax.ts looks for `[data-auros-terrain]` and, not
+      finding one, inserts its own div at the top of <body> — so this element is not required, it
+      is the difference between the canvas being placed deliberately and being placed by a
+      fallback. aria-hidden because §7's background is an illustration of the architecture and
+      the same architecture is written out in words on /how-it-works; a screen reader does not
+      need a canvas narrated at it, and `a11y.terrainAlt` is available to any page that wants to
+      describe it in prose.
+    -->
+    <div data-auros-terrain aria-hidden="true"></div>
+
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="wordmark" href="/" aria-label={`${site.name} — home`}>{site.name}</a>
+
+        <nav aria-label={nav.ariaLabel}>
+          <ul class="nav-list" role="list">
+            {
+              nav.items.map((item) => (
+                <li>
+                  <a href={item.href} aria-current={isCurrent(item.href) ? "page" : undefined}>
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+
+        <ThemeToggle />
+      </div>
+    </header>
+
+    <!--
+      tabindex="-1" so the skip link actually moves FOCUS and not merely the scroll position.
+      Without it, Safari and older Chrome send the next Tab back to the top of the document and
+      the skip link appears to do nothing. See src/components/SkipLink.astro.
+    -->
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <hr class="hairline" />
+        <div class="footer-grid">
+          <p class="statement measure">{footer.statement}</p>
+          {
+            footer.columns.map((column) => (
+              <nav class="footer-column" aria-label={column.title}>
+                <h2 class="footer-heading">{column.title}</h2>
+                <ul role="list">
+                  {column.links.map((link) => (
+                    <li>
+                      <a href={link.href}>{link.label}</a>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))
+          }
+        </div>
+        <p class="licence">{footer.licenceNote}</p>
+        <noscript>
+          <p class="licence">{a11y.reducedMotionNote}</p>
+        </noscript>
+      </div>
+    </footer>
+
+    <!--
+      The terrain. A module import, so it is deferred by construction and never blocks parsing.
+      parallax.ts mounts itself on DOMContentLoaded; the layout's only job is to load it.
+      With scripting off this never runs and the page keeps the flat background base.css gives
+      it, which is §7's stated degradation.
+    -->
+    <script>
+      import "../terrain/parallax";
+    </script>
+  </body>
+</html>
+
+<style>
+  /* ---------------------------------------------------------------------------------------
+     The header. A hairline under it and nothing else — no bar, no blur, no shadow (§7).
+     It does not stick: a fixed header on a page whose background IS the explanation would
+     cover the top of the terrain on every phone, and §7's descent only works if the top of
+     the cross-section is visible at the top of the page.
+     --------------------------------------------------------------------------------------- */
+  .site-header {
+    position: relative;
+    z-index: 1;
+    border-block-end: var(--hairline) solid var(--rule);
+    background-color: var(--panel);
+  }
+
+  .header-inner {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3) var(--space-5);
+    min-height: var(--header-height);
+    padding-block: var(--space-2);
+  }
+
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: var(--weight-display); /* 400. Instrument Serif has no bold (D25). */
+    font-size: var(--step-2);
+    line-height: 1;
+    text-decoration: none;
+    margin-inline-end: auto;
+  }
+
+  .nav-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-5);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--step--1);
+  }
+
+  .nav-list a {
+    text-decoration: none;
+    color: var(--ink-muted);
+  }
+
+  .nav-list a:hover {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--ore);
+    text-underline-offset: 3px;
+  }
+
+  /*
+    The current page is marked twice: by colour AND by an ore rule under it. Colour alone is
+    not a signal (WCAG 1.4.1), and ore is a mark rather than a glyph because ore as text
+    measures 2.83:1 in dark — see src/styles/a11y-audit.md.
+  */
+  .nav-list a[aria-current="page"] {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--ore);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 4px;
+  }
+
+  /* ---------------------------------------------------------------------------------------
+     Main. The terrain is behind it at z-index 0; content sits above.
+     `tabindex="-1"` would draw a focus ring on click in some browsers, so the ring is
+     suppressed for the pointer case only — a keyboard user arriving via the skip link still
+     gets :focus-visible from base.css.
+     --------------------------------------------------------------------------------------- */
+  main {
+    position: relative;
+    z-index: 1;
+    display: block;
+  }
+
+  main:focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* ---------------------------------------------------------------------------------------
+     Footer
+     --------------------------------------------------------------------------------------- */
+  .site-footer {
+    position: relative;
+    z-index: 1;
+    background-color: var(--panel);
+    padding-block: var(--space-6) var(--space-8);
+    margin-block-start: var(--space-8);
+  }
+
+  .hairline {
+    border: 0;
+    border-block-start: var(--hairline) solid var(--rule);
+    margin: 0 0 var(--space-6);
+  }
+
+  .footer-grid {
+    display: grid;
+    gap: var(--space-6);
+    grid-template-columns: 1fr;
+  }
+
+  @media (min-width: 48rem) {
+    .footer-grid {
+      grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr));
+      gap: var(--space-7);
+    }
+  }
+
+  .statement {
+    margin: 0;
+    color: var(--ink);
+  }
+
+  .footer-heading {
+    font-family: var(--font-ui);
+    font-weight: var(--weight-ui-strong);
+    font-size: var(--step--1);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin: 0 0 var(--space-3);
+  }
+
+  .footer-column ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: var(--space-2);
+    font-size: var(--step-0);
+  }
+
+  .footer-column a {
+    text-decoration: none;
+  }
+
+  .footer-column a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--ore);
+    text-underline-offset: 3px;
+  }
+
+  .licence {
+    margin-block-start: var(--space-6);
+    font-size: var(--step--1);
+    color: var(--ink-muted);
+  }
+</style>

@@ -16,8 +16,8 @@ order: 5
 ---
 
 We are singling this out from the rest of the Windows programs because it is the one that stops
-migrations dead, and because it is the one most likely to be discovered late by somebody who
-assumed it would be fine.
+migrations dead, and because it is easy to discover late, by somebody who assumed it would be
+fine.
 
 Monitoring is frequently a condition of your policies and sometimes of your funding. A machine
 without the agent on it is not a machine you can hand to a child, regardless of how good the

@@ -13,7 +13,7 @@
       "upstreamSha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88",
       "instance": null,
       "bytes": 48136,
-      "sha256": "cdfb71e5829fb8862ac997b6e2b7b5dd1ae3d20b96cc2d69692fde166bfd51d6"
+      "sha256": "4a7d9a5121d1146a06fc681aa35334f1c57bf589c6544685ae190bc6c92e529c"
     },
     {
       "file": "instrument-serif-400-italic.woff2",
@@ -25,7 +25,7 @@
       "upstreamSha256": "08939b8bdf534afec24ae0ef5e03f948940cd9a8fe08e7fecbad040e62327385",
       "instance": null,
       "bytes": 50404,
-      "sha256": "ed0f80155d7615c32595508819b51b1d7a2a06e6d597a1471b276b66e89233b6"
+      "sha256": "9e441d6cae0d1f2cb4baa6371fbe55b1a5e6197a63426fd31d6843173a04ced1"
     },
     {
       "file": "ibm-plex-sans-400.woff2",
@@ -40,7 +40,7 @@
         "wdth": 100
       },
       "bytes": 54888,
-      "sha256": "9fb14312d248339ee7c8653bb8ca129c5651b076e1ced5fe055d8e66fe9e0ee4"
+      "sha256": "a29c6d061fddda284128f771c2b83d2910bb70ad107e175e5c6e4f8fa411247d"
     },
     {
       "file": "ibm-plex-sans-600.woff2",
@@ -55,7 +55,7 @@
         "wdth": 100
       },
       "bytes": 54864,
-      "sha256": "44a90ff058420d3102546512530908325ae1fa3a0c842195043025c89c127a29"
+      "sha256": "895c73529c9f88639b35b30d231bcd945a260954212443e256efd70e867a3e82"
     },
     {
       "file": "ibm-plex-mono-400.woff2",
@@ -66,8 +66,8 @@
       "upstream": "ibmplexmono/IBMPlexMono-Regular.ttf",
       "upstreamSha256": "6a3412f058c7d8dfd9170c41e85ade48e5156ecb89356110ca57a0a27734af46",
       "instance": null,
-      "bytes": 43968,
-      "sha256": "08f3b4bdd0f392c95767cd694e44c2b0886d59599588c63ecf06224da2100c58"
+      "bytes": 60024,
+      "sha256": "bcda99acc141352d094f93fc2d083492e1701d38f9d5c48681aec4eab1726349"
     },
     {
       "file": "ibm-plex-mono-600.woff2",
@@ -78,8 +78,8 @@
       "upstream": "ibmplexmono/IBMPlexMono-SemiBold.ttf",
       "upstreamSha256": "d3c38e55c78f5b0f28009fddba4834ec503278936a5986032424c9bd2d23aa46",
       "instance": null,
-      "bytes": 47284,
-      "sha256": "8e25229cd4752f68b95cc15cf4f550758c349042294538f21cbb1ab54e18b855"
+      "bytes": 63340,
+      "sha256": "18d0f83379dbf4db64ade59ff0c0661b1d419a6766a3cd930016508f6004f618"
     },
     {
       "file": "ibm-plex-sans-devanagari-400.woff2",
@@ -91,7 +91,7 @@
       "upstreamSha256": "9a309796ffbe3b6827591eb4e6e7f13e273c38d37b40d12a5ac695172571e88b",
       "instance": null,
       "bytes": 267528,
-      "sha256": "cf0119e688050e5d39d44af79a185b752eed262a6d38151c369f4e4ed62953ce"
+      "sha256": "3f37469b27ddb013bba466ea8640acf0c6fbc90d8377b419082b876b6718dd20"
     }
   ]
 }
