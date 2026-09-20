@@ -24,6 +24,8 @@
     "noFallthroughCasesInSwitch": true,
     "noPropertyAccessFromIndexSignature": false,
     "verbatimModuleSyntax": true,
+    "//allowImportingTsExtensions": "src/terrain/*.ts import each other with an explicit .ts, so that src/terrain/terrain.test.ts can be executed by `node --experimental-strip-types` — which resolves specifiers the way the web platform does and will not guess at an extension. Before this, that 493-line test file could not be run by any command in the repository, and was not referenced by package.json, by .github/workflows/ or by /verify. It asserted the §7 palette ceiling, the ore budget, the fixed seed and window-crop determinism, and nothing kept any of those true.",
+    "allowImportingTsExtensions": true,
     "allowJs": true,
     "checkJs": false,
     "resolveJsonModule": true,

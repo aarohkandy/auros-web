@@ -25,7 +25,7 @@
  * ──────────────────────────────────────────────────────────────────────────────────────────
  */
 
-import { countDistinctColours, PALETTES, paint } from "./render";
+import { countDistinctColours, PALETTES, paint } from "./render.ts";
 import {
   ORE_SEAMS,
   PALETTE_SIZE,
@@ -35,7 +35,7 @@ import {
   boundaryRows,
   stratumAtDepth,
   type StratumId,
-} from "./strata";
+} from "./strata.ts";
 import {
   WORLD_HEIGHT,
   WORLD_SEED,
@@ -45,7 +45,7 @@ import {
   generateTerrain,
   mulberry32,
   mulberry32Step,
-} from "./terrain";
+} from "./terrain.ts";
 
 // ── A runner ──────────────────────────────────────────────────────────────────────────────
 

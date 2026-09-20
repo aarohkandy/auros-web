@@ -42,29 +42,72 @@ describe('Turnstile — no token, no POST', () => {
     assert.equal(r.status, 503)
   })
 
-  test('the always-passes TEST secret is refused in production', async () => {
+  test('the always-passes TEST secret is refused on a real hostname', async () => {
     const r = await verifyTurnstile({
       secret: ALWAYS_PASSES_TEST_SECRET,
       token: 'anything',
       remoteIp: '1.2.3.4',
       idempotencyKey: 'k',
-      environment: 'production',
+      requestHost: 'auros.dev',
+      canReachGitHub: false,
       fetchImpl: neverCalled
     })
     assert.equal(r.ok, false)
     assert.match(r.reason, /TEST secret/)
   })
 
-  test('the test secret is allowed to work in development, where that is the point', async () => {
+  // REGRESSION. The escape hatch used to be `env.ENVIRONMENT !== 'production'`, so a preview or
+  // staging deployment — the exact place somebody sets a variable like that — became an open
+  // PR-creation endpoint on a public repository, one plain non-secret var away. The key is now the
+  // absence of production infrastructure, which a deployment cannot have by accident.
+  test('the test secret is refused on a preview deployment however ENVIRONMENT is set', async () => {
+    for (const host of ['staging.auros.dev', 'auros-web-preview.workers.dev', 'localhost.attacker.example']) {
+      const r = await verifyTurnstile({
+        secret: ALWAYS_PASSES_TEST_SECRET,
+        token: 'anything',
+        remoteIp: '1.2.3.4',
+        idempotencyKey: 'k',
+        requestHost: host,
+        canReachGitHub: false,
+        // There is no `environment` argument any more. If one is ever reintroduced, this line is
+        // ignored and the assertion below still has to hold.
+        environment: 'development',
+        fetchImpl: neverCalled
+      })
+      assert.equal(r.ok, false, `${host} was allowed to use the always-passes test secret`)
+      assert.match(r.reason, /TEST secret/)
+    }
+  })
+
+  // REGRESSION. And a loopback host that DOES hold a GitHub App key is still refused: a dev flag on
+  // a deployment that can actually reach GitHub must not open the door either.
+  test('the test secret is refused wherever a GitHub App key exists', async () => {
     const r = await verifyTurnstile({
       secret: ALWAYS_PASSES_TEST_SECRET,
       token: 'anything',
-      remoteIp: '1.2.3.4',
+      remoteIp: '127.0.0.1',
       idempotencyKey: 'k',
-      environment: 'development',
-      fetchImpl: async () => ({ json: async () => ({ success: true, hostname: 'localhost' }) })
+      requestHost: 'localhost',
+      canReachGitHub: true,
+      fetchImpl: neverCalled
     })
-    assert.equal(r.ok, true)
+    assert.equal(r.ok, false)
+    assert.match(r.reason, /TEST secret/)
+  })
+
+  test('the test secret works on loopback with no GitHub key, where that is the point', async () => {
+    for (const host of ['localhost', '127.0.0.1', '[::1]']) {
+      const r = await verifyTurnstile({
+        secret: ALWAYS_PASSES_TEST_SECRET,
+        token: 'anything',
+        remoteIp: '127.0.0.1',
+        idempotencyKey: 'k',
+        requestHost: host,
+        canReachGitHub: false,
+        fetchImpl: async () => ({ json: async () => ({ success: true, hostname: 'localhost' }) })
+      })
+      assert.equal(r.ok, true, `wrangler dev on ${host} was refused`)
+    }
   })
 
   test('siteverify saying no is a no', async () => {

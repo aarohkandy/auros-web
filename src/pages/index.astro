@@ -15,22 +15,44 @@
  * ninth.
  *
  * D29 names the build console "the hero's living element", and §7 says it "replaces every
- * decorative animation impulse". It used to be the fourth block, under roughly four screens of
- * static prose, which meant a visitor scrolled past everything on the site that is genuinely
- * happening to reach it. It is now the second thing in the fold, at full width, because it is the
- * widest-format content here and because it should be larger than the sales pitch.
+ * decorative animation impulse". A previous pass moved it up and this comment claimed it was "the
+ * second thing in the fold". Measured in a browser at 1280x768 it was not: `.console-row` spanned
+ * `1 / -1` inside the fold grid, so it sat BELOW both cells, and the inventory cell was 5,086px
+ * tall. The console started at y=3783 — 4.9 screens down. The comment was the defect: it described
+ * a DOM order, and the grid put the element somewhere else.
  *
  * ── SHAPE ──────────────────────────────────────────────────────────────────────────────────────
  *
- * The four regions used to be four full-width panels at one width with one rhythm: `margin: 2rem 0`
- * on each, identical padding, identical border. A reader's eye had nowhere to land. They are now
- * different shapes on purpose, which is D29 item 4:
+ * The fold is now one grid with named areas and two unequal tracks, and the console is in it:
  *
- *   fold        hero 1fr | inventory 1.4fr — the honest list wider than the pitch
- *   console     full 72rem, wider than anything above it, with the measurement beside it
+ *   ┌──────────────────────┬──────────────┐
+ *   │ hero                 │ inventory    │   1.5fr  |  1fr
+ *   ├──────────────────────┤              │
+ *   │ console + 3.5 GB     │  (spans)     │
+ *   └──────────────────────┴──────────────┘
+ *
+ * Two constraints had to hold at once and neither gave way. §6D: the *what doesn't come across*
+ * column is above the fold, named programs and all — it is in the right track, top-aligned, first
+ * thing a reader sees beside the headline. D29: the console is the living element — it is directly
+ * under the hero, around y=700, inside the first screen on a laptop.
+ *
+ * What paid for it: the landing column now shows five entries instead of seven and drops the
+ * per-entry test, both of which are on /what-doesnt-come-across in full, and the first-boot figure
+ * moved out of the hero to sit beside the recipe it is quoted from — which is where it belonged,
+ * since `hero.firstBoot.sourceMono` and `recipeExcerpt.sourceMono` name the same file.
+ *
+ * ON A PHONE the two requirements cannot both be met and §6D wins. There is one column, source
+ * order is hero → list → console, and the console is measured at y=3593 on a 375px viewport with
+ * 2,637px of list above it. That is the deliberate cost: §6D says naming the Windows programs
+ * early "converts organisations; hiding it loses them at month two", and a reader who has to
+ * scroll for the console still gets there, while a reader who never sees the list leaves in month
+ * two. Do not "fix" this by reordering — shorten the phone list instead, if it needs shortening.
+ *
+ * The rest of the page keeps its rhythm, each region a different shape (D29 item 4):
+ *
  *   argument    one measure, left-aligned, in the margin-label rail
- *   recipe      full width — the file is the product and it is the widest object
- *   safety      panel-2, a different weight from the three above it
+ *   recipe      full width — the file is the product — with the Marathi first boot under it
+ *   safety      panel-2 1.3fr | what DOES come across 1fr — the ordering and its payoff together
  *   how small   panel-2, narrow, last
  *
  * `.stratum-section` gives the descent the vertical distance §7's terrain needs behind it; it was
@@ -58,6 +80,7 @@ const { Content } = await renderEntry(page);
 
 <PageShell title={`${site.name} — ${hero.headline}`} description={page.data.summary} layer="sky">
   <div class="above-the-fold stratum-section">
+    <div class="hero-cell">
     <Panel tone="panel" class="hero">
       <h1 class="headline">{hero.headline}</h1>
       <p class="standfirst">{hero.standfirst}</p>
@@ -66,29 +89,23 @@ const { Content } = await renderEntry(page);
         <a class="cta" href={hero.secondaryCta.href}>{hero.secondaryCta.label}</a>
       </p>
       <p class="price-note">{hero.priceNoteMono}</p>
-
-      <!--
-        The real first-boot message out of the public example recipe. `lang="mr"` because the
-        string is Marathi and the browser should say so to a screen reader and to the font
-        stack — `src/styles/fonts.css` gates the 261 KB Devanagari subset behind a unicode-range,
-        so this is the first string on the site that actually fetches it.
-      -->
-      <figure class="first-boot">
-        <figcaption class="first-boot-lead">{hero.firstBoot.lead}</figcaption>
-        <blockquote class="first-boot-message" lang="mr">{hero.firstBoot.messageMono}</blockquote>
-        <p class="first-boot-gloss">{hero.firstBoot.gloss}</p>
-        <p class="first-boot-source">{hero.firstBoot.sourceMono}</p>
-        <p class="first-boot-note">{hero.firstBoot.note}</p>
-      </figure>
     </Panel>
+    </div>
 
-    <WhatDoesntComeAcross headingLevel={2} />
+    <div class="inventory-cell">
+      <WhatDoesntComeAcross
+        headingLevel={2}
+        columns="does-not"
+        limit={5}
+        showHowToCheck={false}
+      />
+    </div>
 
     <div class="console-row">
       <div class="with-margin-label">
         <StratumLabel layer="stratum-2" />
         <div class="console-body">
-          <BuildConsole showIllustration={true} />
+          <BuildConsole />
 
           <Panel tone="panel-2" class="measured">
             <p class="measured-label">{measured.label}</p>
@@ -121,6 +138,22 @@ const { Content } = await renderEntry(page);
     <div class="with-margin-label">
       <StratumLabel layer="stratum-1" />
       <RecipeExcerpt headingLevel={2} />
+
+      <!--
+        The real first-boot message out of the public example recipe, directly under the file it is
+        a line of — `hero.firstBoot.sourceMono` and `recipeExcerpt.sourceMono` are the same path, and
+        the two were four screens apart. `lang="mr"` because the string is Marathi and the browser
+        should say so to a screen reader and to the font stack: `src/styles/fonts.css` gates the
+        261 KB Devanagari subset behind a unicode-range, so this is the only string on the site that
+        fetches it.
+      -->
+      <figure class="first-boot">
+        <figcaption class="first-boot-lead">{hero.firstBoot.lead}</figcaption>
+        <blockquote class="first-boot-message" lang="mr">{hero.firstBoot.messageMono}</blockquote>
+        <p class="first-boot-gloss">{hero.firstBoot.gloss}</p>
+        <p class="first-boot-source">{hero.firstBoot.sourceMono}</p>
+        <p class="first-boot-note">{hero.firstBoot.note}</p>
+      </figure>
     </div>
   </div>
 
@@ -132,6 +165,11 @@ const { Content } = await renderEntry(page);
       <p class="safety-note">{migrationSafety.archiveNote}</p>
       <p class="safety-note">{migrationSafety.noBootMediaNote}</p>
     </Panel>
+
+    <!-- The payoff for the ordering above, and the other half of §6D's pair. -->
+    <div class="comes-cell">
+      <WhatDoesntComeAcross headingLevel={2} columns="comes" />
+    </div>
   </div>
 
   <div class="small-section">
@@ -141,9 +179,11 @@ const { Content } = await renderEntry(page);
 
 <style>
   /* ── The fold ────────────────────────────────────────────────────────────────────────────────
-     Two unequal columns, and the wide one is the list of things we cannot do for you. That is the
-     argument §6D makes in words, made here in geometry. `WhatDoesntComeAcross` already sets its
-     own internal columns to 1.35fr/1fr — the component had an opinion and the page did not. */
+     Named areas, because the thing that broke here was source order not matching placement. The
+     left track carries the argument and the machine; the right track is the honest list, spanning
+     both rows so it starts level with the headline (§6D) while the console starts level with the
+     bottom of the hero panel (D29). Source order is hero, list, console — which is also the
+     one-column order on a phone, and the right one there. */
   .above-the-fold {
     display: grid;
     gap: 1rem;
@@ -151,27 +191,32 @@ const { Content } = await renderEntry(page);
   }
   @media (min-width: 64rem) {
     .above-the-fold {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+      grid-template-areas:
+        "hero    inventory"
+        "console inventory";
       align-items: start;
     }
-    /* The console is the widest-format content on the page, so it gets the whole width. */
+    .hero-cell {
+      grid-area: hero;
+    }
+    .inventory-cell {
+      grid-area: inventory;
+    }
     .console-row {
-      grid-column: 1 / -1;
-      margin-top: 1.5rem;
+      grid-area: console;
+      margin-top: 0.5rem;
     }
   }
   .console-row {
     margin-top: 0.5rem;
   }
+  /* The measurement sits under the console rather than beside it: in the left track there is no
+     room for a second column, and 3.5 GB reading directly after the run that measured it is the
+     better order anyway. */
   .console-body {
     display: grid;
     gap: 1rem;
-  }
-  @media (min-width: 72rem) {
-    .console-body {
-      grid-template-columns: minmax(0, 2.1fr) minmax(0, 1fr);
-      align-items: start;
-    }
   }
 
   /* ── Type. The scale exists in tokens.css and was ignored by five nearby guesses. ──────────── */
@@ -215,9 +260,19 @@ const { Content } = await renderEntry(page);
     background-color: var(--panel-2, #e6e0d2);
     text-decoration: none;
   }
+  /*
+    The primary action is the only filled element on the page. Ink on panel: 13.9:1 in light,
+    11.5:1 in dark, so it is legible before it is decorative.
+
+    It used to be marked with a 3px ore left border. An interactive border is governed by WCAG
+    1.4.11 and needs 3:1 in both themes; ore on --panel-2 in dark measures 2.67:1, and
+    src/components/CONVENTIONS.md §2 says as much — ore stays on the layer-boundary marks, the
+    ILLUSTRATION flag and the focus ring, and nothing else. Emphasis here comes from weight.
+  */
   .cta.primary {
-    border-left-color: var(--ore, #be3a12);
-    border-left-width: 3px;
+    background-color: var(--ink, #24231f);
+    border-color: var(--ink, #24231f);
+    color: var(--panel, #f4f1ea);
   }
   .cta:focus-visible {
     outline: var(--focus-ring-width, 2px) solid var(--focus, #be3a12);
@@ -231,8 +286,9 @@ const { Content } = await renderEntry(page);
     color: var(--ink-muted, #5a4e40);
   }
 
-  /* ── The first-boot message ──────────────────────────────────────────────────────────────── */
+  /* ── The first-boot message, under the recipe it is a line of ────────────────────────────── */
   .first-boot {
+    max-width: calc(var(--measure, 38rem) + 4rem);
     margin: 1.5rem 0 0;
     padding-top: 1.25rem;
     border-top: 1px solid var(--rule, #8a7358);
@@ -316,6 +372,18 @@ const { Content } = await renderEntry(page);
      too wide, so the panel is constrained rather than the type re-capped. ─────────────────── */
   .argument :global(.panel) {
     max-width: calc(var(--measure, 38rem) + 4rem);
+  }
+
+  /* Two unequal columns: the ordering, and what survives it. */
+  .safety {
+    display: grid;
+    gap: 1rem;
+    align-items: start;
+  }
+  @media (min-width: 64rem) {
+    .safety {
+      grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
+    }
   }
 
   .safety-body,

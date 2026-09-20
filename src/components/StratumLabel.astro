@@ -69,6 +69,18 @@ const ownedBy = data ? layerStack.ownedByLabels[data.ownedBy] : undefined;
     margin: 0 0 1rem;
     max-width: 16rem;
   }
+  /* "Labelled in the margin AS THEY PASS IT" is a description of scrolling, so in the rail the
+     label holds beside its stratum instead of scrolling away at the first paragraph. Only where
+     the rail exists: at phone width the label is stacked above the panel, and sticking it there
+     would pin a caption over the text it captions. Position only — nothing moves that is not
+     reporting a fact, and this reports which layer you are at. */
+  @media (min-width: 64rem) {
+    :global(.with-margin-label) > .stratum {
+      position: sticky;
+      top: var(--space-6, 32px);
+      margin-bottom: 0;
+    }
+  }
   .margin-label,
   .ref {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);

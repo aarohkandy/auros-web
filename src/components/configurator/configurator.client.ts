@@ -24,9 +24,61 @@ import { renderRecipe } from "../../lib/recipe-render";
 import { validateRecipe } from "../../lib/recipe-validate";
 import { tierFor } from "../../lib/pricing";
 import { createPanelState, paint, type PanelElements } from "./panel";
+import { HUMAN_CHECK_DEPLOYED, HUMAN_CHECK_REASON } from "./human-check";
+import { ORDER_ENDPOINT, orderBody, type OrderAnswers } from "./order-request";
+
+/**
+ * Turnstile's explicit-render API, narrowed to the two calls this file makes.
+ *
+ * `AnswerForm.astro` loads `api.js?render=explicit&onload=aurosTurnstileReady`, and the inline
+ * script beside it parks a promise on `window.aurosTurnstile` that resolves with `window.turnstile`
+ * when that callback fires. The two scripts have no guaranteed ordering relative to each other, so
+ * the promise is the handshake rather than a poll.
+ */
+type TurnstileApi = {
+  render: (el: HTMLElement, options: Record<string, unknown>) => string | undefined;
+  reset: (widgetId?: string) => void;
+};
+
+declare global {
+  interface Window {
+    turnstile?: TurnstileApi;
+    aurosTurnstile?: Promise<TurnstileApi | undefined>;
+  }
+}
+
+/** How long to wait for Cloudflare before saying so. A blocked or slow CDN is a real state. */
+const TURNSTILE_LOAD_TIMEOUT_MS = 12_000;
+
+/** Resolve once `window.turnstile` exists. The caller races this against the timeout above. */
+function whenTurnstileAppears(): Promise<TurnstileApi> {
+  return new Promise((resolve) => {
+    const look = () => {
+      if (window.turnstile) resolve(window.turnstile);
+      else window.setTimeout(look, 150);
+    };
+    look();
+  });
+}
 
 const REPAINT_DEBOUNCE_MS = 90;
 const ANNOUNCE_DEBOUNCE_MS = 700;
+
+/**
+ * The two polite live regions that live in the FORM rather than in the panel.
+ *
+ * `[data-tier]` is `aria-live="polite"`; `[data-submit-reason]` is `role="status"`, which is the
+ * same thing. Both used to be written unconditionally on every 90ms repaint, so typing three
+ * characters into a free-text field that changes neither the price nor the blockers produced
+ * nine mutations and nine announcements of byte-identical text. The panel was throttled
+ * carefully and these two were not, which made it worse rather than better: the regions that
+ * spoke over the visitor were the ones naming a price tier they had not changed.
+ *
+ * So: the last rendered value is kept here and an identical value is never written, and
+ * `scheduleRepaint` sets `aria-busy` on these two nodes on the same timer as the panel. An
+ * answer that genuinely changes the tier is announced once, after the visitor stops typing.
+ */
+type LiveRegions = { tierHtml: string; tierConversation: string; reason: string };
 
 function el<T extends HTMLElement>(root: ParentNode, selector: string): T | null {
   return root.querySelector<T>(selector);
@@ -140,7 +192,76 @@ export function mount(container: HTMLElement): void {
   const panel = panelElements(panelRoot);
   if (!form || !panel) return;
 
+  /**
+   * Render the widget, AFTER the clone above.
+   *
+   * This is the half of the fatal that adding the script tag would not have fixed. Turnstile's
+   * implicit renderer walks the document for `.cf-turnstile` exactly once, when `api.js` executes.
+   * The widget ships inside `<template data-configurator-form>` and only enters the document on the
+   * line above, so the implicit renderer never sees it: the div stayed empty, the client read
+   * `[name="cf-turnstile-response"]`, found nothing, and told every visitor the check had not
+   * completed. So the form is cloned first and the widget is rendered explicitly into it here.
+   *
+   * A failure to load is reported as itself. Cloudflare being blocked, or slow, or the key being
+   * wrong, are different facts from "you are a robot", and the Worker refuses a tokenless POST
+   * either way — so the honest thing on screen is which one happened and that the email path still
+   * works.
+   */
+  let turnstileState: "pending" | "ready" | "unavailable" = HUMAN_CHECK_DEPLOYED ? "pending" : "unavailable";
+  const widget = el<HTMLElement>(form, ".cf-turnstile");
+
+  async function mountTurnstile(): Promise<void> {
+    if (!HUMAN_CHECK_DEPLOYED || !widget) return;
+    const sitekey = widget.dataset.sitekey;
+    if (!sitekey) {
+      turnstileState = "unavailable";
+      return;
+    }
+    let api: TurnstileApi | undefined;
+    try {
+      api = await Promise.race([
+        // The handshake the inline script sets up. If it is missing — a page that forgot it, a CSP
+        // that blocked it — fall back to watching for `window.turnstile` rather than concluding on
+        // the first tick that it will never arrive.
+        window.aurosTurnstile ?? whenTurnstileAppears(),
+        new Promise<undefined>((resolve) => window.setTimeout(() => resolve(undefined), TURNSTILE_LOAD_TIMEOUT_MS)),
+      ]);
+    } catch {
+      api = undefined;
+    }
+    if (!api || typeof api.render !== "function") {
+      turnstileState = "unavailable";
+      update();
+      return;
+    }
+    try {
+      api.render(widget, {
+        sitekey,
+        theme: widget.dataset.theme ?? "auto",
+        // A solved challenge is worth a repaint, because it removes a blocker the button names.
+        callback: () => {
+          turnstileState = "ready";
+          update();
+        },
+        "expired-callback": () => {
+          turnstileState = "pending";
+          update();
+        },
+        "error-callback": () => {
+          turnstileState = "pending";
+          update();
+        },
+      });
+    } catch {
+      turnstileState = "unavailable";
+    }
+    update();
+  }
+
   const state = createPanelState();
+  const live: LiveRegions = { tierHtml: "", tierConversation: "", reason: "" };
+  const tierNode = el<HTMLElement>(container, "[data-tier]");
+  const reasonNode = el<HTMLElement>(container, "[data-submit-reason]");
   let touched = false;
   let repaintTimer = 0;
   let announceTimer = 0;
@@ -171,6 +292,16 @@ export function mount(container: HTMLElement): void {
     if (secondNode && secondNode.dataset.touched !== "true") secondNode.value = lang.secondScript ?? "";
   }
 
+  /**
+   * Show or hide the rows whose relevance depends on an answer.
+   *
+   * `row.hidden` is the whole mechanism: it removes the row from the accessibility tree, and
+   * `.cfg-form [hidden] { display: none !important }` in `AnswerForm.astro` is what makes it
+   * remove the row from the screen as well. That `!important` is load-bearing, not tidiness —
+   * `.cfg-row { display: grid }` and `.cfg-choice { display: flex }` are author declarations
+   * and beat the user agent's `[hidden]` rule outright. Without it these rows stayed painted,
+   * legible and unreachable: visible to a sighted keyboard user, absent to a screen reader.
+   */
   function syncConditionalRows(a: Answers): void {
     for (const row of form!.querySelectorAll<HTMLElement>("[data-when-policy]")) {
       const want = (row.dataset.whenPolicy ?? "").split(" ").filter(Boolean);
@@ -220,23 +351,37 @@ export function mount(container: HTMLElement): void {
       },
     });
 
-    paintTier(container, a);
-    paintSubmit(container, a, verdict.status === "ready");
+    const tier = paintTier(tierNode, live, a);
+    paintSubmit(container, reasonNode, live, a, verdict.status === "ready", turnstileState);
     lastText = result.text;
     lastName = name;
+    // The OBJECT, not the text. The Worker takes `recipe` as JSON and validates it with the same
+    // schema this line just used; handing it YAML would mean a second parser on the server and a
+    // second thing to disagree about.
+    lastRecipe = result.recipe;
+    lastTier = tier;
   }
 
   let lastText = "";
   let lastName = "your-build";
+  let lastRecipe: Record<string, unknown> = {};
+  let lastTier: string | null = null;
+
+  /** Every polite region on this page, throttled together. */
+  const liveRoots = [panel.root, tierNode, reasonNode].filter(Boolean) as HTMLElement[];
 
   function scheduleRepaint(): void {
     window.clearTimeout(repaintTimer);
     repaintTimer = window.setTimeout(update, REPAINT_DEBOUNCE_MS);
-    // The polite region is throttled harder than the paint. A screen-reader user typing a
-    // machine count should not be told the file changed after every digit.
+    // The polite regions are throttled harder than the paint. A screen-reader user typing a
+    // machine count should not be told the file changed after every digit — and, before this
+    // covered the tier and the blocker list too, they were told the price tier and the reason
+    // the button was off after every digit as well, with the same words each time.
     window.clearTimeout(announceTimer);
-    panel!.root.setAttribute("aria-busy", "true");
-    announceTimer = window.setTimeout(() => panel!.root.removeAttribute("aria-busy"), ANNOUNCE_DEBOUNCE_MS);
+    for (const node of liveRoots) node.setAttribute("aria-busy", "true");
+    announceTimer = window.setTimeout(() => {
+      for (const node of liveRoots) node.removeAttribute("aria-busy");
+    }, ANNOUNCE_DEBOUNCE_MS);
   }
 
   form.addEventListener("input", (event) => {
@@ -258,7 +403,7 @@ export function mount(container: HTMLElement): void {
   // text box on question one.
   form.addEventListener("submit", (event) => {
     event.preventDefault();
-    void submit(container, form!, lastText, lastName);
+    void submit(container, form!, { recipe: lastRecipe, tier: lastTier, contactEmail: text(form!, "contactEmail").trim() });
   });
 
   const resetFor = el<HTMLButtonElement>(container, "[data-reset-for]");
@@ -269,17 +414,23 @@ export function mount(container: HTMLElement): void {
     forNode.focus();
   });
 
-  el<HTMLButtonElement>(container, "[data-copy]")?.addEventListener("click", async (event) => {
-    const button = event.currentTarget as HTMLButtonElement;
-    const original = button.textContent ?? "";
+  // The label is captured ONCE, at mount, and the outstanding restore is cancelled before a new
+  // one is armed. Capturing it inside the handler meant a second click within the restore window
+  // captured "Copied" as the original and restored that instead, leaving the panel's primary
+  // affordance permanently mislabelled until a reload.
+  const copyButton = el<HTMLButtonElement>(container, "[data-copy]");
+  const copyLabel = copyButton?.textContent ?? "";
+  let copyTimer = 0;
+  copyButton?.addEventListener("click", async () => {
+    window.clearTimeout(copyTimer);
     try {
       await navigator.clipboard.writeText(lastText);
-      button.textContent = "Copied";
+      copyButton.textContent = "Copied";
     } catch {
-      button.textContent = "Select the file and copy it";
+      copyButton.textContent = "Select the file and copy it";
     }
-    window.setTimeout(() => {
-      button.textContent = original;
+    copyTimer = window.setTimeout(() => {
+      copyButton.textContent = copyLabel;
     }, 2000);
   });
 
@@ -295,42 +446,90 @@ export function mount(container: HTMLElement): void {
 
   followLanguage();
   update();
+  void mountTurnstile();
   container.dataset.ready = "true";
 }
 
-/** The tier, from the published five. Never a total and never a saving. */
-function paintTier(container: HTMLElement, a: Answers): void {
-  const node = el<HTMLElement>(container, "[data-tier]");
-  if (!node) return;
+/**
+ * The tier, from the published five. Never a total and never a saving.
+ *
+ * This is a polite live region, so it is written ONLY when the value differs. Assigning
+ * identical `innerHTML` still mutates the DOM and still announces, and a free-text field like
+ * the model list changes neither the tier nor the price.
+ */
+function paintTier(node: HTMLElement | null, live: LiveRegions, a: Answers): string | null {
   const verdict = tierFor({ machines: a.machines, orgKind: a.orgKind, policy: a.policy });
+  if (!node) return verdict.tier?.id ?? null;
   const price = verdict.tier ? `${verdict.tier.priceMono} ${verdict.tier.unitMono}` : "";
   const name = verdict.tier ? verdict.tier.name : "Not one of the five tiers";
-  node.dataset.conversation = verdict.needsAConversation ? "true" : "false";
-  node.innerHTML =
+  const conversation = verdict.needsAConversation ? "true" : "false";
+  const html =
     `<p class="cfg-tier__name">${escape(name)}</p>` +
     (price ? `<p class="cfg-tier__price mono">${escape(price)}</p>` : "") +
     `<p class="cfg-tier__note">${escape(verdict.note)}</p>`;
+
+  if (conversation !== live.tierConversation) {
+    node.dataset.conversation = conversation;
+    live.tierConversation = conversation;
+  }
+  // The tier id goes to the Worker with the order. It is not a price the page computed: the Worker
+  // re-derives the tier from the recipe's own machine count and refuses the order if the id it was
+  // sent disagrees with what the answers say (routes/order.js, `tierFor`). Prices are §9-reserved
+  // and this string is a label, not an amount.
+  const tierId = verdict.tier?.id ?? null;
+  if (html === live.tierHtml) return tierId;
+  node.innerHTML = html;
+  live.tierHtml = html;
+  return tierId;
 }
 
 /**
  * The submit button says what is stopping it, always.
  *
- * Three things gate it, and none of them is hidden behind a disabled attribute with no
- * explanation: the file has to pass the validator, the person has to have read what does not
- * come across, and there has to be a Turnstile token. A disabled control that will not say why
- * is the kind of thing this whole product is arguing against.
+ * Things gate it, and none of them is hidden behind a disabled attribute with no explanation:
+ * the human check has to exist, the file has to pass the validator, and the person has to have
+ * read what does not come across. A disabled control that will not say why is the kind of thing
+ * this whole product is arguing against.
+ *
+ * The human check is checked FIRST and reported alone. The other two are things a visitor fixes
+ * by answering a question; an undeployed check is not, and listing it beside them would read as
+ * one more item on their to-do list. See `human-check.ts` and BLOCKED.md B11.
+ *
+ * `role="status"` makes this a polite live region, so — like the tier — an identical string is
+ * never written back.
  */
-function paintSubmit(container: HTMLElement, a: Answers, ready: boolean): void {
+function paintSubmit(
+  container: HTMLElement,
+  reason: HTMLElement | null,
+  live: LiveRegions,
+  a: Answers,
+  ready: boolean,
+  turnstile: "pending" | "ready" | "unavailable",
+): void {
   const button = el<HTMLButtonElement>(container, "[data-submit]");
-  const reason = el<HTMLElement>(container, "[data-submit-reason]");
   if (!button || !reason) return;
-  const blockers: string[] = [];
-  if (!ready) blockers.push("the file does not pass the validator yet");
-  if (!a.acknowledgedMigration) blockers.push("the list of what does not come across has not been acknowledged");
-  button.disabled = blockers.length > 0;
-  reason.textContent = blockers.length
-    ? `Not yet: ${blockers.join(", and ")}.`
-    : "This opens a pull request in the public recipes repository. Nothing is charged and nothing is built until you and we have both read it.";
+
+  let next: string;
+  if (!HUMAN_CHECK_DEPLOYED || turnstile === "unavailable") {
+    button.disabled = true;
+    next = HUMAN_CHECK_REASON;
+  } else {
+    const blockers: string[] = [];
+    if (!ready) blockers.push("the file does not pass the validator yet");
+    if (!a.acknowledgedMigration) blockers.push("the list of what does not come across has not been acknowledged");
+    // The third gate, which the comment above this function has always claimed and the code did
+    // not have: no token, no submission. It is listed with the other two because it IS something
+    // the visitor fixes by doing something — the check is on the page, waiting for them.
+    if (turnstile !== "ready") blockers.push("the human check beside this button has not been completed");
+    button.disabled = blockers.length > 0;
+    next = blockers.length
+      ? `Not yet: ${blockers.join(", and ")}.`
+      : "This opens a pull request in the public recipes repository. Nothing is charged and nothing is built until you and we have both read it.";
+  }
+
+  if (next === live.reason) return;
+  reason.textContent = next;
+  live.reason = next;
 }
 
 function escape(s: string): string {
@@ -340,43 +539,112 @@ function escape(s: string): string {
 /**
  * Submit.
  *
- * The client check is a convenience and never a control: the Worker re-validates this exact
- * text against the same schema before it writes anything, and refuses a POST with no Turnstile
- * token. If no token is present here, this function does not POST and says so, because a
- * request that is going to be refused is not worth making and pretending otherwise would teach
- * the reader that our checks are decorative.
+ * THE CONTRACT WITH THE WORKER, WRITTEN OUT, BECAUSE IT WAS WRONG THREE TIMES IN THIRTY LINES.
+ * This function used to POST `{name, recipeYaml, turnstileToken}` to `/api/order`. The Worker has
+ * no `/api/order` — that path fell through to the static 404 page, `response.ok` was false, and the
+ * visitor was told "The order did not go through", so no order could ever be placed. Behind the
+ * wrong URL were two more: `handleOrder` requires `{recipe: <object>, tier, turnstileToken}` and
+ * 422s otherwise, and it answers with `pullRequest.url`, not `pullRequestUrl`. Three independent
+ * mismatches in one function means the path had never been run end to end, so the fix is not three
+ * edits — it is `worker/test/client-contract.test.js`, which builds the body THIS function builds
+ * and runs it through the real `worker.fetch`.
+ *
+ *   POST /order-submit
+ *   { recipe: <the recipe object, not YAML>, tier: <tier id>, contactEmail?, turnstileToken }
+ *   201 → { ok: true, pullRequest: { number, url, branch }, payment, … }
+ *
+ * The client check is a convenience and never a control: the Worker re-validates this exact object
+ * against the same schema before it writes anything, and refuses a POST with no Turnstile token. If
+ * no token is present here this function does not POST and says so, because a request that is going
+ * to be refused is not worth making and pretending otherwise would teach the reader that our checks
+ * are decorative.
  */
-async function submit(container: HTMLElement, form: HTMLFormElement, yamlText: string, name: string): Promise<void> {
+/** The Worker's 201. Narrowed to what this function reads. */
+type OrderResponse = {
+  ok?: boolean;
+  pullRequest?: { number?: number; url?: string; branch?: string };
+  payment?: { required?: boolean; checkoutUrl?: string; because?: string };
+  because?: string;
+  headline?: string;
+  why?: string;
+};
+
+async function submit(container: HTMLElement, form: HTMLFormElement, answers: OrderAnswers): Promise<void> {
   const reason = el<HTMLElement>(container, "[data-submit-reason]");
+  const say = (message: string) => {
+    if (reason) reason.textContent = message;
+  };
+
+  // Belt and braces: the button is already disabled, but a submit event can arrive from a
+  // keypress in a text field in browsers that dispatch it before the disabled check. There is no
+  // token to get and no request worth making.
+  if (!HUMAN_CHECK_DEPLOYED) {
+    say(HUMAN_CHECK_REASON);
+    return;
+  }
   const tokenNode = form.querySelector<HTMLInputElement>('[name="cf-turnstile-response"]');
   const token = tokenNode?.value ?? "";
   if (!token) {
-    if (reason) {
-      reason.textContent =
-        "The human check has not completed, so there is no token to send. The server refuses a submission without one, so this one is not being sent either. Reload the page, or email the file instead.";
-    }
+    say(
+      "The human check has not completed, so there is no token to send. The server refuses a submission without one, so this one is not being sent either. Reload the page, or email the file instead.",
+    );
     return;
   }
-  const endpoint = container.dataset.endpoint || "/api/order";
+
+  // The endpoint and the body both come from `order-request.ts`, which is the one module the
+  // Worker's own test suite can import — so "the client posts what the server accepts" is a test
+  // rather than a hope. See worker/test/client-contract.test.js.
+  const endpoint = container.dataset.endpoint || ORDER_ENDPOINT;
+  let response: Response;
   try {
-    const response = await fetch(endpoint, {
+    response = await fetch(endpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ name, recipeYaml: yamlText, turnstileToken: token }),
+      body: JSON.stringify(orderBody(answers, token)),
     });
-    if (!response.ok) throw new Error(String(response.status));
-    const body = (await response.json()) as { pullRequestUrl?: string };
-    if (reason) {
-      reason.textContent = body.pullRequestUrl
-        ? `Opened. The pull request is at ${body.pullRequestUrl} and you can read it before anything is built.`
-        : "Opened. You will get a link to the pull request by email.";
-    }
   } catch {
-    if (reason) {
-      reason.textContent =
-        "The order did not go through. Nothing was charged and nothing was created. Try again, or copy the file above and email it to us.";
-    }
+    say(
+      "The order did not go through — the request never reached us. Nothing was charged and nothing was created. Try again, or copy the file above and email it to us.",
+    );
+    return;
   }
+
+  let body: OrderResponse = {};
+  try {
+    body = (await response.json()) as OrderResponse;
+  } catch {
+    /* A body we cannot read is handled by the status below. */
+  }
+
+  if (!response.ok) {
+    // The Worker's refusals are written to be read by a person — that is what `refuse()` is for —
+    // so they are shown rather than replaced with a generic sentence of our own. Turnstile burns a
+    // token on every attempt, so the widget is reset for the next one.
+    if (window.turnstile) {
+      try {
+        window.turnstile.reset();
+      } catch {
+        /* Nothing to reset is not an error. */
+      }
+    }
+    const said = body.why ?? body.because ?? body.headline;
+    say(
+      said
+        ? `${said} Nothing was charged and nothing was created.`
+        : "The order did not go through. Nothing was charged and nothing was created. Try again, or copy the file above and email it to us.",
+    );
+    return;
+  }
+
+  const prUrl = body.pullRequest?.url;
+  const checkout = body.payment?.checkoutUrl;
+  say(
+    prUrl
+      ? `Opened. The pull request is at ${prUrl} and you can read it before anything is built.${
+          checkout ? " The card details are collected next, and nothing is charged until the test build passes." : ""
+        }`
+      : "Opened. You will get a link to the pull request by email.",
+  );
 }
 
 // Boot. One container per page; more than one would mean two panels arguing.

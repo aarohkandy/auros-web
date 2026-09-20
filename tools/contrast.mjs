@@ -6,7 +6,12 @@
  * hand-written list of pairs and it does not hold a single hex value of its own. It:
  *
  *   1. reads `src/styles/tokens.css` and resolves every custom property, per theme, through as many
- *      `var()` hops as it takes, into a concrete colour;
+ *      `var()` hops as it takes, into a concrete colour. IN BUILT-PAGE MODE THAT MAP IS A STARTING
+ *      POINT, NOT THE ANSWER: a bundled stylesheet that re-declares `:root { --ink: … }` overrides
+ *      it on `<html>`, exactly as a browser would, so the values finally measured are the BUILT
+ *      css's. That is the honest reading of a built page and it is also why a stale `dist/` is
+ *      refused outright below — measuring last week's tokens and calling it a pass is worse than
+ *      not measuring;
  *   2. reads every stylesheet the site has — `src/styles/*.css` and the `<style>` block of every
  *      `.astro` component and page — and records which declaration sets which colour on which
  *      selector;
@@ -24,6 +29,8 @@
  * Usage:  node tools/contrast.mjs [--write] [--verbose]
  *   --write    also write the measured table to src/styles/a11y-audit.md
  * Exit 0 clean · 1 findings · 2 could not run (also a failure — it fails closed, like the other gates).
+ * "Could not run" includes a `dist/` older than any `.astro` file or any `src/styles/*.css`: the
+ * build is the evidence, and evidence that predates the code is not evidence.
  *
  * Honest limits, stated because a tool that overstates its own reach is the same defect it is
  * looking for:
@@ -668,7 +675,7 @@ function measureBuiltPage(file, vars, themeName) {
 
   const computeFor = (el) => {
     if (computed.has(el)) return computed.get(el);
-    const own = { color: null, background: null, marks: [], fontSize: null, fontWeight: null, state: [] };
+    const own = { color: null, background: null, marks: [], fontSize: null, fontWeight: null, state: [], textDecorationLine: null };
     const applicable = prepared
       .filter((rule) => matches(el, rule.parsed))
       .sort((a, b) => a.spec - b.spec || a.index - b.index);
@@ -742,6 +749,10 @@ function measureBuiltPage(file, vars, themeName) {
         else own.marks.push({ ...v, selector: rule.selector, origin: rule.origin });
       }
       if (rule.parsed.state) continue;
+      // Whether a line is painted at all. `text-decoration-color` on an element that sets
+      // `text-decoration: none` colours nothing, and measuring it fails a mark that does not exist.
+      if (rule.decls["text-decoration-line"]) own.textDecorationLine = rule.decls["text-decoration-line"];
+      else if (rule.decls["text-decoration"]) own.textDecorationLine = rule.decls["text-decoration"];
       if (rule.decls["font-size"]) own.fontSize = toPx(resolveValue(rule.decls["font-size"], elVars));
       if (rule.decls["font-weight"]) own.fontWeight = resolveValue(rule.decls["font-weight"], elVars);
       if (rule.decls["font"]) {
@@ -758,6 +769,9 @@ function measureBuiltPage(file, vars, themeName) {
       state: own.state,
       fontSize: own.fontSize ?? parent?.fontSize ?? ROOT_PX,
       fontWeight: own.fontWeight ?? parent?.fontWeight ?? 400,
+      textDecorationLine: own.textDecorationLine ?? parent?.textDecorationLine ?? null,
+      /** The element's OWN declaration, not the inherited one: it decides whether a line is drawn. */
+      ownTextDecorationLine: own.textDecorationLine ?? null,
       el,
     };
     let backdrop = parent?.effectiveBackground ?? null;
@@ -796,9 +810,38 @@ function measureBuiltPage(file, vars, themeName) {
       el.attrs.tabindex !== undefined ||
       el.attrs.contenteditable !== undefined;
     const stateMarks = style.state.filter((s) => s.kind === "mark" && (focusable || !/:focus/.test(s.selector ?? "")));
+    const parentBackground = el.parent ? computeFor(el.parent)?.effectiveBackground : null;
+    if (focusable && style.background && style.background.a > 0 && parentBackground) {
+      const ownBackground = over(style.background, parentBackground);
+      const borderClears = style.marks.some((m) => {
+        if (!/border/.test(m.prop) || m.color.a === 0) return false;
+        const painted = over(m.color, ownBackground);
+        return ratio(painted, ownBackground) >= THRESH.nonText || ratio(painted, parentBackground) >= THRESH.nonText;
+      });
+      if (!borderClears && hex(ownBackground) !== hex(parentBackground)) {
+        record({
+          theme: themeName, page, selector: `${selectorName} (fill against the surface behind it)`,
+          kind: "non-text mark", fg: hex(ownBackground), bg: hex(parentBackground),
+          value: ratio(ownBackground, parentBackground), required: THRESH.nonText, reference: THRESH.nonText,
+          detail: "the control's only boundary is its fill", source: "built page",
+        });
+      }
+    }
     for (const mark of [...style.marks, ...stateMarks]) {
-      const bg = style.effectiveBackground ?? computeFor(el.parent ?? el)?.effectiveBackground;
+      // An outline is painted OUTSIDE the border box, and every outline on this site carries an
+      // offset, so it lands on whatever is behind the element — not on the element's own fill.
+      // Measuring a focus ring against the button it surrounds answers a question nobody asked and
+      // fails a ring that is perfectly visible.
+      const isOutline = /outline/.test(mark.prop);
+      const bg = isOutline
+        ? parentBackground ?? style.effectiveBackground
+        : style.effectiveBackground ?? parentBackground;
       if (!bg || mark.color.a === 0) continue;
+      // A border the same colour as the fill it sits on is not a mark; it is part of the fill. What
+      // carries the meaning there is the fill against the surface behind it, measured below.
+      if (!isOutline && style.background && hex(over(mark.color, bg)) === hex(style.background)) continue;
+      // `text-decoration-color` on an element that draws no line is a value with nothing to paint.
+      if (/text-decoration/.test(mark.prop) && /\bnone\b/.test(String(style.ownTextDecorationLine ?? style.textDecorationLine ?? ""))) continue;
       const fg = over(mark.color, bg);
       const governed = markIsGoverned({ tag: el.tag, prop: mark.prop, selector: mark.selector });
       record({
@@ -854,6 +897,69 @@ function measureDeclared(vars, themeName) {
 
 const built = distPages();
 const mode = built.length > 0 ? "built page" : "declared";
+
+/**
+ * IS THE BUILD WE ARE MEASURING THE CODE WE HAVE?
+ *
+ * In built-page mode the custom properties come from the BUILT css — `:root { --ink: … }` inside
+ * a bundled stylesheet re-declares on `<html>` and overrides the map parsed from
+ * `src/styles/tokens.css`. That is correct: it is what the browser computes. But it means an
+ * edit to a token that has not been compiled is invisible here. Setting `--ink` to a value that
+ * fails at 1.06:1 against `--panel` and re-running without a build used to print the same clean
+ * 1546 pairs and exit 0, which is a tool reporting a pass for code it never read.
+ *
+ * Inside `pnpm build` this never bites, because the build runs first. From `pnpm contrast` or
+ * `pnpm audit:a11y` on an edited tree it bit every time. So a stale `dist/` is treated exactly
+ * like a missing one: exit 2, this run proves nothing, go and build.
+ */
+function staleness() {
+  if (built.length === 0) return null;
+  let newestSrc = null;
+  const consider = (p) => {
+    const m = statSync(p).mtimeMs;
+    if (!newestSrc || m > newestSrc.mtime) newestSrc = { mtime: m, file: p };
+  };
+  const walkSrc = (dir) => {
+    for (const entry of readdirSync(dir)) {
+      const p = join(dir, entry);
+      if (statSync(p).isDirectory()) {
+        walkSrc(p);
+        continue;
+      }
+      // What a built page's cascade is made of: every `.astro` component's `<style>` block, and
+      // every stylesheet under `src/styles/`. A `.ts` file cannot change a colour.
+      if (extname(p) === ".astro" || (p.startsWith(join(SRC, "styles")) && extname(p) === ".css")) consider(p);
+    }
+  };
+  if (existsSync(SRC)) walkSrc(SRC);
+  if (!newestSrc) return null;
+
+  // The OLDEST built artefact we measure, not the newest: one page rebuilt by hand does not make
+  // the other eight current.
+  let oldestBuilt = null;
+  for (const p of [...built, ...distStylesheets()]) {
+    if (!existsSync(p)) continue;
+    const m = statSync(p).mtimeMs;
+    if (!oldestBuilt || m < oldestBuilt.mtime) oldestBuilt = { mtime: m, file: p };
+  }
+  if (!oldestBuilt) return null;
+  if (newestSrc.mtime <= oldestBuilt.mtime) return null;
+  return {
+    src: relative(ROOT, newestSrc.file),
+    builtFile: relative(ROOT, oldestBuilt.file),
+  };
+}
+const STALE = staleness();
+
+/**
+ * Without a build there are no elements, so there are no real pairs — only the pairs the
+ * stylesheets COULD produce, which is a cartesian product and mostly nonsense: it reads the
+ * console's ink against the landing page's panel because both exist in the same repository.
+ * Reporting that as failures would train people to ignore this gate. So a run with no build
+ * measures what it can, says plainly that it could not verify the site, and exits 2 — the same
+ * "could not run, therefore not a pass" the other gates use.
+ */
+const CANNOT_VERIFY = built.length === 0;
 for (const [themeName, vars] of themeNames) {
   if (built.length > 0) for (const file of built) measureBuiltPage(file, vars, themeName);
   else measureDeclared(vars, themeName);
@@ -920,6 +1026,27 @@ ${uniqueUnmeasured.length === 0 ? "Nothing — every colour-bearing declaration 
 const header = `contrast: ${measurements.length} pair(s) measured from ${mode === "built page" ? `${built.length} built page(s)` : "declared styles (no dist/ — run a build for page-level evidence)"}, ${themeNames.length} themes.`;
 
 if (VERBOSE) console.log(table(worst));
+
+if (CANNOT_VERIFY) {
+  console.error(`\n${header}`);
+  console.error(
+    "contrast: there is no build in dist/, so no page-level pair could be verified. " +
+      "Run `astro build` first; this run proves nothing and is not a pass.",
+  );
+  if (WRITE) console.error(`contrast: wrote ${relative(ROOT, AUDIT_OUT)}, marked as unverified`);
+  process.exit(2);
+}
+
+if (STALE) {
+  console.error(`\n${header}`);
+  console.error(
+    `contrast: the build in dist/ is older than the code that makes it. ${STALE.src} is newer than ` +
+      `${STALE.builtFile}, so the custom properties measured above came from the LAST build, not from ` +
+      "the working tree. Run `astro build` first; this run proves nothing and is not a pass.",
+  );
+  if (WRITE) console.error(`contrast: wrote ${relative(ROOT, AUDIT_OUT)}, marked as unverified`);
+  process.exit(2);
+}
 
 if (findings.length === 0) {
   console.log(header);

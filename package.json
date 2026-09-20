@@ -3,21 +3,27 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "auros.org — static site. Astro, static output, no client framework for content pages (spec §6D).",
+  "description": "auros.org \u2014 static site. Astro, static output, no client framework for content pages (spec \u00a76D).",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "dev": "astro dev",
-    "//build": "The gates run in the order that makes a failure cheap to read: the two source lints first (they need no build), then types, then the build, then the contrast audit — which MUST run last because it measures the built HTML, not the sources.",
-    "build": "pnpm run lint && astro check --minimumSeverity error && astro build && pnpm run contrast",
+    "//build": "Gates in the order that makes a failure cheap to read. `lint` reads the sources and needs no build. `astro check` is types. Then the build. Then `verify:built`, which MUST run last because both of its checks measure the BUILT pages: contrast resolves the real cascade over the real DOM, and the font check reads the characters a browser is actually asked to render.",
+    "//test": "src/terrain/terrain.test.ts asserts the \u00a77 properties the terrain module\u2019s own comments say are proved rather than believed: the 18-colour ceiling against the real output buffer, the ore budget, the fixed seed, Math.random being unreachable, and window-crop determinism. It was referenced by no script, no workflow and no line of /verify, and could not be executed at all \u2014 its relative imports were extensionless, so `node --experimental-strip-types` could not resolve them. A gate nobody runs is a gate that does not exist. It now runs here, and `build` runs it BEFORE astro build so a broken invariant costs seconds rather than a full build.",
+    "test": "node --experimental-strip-types --test src/terrain/terrain.test.ts tools/configurator-a11y.test.mjs",
+    "build": "pnpm run lint && astro check --minimumSeverity error && pnpm run test && astro build && pnpm run verify:built",
     "lint": "node tools/palette-lint.mjs && node tools/ink-lint.mjs",
     "check": "astro check --minimumSeverity error",
     "contrast": "node tools/contrast.mjs",
+    "snapshot:build-log": "node tools/snapshot-build-log.mjs",
+    "snapshot:build-log:check": "node tools/snapshot-build-log.mjs --check",
     "audit:a11y": "node tools/contrast.mjs --write",
     "fonts": "node tools/fetch-fonts.mjs",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "fonts:verify": "node tools/fetch-fonts.mjs --verify",
+    "verify:built": "node tools/contrast.mjs && node tools/fetch-fonts.mjs --verify"
   },
   "dependencies": {
     "@astrojs/mdx": "8.0.1",

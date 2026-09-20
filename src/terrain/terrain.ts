@@ -40,7 +40,7 @@ import {
   PX,
   STRATA,
   TRANSPARENT,
-} from "./strata";
+} from "./strata.ts";
 
 // ── The seed contract ─────────────────────────────────────────────────────────────────────
 // Changing any constant in this block changes the brand. Treat it like a logo file.

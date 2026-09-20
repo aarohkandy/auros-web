@@ -124,6 +124,11 @@ const DROP = [
   // is forty lines saying "a byte moved" and none saying what the image now contains.
   /^(Copying (blob|config)|Writing manifest|Storing signatures|Trying to pull|Getting image source signatures)/,
   /^STEP \d+\/\d+:/,
+  // Podman's failure line echoes the entire multi-line `RUN` from the Containerfile back as one
+  // 700-character string with literal \n in it. The three lines immediately above it — the ✗, the
+  // script that failed, and the runner's exit code — are the fact; this is the fact's stack trace,
+  // and it is at the run URL. Dropped for legibility, never to soften a failure.
+  /^Error: building at STEP "RUN /,
   /Node\.js 20 is deprecated/,
   /^(warning|notice): (Node|The following actions)/,
 ]
@@ -200,6 +205,8 @@ const { jobs = [] } = await api(`/repos/${OPT.repo}/actions/runs/${run.id}/jobs?
 /** @type {{text:string,level:string,job:string|null,at:string|null}[]} */
 let lines = []
 const jobSummary = []
+/** Every line the runner printed, before this reducer chose any of them. Reported on the page. */
+let linesInLog = 0
 for (const job of jobs) {
   jobSummary.push({
     name: job.name,
@@ -215,6 +222,7 @@ for (const job of jobs) {
   try { raw = await api(`/repos/${OPT.repo}/actions/jobs/${job.id}/logs`, { raw: true }) }
   catch (e) { console.error(`  ! log for "${job.name}" unavailable: ${e.message}`); continue }
   if (raw == null) { console.error(`  ! log for "${job.name}" has expired`); continue }
+  linesInLog += raw.split('\n').length
   const kept = reduceJobLog(raw, job.name)
   console.error(`  ${job.name}: ${kept.length} lines kept`)
   lines.push(...kept)
@@ -276,6 +284,7 @@ const snapshot = {
   jobs: jobSummary,
   linesShown: lines.length,
   linesOmitted: omitted,
+  linesInLog,
   lines,
 }
 

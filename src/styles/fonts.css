@@ -1,7 +1,7 @@
 /* =============================================================================================
    AUROS — @font-face declarations.
 
-   The files in /fonts/ are built by `node tools/fetch-fonts.mjs` from google/fonts (all three
+   The files in /fonts/ are built by `node tools/fetch-fonts.mjs` from google/fonts (all four
    families are OFL). They are SELF-HOSTED, not loaded from Google. Spec §4.5 permits Google
    Fonts as a source; it does not require fetching from Google's servers, and a remote stylesheet
    costs a DNS lookup, a TLS handshake and a render-blocking round trip on exactly the connection
@@ -10,8 +10,10 @@
    Every face is `font-display: swap`. The fallback stacks in tokens.css are chosen so a swap
    is a change of face, not a change of layout scale.
 
-   `unicode-range` is what makes the 261 KB Devanagari face free for an English reader: the
-   browser does not fetch a face until a character in its range is actually on the page.
+   `unicode-range` is what keeps the 261 KB Devanagari face off a page that does not need it: the
+   browser does not fetch a face until a character in its range is actually rendered. Checked in a
+   browser, not assumed — and the landing page DOES fetch it, because copy.ts prints the Marathi
+   school's real first-boot message. That is the face earning its place, not leaking.
    ============================================================================================= */
 
 /* --- Instrument Serif — display only. 400 normal and 400 italic. There is no bold (D25). ---- */
@@ -23,7 +25,7 @@
   src: url("/fonts/instrument-serif-400.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
     U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+2264-2265,
-    U+2500, U+2502, U+2588, U+2592-2593, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
+    U+2500-257F, U+2580-259F, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
     U+FEFF, U+FFFD;
 }
 
@@ -35,7 +37,7 @@
   src: url("/fonts/instrument-serif-400-italic.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
     U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+2264-2265,
-    U+2500, U+2502, U+2588, U+2592-2593, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
+    U+2500-257F, U+2580-259F, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
     U+FEFF, U+FFFD;
 }
 
@@ -48,7 +50,7 @@
   src: url("/fonts/ibm-plex-sans-400.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
     U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+2264-2265,
-    U+2500, U+2502, U+2588, U+2592-2593, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
+    U+2500-257F, U+2580-259F, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
     U+FEFF, U+FFFD;
 }
 
@@ -60,7 +62,7 @@
   src: url("/fonts/ibm-plex-sans-600.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
     U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+2264-2265,
-    U+2500, U+2502, U+2588, U+2592-2593, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
+    U+2500-257F, U+2580-259F, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
     U+FEFF, U+FFFD;
 }
 
@@ -73,7 +75,7 @@
   src: url("/fonts/ibm-plex-mono-400.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
     U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+2264-2265,
-    U+2500, U+2502, U+2588, U+2592-2593, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
+    U+2500-257F, U+2580-259F, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
     U+FEFF, U+FFFD;
 }
 
@@ -85,7 +87,7 @@
   src: url("/fonts/ibm-plex-mono-600.woff2") format("woff2");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
     U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2190-2193, U+2212, U+2215, U+2264-2265,
-    U+2500, U+2502, U+2588, U+2592-2593, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
+    U+2500-257F, U+2580-259F, U+25A0, U+25C6, U+25CB, U+2601, U+2660, U+2713, U+2717,
     U+FEFF, U+FFFD;
 }
 
@@ -133,4 +135,44 @@
   src: url("/fonts/ibm-plex-sans-devanagari-400.woff2") format("woff2");
   unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839,
     U+A8E0-A8FF;
+}
+
+/* =============================================================================================
+   THE MARKS NONE OF THE THREE FACES HAVE.
+
+   Noto Sans Symbols 2, OFL, subset to five codepoints — about 7 KB. Measured, not assumed:
+   Instrument Serif, IBM Plex Sans and IBM Plex Mono all lack "✗" (U+2717), and the build console
+   prints a real failing line from a real pipeline run that contains one. §6D's argument is that
+   a red line in that console is better advertising than a green one; it is not, if it renders as
+   an empty box on the 2014 laptop this product exists for.
+
+   Declared under all three family names so the mark is the same wherever it appears, and placed
+   LAST so that for the codepoints below it wins over IBM Plex Mono's own tick — a tick and a
+   cross in the same log line should be drawn by the same hand.
+   ============================================================================================= */
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/noto-sans-symbols-2-400.woff2") format("woff2");
+  unicode-range: U+2713-2717, U+25C6, U+25CB, U+2601, U+2660;
+}
+
+@font-face {
+  font-family: "IBM Plex Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/noto-sans-symbols-2-400.woff2") format("woff2");
+  unicode-range: U+2713-2717, U+25C6, U+25CB, U+2601, U+2660;
+}
+
+@font-face {
+  font-family: "Instrument Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/noto-sans-symbols-2-400.woff2") format("woff2");
+  unicode-range: U+2713-2717, U+25C6, U+25CB, U+2601, U+2660;
 }

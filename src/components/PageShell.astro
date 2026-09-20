@@ -43,7 +43,20 @@ if (!BaseLayout) {
 {
   BaseLayout ? (
     <BaseLayout title={title} description={description} layer={layer}>
-      <slot />
+      {/*
+        The page gutter, applied here because this is the documented coupling point and because
+        `<main>` in the layout has none: without it every panel on every page sits flush against
+        the viewport edge at 375px, which reads as a rendering bug on exactly the phone a teacher
+        opens this on. `.wrap` is base.css's primitive — 16px of gutter, 32px from 48rem up, and a
+        72rem ceiling so a panel does not run the width of a desktop monitor.
+
+        If the layout ever wraps its own `<main>`, delete this div: two wraps would nest a 72rem
+        column inside a 72rem column and double the gutter. That is a cosmetic fault and having no
+        gutter at all is not, which is why this is here rather than waiting.
+      */}
+      <div class="wrap">
+        <slot />
+      </div>
     </BaseLayout>
   ) : (
     <html lang="en">

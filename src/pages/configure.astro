@@ -30,12 +30,14 @@ const Configurator = Object.values(configuratorModules)[0]?.default;
   description={configurator.standfirst}
   layer="stratum-1"
 >
-  <Panel tone="panel" as="header" class="head">
+  <div class="head with-margin-label">
     <StratumLabel layer="stratum-1" />
-    <h1 class="title">{configurator.title}</h1>
-    <p class="standfirst">{configurator.standfirst}</p>
-    <p class="privacy">{configurator.privacyWarning}</p>
-  </Panel>
+    <Panel tone="panel" as="header">
+      <h1 class="title">{configurator.title}</h1>
+      <p class="standfirst">{configurator.standfirst}</p>
+      <p class="privacy">{configurator.privacyWarning}</p>
+    </Panel>
+  </div>
 
   <div class="panel-area">
     {
@@ -66,18 +68,25 @@ const Configurator = Object.values(configuratorModules)[0]?.default;
   </section>
 
   <div class="fallback">
+    {/* auros-allow: pre-filled mailto subject in the CUSTOMER\'S voice — "our machines" are theirs, not ours */}
     <NoScriptFallback subject="A build for our machines" />
   </div>
 </PageShell>
 
 <style>
+  /*
+    The stratum label sits in the rail beside the header, not stacked inside it. §7 asks for the
+    strata to be "labelled in the margin as they pass it", and `.with-margin-label` in base.css is
+    the grid that does it — every other page on the site reads this way now, and a label stacked
+    above a heading is a caption on a card rather than a legend for the background.
+  */
   .head {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-5, 1.5rem);
   }
   .title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: clamp(2rem, 6vw, 3rem);
+    font-size: clamp(2.25rem, 7vw, var(--step-4, 2.75rem));
     line-height: 1.05;
     margin: 0 0 0.6rem;
     color: var(--ink, #24231f);
@@ -97,13 +106,15 @@ const Configurator = Object.values(configuratorModules)[0]?.default;
     max-width: 40rem;
     margin: 0;
     padding-left: 0.85rem;
-    border-left: 3px solid var(--ore, #be3a12);
+    /* A hairline, not ore. §7: the 1px rule is the only divider, and ore is reserved for the
+       places where it means "this is a boundary". A privacy warning is not one. */
+    border-left: 1px solid var(--rule, #8a7358);
     color: var(--ink-muted, #5a4e40);
   }
   .pending-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.4rem;
+    font-size: var(--step-2, 1.5rem);
     line-height: 1.15;
     margin: 0 0 0.5rem;
     color: var(--ink, #24231f);
@@ -122,7 +133,7 @@ const Configurator = Object.values(configuratorModules)[0]?.default;
   .disclosure-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.75rem;
+    font-size: var(--step-2, 1.5rem);
     line-height: 1.15;
     margin: 0 0 0.35rem;
     color: var(--ink, #24231f);

@@ -6,11 +6,6 @@ layer: bedrock
 order: 6
 ---
 
-The background of this site is a cross-section of ground, and it is not decoration. Each stratum
-you scroll through is a layer of the thing we build. The labels in the margin are the real names.
-
-Read from the bottom up.
-
 ## Why the shape matters
 
 There is exactly one base image. Not one per customer, not one per hardware generation, not one
@@ -45,5 +40,3 @@ The check that catches the interesting case is `S3`, the prune assertion. It re-
 image and fails if a package the recipe removed has come back as somebody else's dependency.
 That is the failure we expect to see most of, because upstream adds dependencies and upstream
 does not know what we deleted. It is not flakiness and it does not get retried away.
-
-## The stack

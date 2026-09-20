@@ -58,7 +58,7 @@ const rendered = await Promise.all(
   .title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.75rem;
+    font-size: var(--step-3, 2rem);
     line-height: 1.15;
     margin: 0 0 0.5rem;
     color: var(--ink, #24231f);
@@ -87,9 +87,14 @@ const rendered = await Promise.all(
     display: grid;
     gap: 0.75rem;
   }
-  .layer {
-    border-left: 3px solid var(--ore, #be3a12);
-  }
+  /*
+     No ore bar here, deliberately. §7 puts ore "under 2% of pixels, only at layer boundaries",
+     and an ore rule on each of the six layer panels put seven of them in one viewport on
+     /how-it-works — the stratum label plus all six. An accent applied to every block stops being
+     an accent and becomes the coloured left border every stock card template has. The layers are
+     already sequenced by an <ol> and each carries its own mono margin label, so the bar was
+     adding nothing but frequency.
+  */
   .margin-label,
   .ref {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);

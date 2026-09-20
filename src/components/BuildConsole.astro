@@ -42,15 +42,24 @@ import {
 
 interface Props {
   /**
-   * The Worker's SSE route. A prop because the Worker is another agent's file and this is the
-   * contract between us: `text/event-stream`, events named `line` / `idle` / `done`, `id:` on every
-   * line so an interrupted stream resumes (see CONVENTIONS.md §5).
+   * The Worker's SSE route, as `worker/routes/build-console.js` actually implements it:
+   * `text/event-stream`, events named `hello` / `job` / `step` / `stale` / `status` / `idle` /
+   * `done` / `reconnect`, each with a JSON payload, and an `id:` derived from the run's own
+   * structure so a cut stream resumes exactly where it stopped.
    */
   endpoint?: string;
+  /**
+   * Which build to watch. The Worker REFUSES a request naming neither, and its reason is worth
+   * repeating rather than working around: there is no "whatever is building right now", because
+   * that would leak which customers exist. A page with no build to name therefore streams nothing
+   * and shows the state below — which is the state of every page on the site today.
+   */
+  recipe?: string | undefined;
+  run?: string | undefined;
   headingLevel?: 2 | 3;
 }
 
-const { endpoint = "/api/build/stream", headingLevel = 2 } = Astro.props;
+const { endpoint = "/build-console", recipe, run, headingLevel = 2 } = Astro.props;
 const H = `h${headingLevel}` as any;
 
 const snap = lastBuild;
@@ -63,6 +72,9 @@ const failed = snap?.run.conclusion === "failure";
  */
 const strings = {
   live: buildConsole.liveLabel,
+  connecting: "connecting",
+  stale: "stored output, not live",
+  unavailable: "no live output",
   finished: "build finished",
   nothing: "no build to show",
   /** The client rewrites {time} as the same instant in the reader's own timezone. */
@@ -77,6 +89,16 @@ const strings = {
 const outcomeNote = failed
   ? "This run stopped on a ✗, so nothing was published. The publish step reads the attestation ledger and there is no flag that skips it — which is why a red line here is a better advertisement than a green one."
   : "Every line above had to be green before the :hardened tag could move. The publish step reads the attestation ledger and there is no flag that skips it.";
+
+/**
+ * The reducer keeps the lines that say what the image now contains and drops progress bars, package
+ * tables and directory listings. Saying so, with both numbers, is cheaper than being asked — and a
+ * ratio a reader can check against the linked run is worth more than a claim that we showed
+ * everything, which would not be true.
+ */
+const selectionNote = snap
+  ? `${snap.linesShown} lines of ${(snap.linesInLog ?? snap.linesShown).toLocaleString("en-GB")}; the rest is progress bars and package tables, and the whole log is at the run above.`
+  : "";
 
 const logLabel = snap
   ? `Build output from ${snap.run.repo} run number ${snap.run.runNumber}`
@@ -93,7 +115,12 @@ const lines: BuildLine[] = snap?.lines ?? [];
   data-state={snap ? "snapshot" : "nothing"}
   data-has-snapshot={snap ? "true" : "false"}
   data-endpoint={endpoint}
+  data-recipe={recipe}
+  data-run={run}
   data-string-live={strings.live}
+  data-string-connecting={strings.connecting}
+  data-string-stale={strings.stale}
+  data-string-unavailable={strings.unavailable}
   data-string-finished={strings.finished}
   data-string-nothing={strings.nothing}
   data-string-last-build={strings.lastBuild}
@@ -129,6 +156,8 @@ const lines: BuildLine[] = snap?.lines ?? [];
     )
   }
 
+  <p class="wire-note" data-console-note hidden></p>
+
   <ol class="log" data-console-log role="log" aria-live="off" tabindex="0" aria-label={logLabel}>
     {
       lines.map((line) => (
@@ -145,8 +174,7 @@ const lines: BuildLine[] = snap?.lines ?? [];
   {
     snap ? (
       <p class="note">
-        {outcomeNote}
-        {snap.linesOmitted > 0 && ` ${snap.linesOmitted} further lines are in the full log.`}
+        {outcomeNote} <span class="ratio">{selectionNote}</span>
       </p>
     ) : (
       <p class="note">{strings.nothingNote}</p>
@@ -279,7 +307,7 @@ const lines: BuildLine[] = snap?.lines ?? [];
     list-style: none;
     margin: 0;
     padding: 0.35rem 0;
-    max-height: 22rem;
+    max-height: 20rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
@@ -339,6 +367,18 @@ const lines: BuildLine[] = snap?.lines ?? [];
     margin-left: 0.05rem;
   }
 
+  /* The Worker's own words about why there is no live output. Attributed by position — it sits
+     above the log, outside it — because it is a sentence about the stream, not a line from it. */
+  .wire-note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: var(--step-0, 0.85rem);
+    line-height: var(--leading-body, 1.5);
+    margin: 0 0 0.7rem;
+    max-width: var(--measure, 62ch);
+    border-left: 1px solid var(--ore-deep, #d9682e);
+    padding-left: 0.7rem;
+    color: var(--ink-console, #e2ddd0);
+  }
   .note {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: var(--step-0, 0.85rem);
@@ -382,9 +422,24 @@ const lines: BuildLine[] = snap?.lines ?? [];
     display: grid;
     gap: 0.5rem;
   }
+  /*
+     A stacked glossary, at the same label/value rhythm as FactList — not three equal columns.
+     D29 bans "symmetric three-up card grids. Icon + heading + two hedged sentences, repeated",
+     and a three-column dl of term-plus-a-sentence is that shape with the icon removed. This
+     reads as terminal documentation, which is what it is.
+  */
   .legend-row {
     display: grid;
     gap: 0.15rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule-deep, #8a7358);
+  }
+  @media (min-width: 40rem) {
+    .legend-row {
+      grid-template-columns: 9rem minmax(0, 1fr);
+      gap: 1rem;
+      align-items: baseline;
+    }
   }
   .legend dt {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
@@ -399,6 +454,17 @@ const lines: BuildLine[] = snap?.lines ?? [];
     color: var(--ink-console, #e2ddd0);
   }
 
+  @media (min-width: 48rem) {
+    /* The log is the page's living element (§7, D29), so on a screen with room it gets room: about
+       twenty lines, enough that the shape of a build — sections, checks, the ✗ — is visible at once
+       rather than through a slot. */
+    .log {
+      max-height: 32rem;
+    }
+  }
+  .ratio {
+    color: var(--ink-muted-deep, #a8afa2);
+  }
   @media (max-width: 30rem) {
     /* The elapsed gutter is the first thing to go on a narrow screen: it is orientation, and the
        line itself is the fact. */

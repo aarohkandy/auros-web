@@ -32,6 +32,19 @@ const KEY_ORDER = keyOrderFromSchema(schema)
 const ORDERS_PER_HOUR = 5
 
 /**
+ * And a ceiling across every address together.
+ *
+ * The per-IP window is the one that stops a person refreshing; this is the one that stops a botnet,
+ * a proxy pool or a single IPv6 /64 — where an attacker holds 2^64 addresses and the per-IP limit
+ * therefore costs them nothing. Without it, Turnstile is the only thing bounding how many pull
+ * requests can be opened in a public repository under our name, which makes the blast radius of any
+ * future Turnstile weakness unbounded rather than bounded. A ceiling turns "unbounded" into "forty",
+ * and forty real orders in one hour is a morning we would love to have and would rather hear about
+ * from a person than from a repository.
+ */
+const ORDERS_PER_HOUR_GLOBAL = 40
+
+/**
  * @param {Request} request
  * @param {Record<string, any>} env
  */
@@ -43,6 +56,15 @@ export async function handleOrder (request, env) {
   const limit = await rateLimit(env.AUROS_KV, `order:${ip}`, ORDERS_PER_HOUR, 3600)
   if (!limit.allowed) {
     return refuse(429, 'this order', `that is ${limit.count} orders from this address in the last hour. The recipes repository is public and we would rather be slow than be a pull request factory. Email us and we will write the recipe by hand.`)
+  }
+  // Two counters, not one. The per-address window above is checked first so that a single noisy
+  // client is told about itself rather than about everybody; this one is the ceiling that a
+  // distributed caller cannot step around by changing address. Both are fixed-window KV
+  // read-modify-writes and both can overshoot by the number of requests in flight (lib/http.js) —
+  // acceptable for a bound whose job is to be a bound, not a number.
+  const globalLimit = await rateLimit(env.AUROS_KV, 'order:global', ORDERS_PER_HOUR_GLOBAL, 3600)
+  if (!globalLimit.allowed) {
+    return refuse(429, 'this order', `that is ${globalLimit.count} orders across every address in the last hour, which is more than this site has ever legitimately seen in one. The recipes repository is public and we would rather be slow than be a pull request factory. Email us and we will write the recipe by hand.`, { stage: 'rate-limit', scope: 'global' })
   }
 
   const body = await readBounded(request, MAX_BODY_BYTES)
@@ -63,7 +85,11 @@ export async function handleOrder (request, env) {
     // Ties the challenge to this exact submission, so one solved challenge cannot be replayed against
     // a different recipe.
     idempotencyKey: await fingerprint(body.text),
-    environment: env.ENVIRONMENT ?? 'production'
+    // The always-passes test secret is allowed on a host that cannot reach anything real, and on
+    // nothing else. `requestHost` and `canReachGitHub` are facts about this deployment rather than a
+    // string somebody set: see lib/turnstile.js for why a flag named ENVIRONMENT was the wrong key.
+    requestHost: new URL(request.url).hostname,
+    canReachGitHub: Boolean(env.GITHUB_APP_PRIVATE_KEY)
   })
   if (!turnstile.ok) {
     return refuse(turnstile.status, 'the order', turnstile.reason, { stage: 'turnstile' })
@@ -80,8 +106,19 @@ export async function handleOrder (request, env) {
       refused: 'this recipe',
       stage: 'validation',
       ...presented,
-      note: 'This is the same schema auros-recipes validates with in CI. If the configurator let you ' +
-            'build this, the configurator has a bug — the server is the control and it is what just spoke.'
+      note: 'This is the same schema auros-recipes validates with in CI, plus the rules that live ' +
+            'beside it: the reserved key families, catalogue membership for every application, ' +
+            'language and keyboard, and the refusal of shell command substitution in anything a ' +
+            'person wrote. If the configurator let you build this, the configurator has a bug — the ' +
+            'server is the control and it is what just spoke.',
+      // What this Worker did NOT check, said out loud rather than left to be inferred. These need the
+      // compiler or the repository's own files and cannot run here at all, so CI runs them on the
+      // pull request. Claiming them would be the same defect as the one this note used to have.
+      alsoCheckedLater: [
+        'that the folder name in the pull request matches this recipe\'s name, and that no other recipe already uses it',
+        'the prune plan itself: what is actually removed, and that nothing protected is in it',
+        'that the image boots in a virtual machine and passes the full check matrix'
+      ]
     }, 422)
   }
   const recipe = result.recipe

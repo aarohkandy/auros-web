@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "auros-web-dist",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["--yes", "http-server", "dist", "-p", "4399", "-c-1", "--silent"],
+      "port": 4399
+    }
+  ]
+}

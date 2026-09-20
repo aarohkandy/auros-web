@@ -186,7 +186,9 @@ const [inputA, inputB, outputC] = replacementComparison.inputs;
     color: var(--ink, #24231f);
   }
   .no-figure {
-    border-left: 3px solid var(--ore, #be3a12);
+    /* A hairline, not ore. §7 reserves ore for layer boundaries; a note explaining why we
+       refuse to print a savings figure is a note, and an accent on every note is not an accent. */
+    border-left: 1px solid var(--rule, #8a7358);
     padding-left: 0.85rem;
     color: var(--ink-muted, #5a4e40);
   }

@@ -76,10 +76,14 @@ function escapeAttr(s: string): string {
 
 const HIGHLIGHT_MS = 1100;
 
-export type PanelState = { previous: YamlLine[] };
+export type PanelState = {
+  previous: YamlLine[];
+  /** Increments once per marked repaint, so a stale settle timer cannot clear a fresh mark. */
+  generation: number;
+};
 
 export function createPanelState(): PanelState {
-  return { previous: [] };
+  return { previous: [], generation: 0 };
 }
 
 export type PaintInput = {
@@ -94,33 +98,103 @@ export type PaintInput = {
 };
 
 /**
- * Repaint. Only the lines that actually changed are touched, which is both cheaper and the
- * reason the settle mark means something.
+ * Everything about a line that its rendered `<span>` carries, as one comparable string.
+ *
+ * JSON rather than a delimiter: the line text is arbitrary user input and there is no
+ * separator character it cannot contain, so a hand-rolled one would make two different lines
+ * compare equal and silently stop repainting one of them.
+ */
+function lineShape(line: YamlLine): string {
+  return JSON.stringify([line.text, line.kind, sectionOf(line), line.pending === true]);
+}
+
+/** Rewrite one existing `<span>` in place to match a line. */
+function writeLine(node: HTMLElement, line: YamlLine): void {
+  node.textContent = line.text;
+  node.dataset.kind = line.kind;
+  node.dataset.section = sectionOf(line);
+  if (line.pending) node.dataset.pending = "true";
+  else delete node.dataset.pending;
+}
+
+/**
+ * Repaint.
+ *
+ * ONLY THE LINES THAT ACTUALLY CHANGED ARE TOUCHED, and that is a property of the code below
+ * rather than an aspiration written above it. When the file keeps its shape — the same line ids
+ * in the same order, which is every keystroke that edits a value — the existing `<span>`s are
+ * rewritten in place and the rest of the DOM is left alone. Only a change to the SET of lines
+ * (a policy that adds a kiosk block, an answer that adds a refusal) rebuilds the file.
+ *
+ * It is not only cheaper. A full `innerHTML` swap destroys any text selection inside the panel,
+ * and selecting the file by hand is the documented fallback when the clipboard API refuses —
+ * `configurator.client.ts` relabels the button "Select the file and copy it" in exactly that
+ * case, and a panel that dropped the selection on the next keystroke would be offering a
+ * fallback it then took away. It is also ~50 fewer node mutations per keystroke inside an
+ * `aria-live="polite"` ancestor, which stops the nested `aria-live="off"` on the `<pre>` from
+ * being the only thing holding that back.
  */
 export function paint(el: PanelElements, state: PanelState, input: PaintInput): void {
   const changed = changedIds(state.previous, input.lines);
-  el.code.innerHTML = linesToHtml(input.lines);
+
+  const nodes = el.code.children;
+  const sameShape =
+    state.previous.length === input.lines.length &&
+    nodes.length === input.lines.length &&
+    state.previous.every((line, i) => line.id === input.lines[i]!.id);
+
+  if (sameShape) {
+    for (let i = 0; i < input.lines.length; i += 1) {
+      const line = input.lines[i]!;
+      if (lineShape(state.previous[i]!) === lineShape(line)) continue;
+      writeLine(nodes[i] as HTMLElement, line);
+    }
+  } else {
+    el.code.innerHTML = linesToHtml(input.lines);
+  }
   state.previous = input.lines;
 
   if (el.path) el.path.textContent = input.path;
   if (el.illustration) el.illustration.hidden = !input.showIllustration;
 
-  el.root.dataset.status = input.verdict.status;
-  el.status.textContent = statusLine(input.verdict);
-  el.findings.innerHTML = findingsHtml(input.verdict);
-  el.summary.textContent = summaryText(input);
+  // Written only when they differ, for the same reason the tier and the blocker list are:
+  // `[data-summary]` is `role="status"`, so an identical string written back is an
+  // announcement of nothing.
+  if (el.root.dataset.status !== input.verdict.status) el.root.dataset.status = input.verdict.status;
+  setText(el.status, statusLine(input.verdict));
+  setHtml(el.findings, findingsHtml(input.verdict));
+  setText(el.summary, summaryText(input));
 
   if (changed.size === 0) return;
+  // Lines now survive a repaint, so a line marked twice in quick succession would have its
+  // highlight cleared by the FIRST timer. Each mark carries the generation that set it and only
+  // that generation may clear it.
+  const generation = String((state.generation += 1));
   const marked: HTMLElement[] = [];
   for (const id of changed) {
     const node = el.code.querySelector<HTMLElement>(`[data-id="${cssEscape(id)}"]`);
     if (!node) continue;
     node.dataset.changed = "true";
+    node.dataset.changedGen = generation;
     marked.push(node);
   }
   window.setTimeout(() => {
-    for (const node of marked) delete node.dataset.changed;
+    for (const node of marked) {
+      if (node.dataset.changedGen !== generation) continue;
+      delete node.dataset.changed;
+      delete node.dataset.changedGen;
+    }
   }, HIGHLIGHT_MS);
+}
+
+function setText(node: HTMLElement, value: string): void {
+  if (node.textContent === value) return;
+  node.textContent = value;
+}
+
+function setHtml(node: HTMLElement, value: string): void {
+  if (node.innerHTML === value) return;
+  node.innerHTML = value;
 }
 
 function cssEscape(value: string): string {

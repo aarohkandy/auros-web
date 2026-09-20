@@ -26,7 +26,14 @@ export const TIERS: Record<Tier["id"], Tier> = {
   school: { id: "school", name: "School or nonprofit", priceMono: "$15", unitMono: "per device per year", minimum: 25 },
   business: { id: "business", name: "Business fleet", priceMono: "$12", unitMono: "per device per month", minimum: 10 },
   "single-purpose": { id: "single-purpose", name: "Single-purpose", priceMono: "$19", unitMono: "per device per month", minimum: 5 },
-  "self-serve": { id: "self-serve", name: "Self-serve", priceMono: "$0", unitMono: "the recipes are public", minimum: null },
+  // D30/D31 took the product out of this tier: the repositories are still public, but public is not
+  // a licence to build. What the tier becomes is BLOCKED.md B9 and SPEC §9, so the unit says what is
+  // true today rather than what it used to promise.
+  // HELD BACK from the rendered price table by `blocked: true` in tiers/5-self-serve.md. The row
+  // stays here because SPEC §6D fixes five prices and deleting one would be a pricing decision, and
+  // because `tierFor` must never return it: nothing in this file may route a visitor to a tier the
+  // site does not show. Grep for "self-serve" before adding a branch.
+  "self-serve": { id: "self-serve", name: "Self-serve", priceMono: "$0", unitMono: "the repositories are readable", minimum: null },
 };
 
 export type TierVerdict = {
@@ -69,7 +76,11 @@ export function tierFor(input: {
     if (machines < (t.minimum as number)) {
       return {
         tier: t,
-        note: `The school and nonprofit tier starts at ${t.minimum} devices and you have ${machines}. Email us — under the minimum is a conversation, and often the answer is the self-serve build at $0.`,
+        // This used to end "and often the answer is the self-serve build at $0". That tier is held
+        // out of the build (BLOCKED.md B9) because D30 removed the product from it, so pointing a
+        // school at it from here would advertise the one thing the price table deliberately does
+        // not show. The arithmetic is the honest answer instead, and it is against our interest.
+        note: `The school and nonprofit tier starts at ${t.minimum} devices and you have ${machines}, so the floor is ${t.minimum} \u00d7 $15 a year whatever you actually have. Whether that beats $79 once per machine depends on how many years you keep them, which is your arithmetic rather than ours. Email us — under the minimum is a conversation, not a number this page should produce.`,
         needsAConversation: true,
       };
     }
@@ -92,7 +103,7 @@ export function tierFor(input: {
   // not going to invent one on a web page.
   return {
     tier: null,
-    note: `${machines} machines and not an organisation is not one of the five published tiers. That is a conversation with a person, not a number this page can produce. The recipes are public, so building it yourself is $0 and always will be.`,
+    note: `${machines} machines and not an organisation is not one of the published tiers. That is a conversation with a person, not a number this page can produce. The repositories are public, so you can read exactly what you would be buying before you talk to anybody — reading them is not a licence to build them, and the replaceable page says what you would get if we stopped.`,
     needsAConversation: true,
   };
 }

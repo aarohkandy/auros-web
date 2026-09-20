@@ -12,7 +12,7 @@
  * namespace and the order record. Splitting them would mean four copies of the validator, four token
  * caches, and four places for the schema to drift out of step with `auros-recipes`.
  *
- *   POST /order           a recipe becomes a pull request
+ *   POST /order-submit    a recipe becomes a pull request
  *   POST /build-result    CI reports a pass or a fail, and money moves — signed, idempotent
  *   POST /stripe-webhook  signature verified before anything else happens at all
  *   GET  /build-console   Server-Sent Events carrying real GitHub Actions state
@@ -29,8 +29,18 @@ import { handleStripeWebhook } from './routes/stripe-webhook.js'
 import { handleBuildConsole } from './routes/build-console.js'
 import { refuse } from './lib/http.js'
 
-/** The complete list. `wrangler.jsonc`'s `run_worker_first` must match it exactly. */
-export const ROUTES = ['/order', '/build-result', '/stripe-webhook', '/build-console']
+/**
+ * The complete list. `wrangler.jsonc`'s `run_worker_first` must match it exactly.
+ *
+ * The submit endpoint is `/order-submit`, NOT `/order`, and the extra word is load-bearing.
+ * `src/pages/order.astro` exists and builds to `dist/order.html`; Cloudflare's default asset
+ * `html_handling` redirects `/order.html` to `/order`, and a `run_worker_first` entry for `/order`
+ * would then hand the page's own canonical URL to a POST-only endpoint. A visitor following the
+ * canonical link would be answered `{"ok":false,"refused":"anything but a POST to this endpoint"}`
+ * instead of the page that explains what ordering does. A page route and an API route may not share
+ * a path, so they do not.
+ */
+export const ROUTES = ['/order-submit', '/build-result', '/stripe-webhook', '/build-console']
 
 export default {
   /**
@@ -44,7 +54,7 @@ export default {
 
     try {
       switch (path) {
-        case '/order': return await handleOrder(request, env)
+        case '/order-submit': return await handleOrder(request, env)
         case '/build-result': return await handleBuildResult(request, env)
         case '/stripe-webhook': return await handleStripeWebhook(request, env)
         case '/build-console': return await handleBuildConsole(request, env, ctx)

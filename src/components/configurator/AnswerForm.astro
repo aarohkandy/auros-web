@@ -15,16 +15,65 @@
  * deliberate: Turnstile has no `<noscript>` path and the Worker never accepts a POST without a
  * token, so a form that appeared to work without JavaScript would be a form that silently
  * cannot submit. The `<noscript>` fallback in `Configurator.astro` says so in those words.
+ *
+ * THE HUMAN CHECK IS CURRENTLY OFF, and the submit block below says so out loud rather than
+ * rendering a widget nothing loads. The reasoning, the one constant that turns it back on, and
+ * the §4.5 decision it is waiting on are in `human-check.ts` and BLOCKED.md B11.
  */
 import { ACTIVITIES, AGE_BANDS, COMMON_TIMEZONES, LANGUAGES, POLICIES, SPECIAL_REQUESTS, SWITCH_COMBINATIONS } from "../../lib/catalogue";
 import { configurator, site } from "../../content/copy";
 import MigrationDisclosure from "./MigrationDisclosure.astro";
+import { HUMAN_CHECK_DEPLOYED, HUMAN_CHECK_NOTICE, TURNSTILE_TEST_SITEKEY } from "./human-check";
+
+interface Props {
+  /**
+   * The Turnstile sitekey. A prop with the published TEST key as its default, so a deployment has a
+   * mechanism: it used to be a `const` in this file with no prop and no environment override, which
+   * meant there was no path by which a real sitekey could ever have been deployed at all.
+   */
+  sitekey?: string;
+}
+const { sitekey = TURNSTILE_TEST_SITEKEY } = Astro.props;
 
 const latinKeyboards = [...new Set(LANGUAGES.map((l) => l.keyboard))].sort();
 const secondScripts = [...new Set(LANGUAGES.map((l) => l.secondScript).filter(Boolean))].sort() as string[];
-/** Cloudflare Turnstile TEST key. Never a live key in source. */
-const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
 ---
+
+{
+  /*
+   * THE ONE SCRIPT ON THIS SITE THAT IS NOT OURS. DECISIONS.md D33 amends §4.5 to name this single
+   * endpoint, on this page only; every other page still loads nothing remote. B11 is closed.
+   *
+   * `render=explicit`, and that is the half that is easy to miss. Turnstile's implicit renderer
+   * scans for `.cf-turnstile` ONCE, when api.js executes. This form's widget lives inside the
+   * `<template>` below and is cloned into the document later by `configurator.client.ts`, so it does
+   * not exist at that moment and would never be rendered — adding the script alone fixes nothing.
+   * The client calls `turnstile.render()` itself, after the clone.
+   *
+   * The promise exists because the module script and this one have no guaranteed ordering relative
+   * to each other. This inline script runs first in document order, so `onload=aurosTurnstileReady`
+   * always has something to call, and the module awaits the promise whenever it happens to start.
+   */
+}
+{HUMAN_CHECK_DEPLOYED && (
+  <Fragment>
+    <script is:inline>
+      window.aurosTurnstile =
+        window.aurosTurnstile ||
+        new Promise(function (resolve) {
+          window.aurosTurnstileReady = function () {
+            resolve(window.turnstile);
+          };
+        });
+    </script>
+    <script
+      is:inline
+      async
+      defer
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=aurosTurnstileReady"
+    />
+  </Fragment>
+)}
 
 <template data-configurator-form>
   <form class="cfg-form" novalidate>
@@ -88,8 +137,10 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
 
       <div class="cfg-tier" data-tier aria-live="polite"></div>
       <p class="cfg-hint">
-        The recipes are public, so building this yourself is $0 and always will be. That option does not
-        go away when you pay us; you are paying for it to be rebuilt and checked every night.
+        The repositories are public, so you can read this file and everything under it before you decide
+        anything. That is reading, not a licence to build — the two got collapsed into one sentence here
+        until 2026-09-20 and they are not the same thing. What you pay us for is that it gets rebuilt and
+        checked every night.
       </p>
     </fieldset>
 
@@ -328,12 +379,43 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
 
     <!-- ── submit ─────────────────────────────────────────────────────────────────────── -->
     <div class="cfg-submit">
-      <div class="cf-turnstile" data-sitekey={TURNSTILE_TEST_SITEKEY} data-theme="auto"></div>
-      <p class="cfg-hint">
-        The human check runs before anything is sent, and the server refuses a submission without it.
-        If it has not loaded, this form does not pretend to send: it says so and points you at the email
-        address instead.
-      </p>
+      <div class="cfg-row">
+        <label class="cfg-label" for="cfg-contact-email">Where should we reply?</label>
+        <p class="cfg-hint" id="cfg-contact-email-hint">
+          Optional, and the one thing on this page that does not end up in the public file. It is where
+          the pull request link goes and where a receipt would go. Leave it blank and the pull request
+          is still yours to read, because anyone can read the recipes repository.
+        </p>
+        <input
+          class="cfg-input"
+          id="cfg-contact-email"
+          name="contactEmail"
+          type="email"
+          autocomplete="email"
+          spellcheck="false"
+          aria-describedby="cfg-contact-email-hint"
+        />
+      </div>
+
+      {
+        /*
+         * The widget is rendered ONLY when something loads it. An empty `<div class="cf-turnstile">`
+         * is not a check that failed, it is a check that was never there, and shipping one taught
+         * every visitor that our checks are decorative. See `human-check.ts` and BLOCKED.md B11.
+         */
+        HUMAN_CHECK_DEPLOYED ? (
+          <>
+            <div class="cf-turnstile" data-sitekey={sitekey} data-theme="auto"></div>
+            <p class="cfg-hint">
+              The human check runs before anything is sent, and the server refuses a submission
+              without it. If it has not loaded, this form does not pretend to send: it says so and
+              points you at the email address instead.
+            </p>
+          </>
+        ) : (
+          <p class="cfg-hint cfg-hint--warning">{HUMAN_CHECK_NOTICE}</p>
+        )
+      }
       <button type="submit" class="cfg-button cfg-button--primary" data-submit disabled>
         {configurator.submitLabel}
       </button>
@@ -356,6 +438,27 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     gap: 1.25rem;
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     color: var(--ink, #24231f);
+  }
+
+  /*
+   * `hidden` MEANS HIDDEN. One rule, at the mechanism, for every row in this form.
+   *
+   * The browser's own `[hidden] { display: none }` lives in the USER-AGENT origin, and an
+   * author `display` declaration beats the user-agent origin regardless of specificity. Every
+   * row type below sets one — `.cfg-row { display: grid }`, `.cfg-choice { display: flex }` —
+   * so `row.hidden = true` in `configurator.client.ts` used to remove a row from the
+   * accessibility tree and disable its controls while leaving it fully painted and fully
+   * legible on screen. A sighted keyboard user saw a dead control; a screen-reader user was
+   * told it did not exist. That is WCAG 1.3.1 and 4.1.2, and §6D's "full keyboard operation".
+   *
+   * Fixing it per row (`.cfg-choice[hidden]`, `.cfg-row[hidden]`, …) fixes today's two rows and
+   * hands the same bug to the next row anyone adds. This rule is scoped to the form, applies to
+   * any descendant whatever its class, and is `!important` because it has to outrank an author
+   * `display` that has not been written yet. Asserted by `tools/configurator-a11y.test.mjs`.
+   */
+  .cfg-form [hidden],
+  .cfg-form[hidden] {
+    display: none !important;
   }
 
   .cfg-fieldset,
@@ -498,6 +601,8 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     padding-top: 0.75rem;
   }
 
+  /* `.cfg-form [hidden]` above already covers this; the rule stays as the local statement of
+     intent for a block that would otherwise be `display: grid` while hidden. */
   .cfg-conditional[hidden] {
     display: none;
   }

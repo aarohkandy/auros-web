@@ -37,6 +37,10 @@
       "default": false,
       "type": "boolean"
     },
+    "blocked": {
+      "default": false,
+      "type": "boolean"
+    },
     "order": {
       "type": "number"
     },

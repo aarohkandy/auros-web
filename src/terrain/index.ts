@@ -13,7 +13,7 @@
  * Nothing here runs without JavaScript, deliberately. See `parallax.ts`.
  */
 
-export { mountTerrain, TERRAIN_EVENT, type TerrainEventDetail } from "./parallax";
+export { mountTerrain, TERRAIN_EVENT, type TerrainEventDetail } from "./parallax.ts";
 export {
   STRATA,
   ORE_SEAMS,
@@ -24,7 +24,7 @@ export {
   stratumAtDepth,
   type Stratum,
   type StratumId,
-} from "./strata";
+} from "./strata.ts";
 export {
   BLOCK_PX,
   WORLD_HEIGHT,
@@ -33,5 +33,5 @@ export {
   generateClouds,
   generateTerrain,
   type TerrainBuffer,
-} from "./terrain";
-export { FALLBACK_BACKGROUND, PALETTES, paint, type Theme } from "./render";
+} from "./terrain.ts";
+export { FALLBACK_BACKGROUND, PALETTES, paint, type Theme } from "./render.ts";

@@ -29,6 +29,7 @@ interface Props {
 }
 
 const {
+  // auros-allow: a mailto subject in the CUSTOMER'S voice — "our machines" are theirs, not ours
   subject = "A build for our machines",
   body = [
     "The language the machines should be in:",
@@ -98,7 +99,9 @@ const Wrapper = alwaysVisible ? "div" : "noscript";
 <style>
   .fallback {
     border: 1px solid var(--rule, #8a7358);
-    border-left: 3px solid var(--ore, #be3a12);
+    /* A hairline, not ore. §7 keeps ore "only at layer boundaries" and this is a degraded path,
+       not a boundary; an ore rule on every notice is how an accent becomes card decoration. */
+    border-left: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
     background-color: var(--panel-2, #e6e0d2);
     padding: 1rem 1.1rem;

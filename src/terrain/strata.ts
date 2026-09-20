@@ -45,8 +45,14 @@ export type StratumId =
   | "stratum-2"
   | "bedrock";
 
-/** Who the layer belongs to. Matches the content collection's `ownedBy` enum. */
-export type Ownership = "you" | "Auros" | "upstream";
+/**
+ * Who the layer belongs to. Matches the content collection's `ownedBy` enum.
+ *
+ * `nobody` is the sky. It used to be `Auros`, which rendered "Ours. Exactly one of it." — the
+ * auros-base label — directly above the sky's own body copy, "Nothing is built here... the only
+ * layer with no file behind it." One shared value was collapsing two different meanings.
+ */
+export type Ownership = "you" | "Auros" | "upstream" | "nobody";
 
 /**
  * How a stratum is painted. Two tones only: a body and a grain fleck. Any third tone would be
@@ -149,7 +155,7 @@ export const STRATA: readonly Stratum[] = [
     id: "sky",
     marginLabel: "── sky ──",
     name: "An OS with only what you asked for",
-    ownedBy: "Auros",
+    ownedBy: "nobody",
     depth: 0,
     isImageLayer: false,
     top: 0.0,

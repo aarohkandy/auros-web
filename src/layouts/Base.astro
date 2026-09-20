@@ -41,8 +41,13 @@
  * preloaded — the display serif and the UI sans at 400 — because they are the two that draw the
  * first screen. The other five are not: preloading a face the first screen does not use is a
  * request competing with one it does, which is a Lighthouse cost pretending to be an
- * optimisation. The Devanagari face in particular is 261 KB and must stay lazy; `unicode-range`
- * in fonts.css means a reader of the English site never fetches it at all.
+ * optimisation. The Devanagari face in particular is 261 KB and must stay lazy.
+ *
+ * `unicode-range` is what keeps it lazy — and, measured in a browser rather than assumed, the
+ * landing page DOES fetch it: `copy.ts` prints the Marathi school's real first-boot message,
+ * so Devanagari is on the page and the face is doing its job. Pages with no Devanagari on them
+ * do not fetch it. That is the mechanism working, not failing, and it is written down here
+ * because "an English reader never downloads it" was the first, wrong, version of this comment.
  * ──────────────────────────────────────────────────────────────────────────────────────────
  */
 import "../styles/tokens.css";
@@ -51,7 +56,7 @@ import "../styles/base.css";
 
 import SkipLink from "../components/SkipLink.astro";
 import ThemeToggle from "../components/ThemeToggle.astro";
-import { a11y, footer, nav, site } from "../content/copy";
+import { a11y, footer, nav, provenance, site } from "../content/copy";
 
 export type Layer = "sky" | "surface" | "topsoil" | "stratum-1" | "stratum-2" | "bedrock";
 
@@ -197,6 +202,28 @@ const canonical = Astro.site ? new URL(canonicalPath, Astro.site).href : undefin
             ))
           }
         </div>
+        <!--
+          What this site is standing on, stated rather than implied. D29 asks for specificity and
+          for dates; a site that dates its facts reads as maintained, and one that does not reads
+          as generated once and left. Every value is copied by hand from a file in another
+          repository — `auros-base/base.lock` and the two workflow files — so `provenance.note`
+          says which to believe if they ever disagree.
+        -->
+        <section class="provenance" aria-labelledby="provenance-title">
+          <h2 class="footer-heading" id="provenance-title">{provenance.title}</h2>
+          <dl class="provenance-list">
+            {
+              provenance.facts.map((fact) => (
+                <div class="provenance-row">
+                  <dt>{fact.label}</dt>
+                  <dd>{fact.value}</dd>
+                </div>
+              ))
+            }
+          </dl>
+          <p class="provenance-note">{provenance.note}</p>
+        </section>
+
         <p class="licence">{footer.licenceNote}</p>
         <noscript>
           <p class="licence">{a11y.reducedMotionNote}</p>
@@ -361,6 +388,56 @@ const canonical = Astro.site ? new URL(canonicalPath, Astro.site).href : undefin
     text-decoration: underline;
     text-decoration-color: var(--ore);
     text-underline-offset: 3px;
+  }
+
+  .provenance {
+    margin-block-start: var(--space-7);
+    padding-block-start: var(--space-5);
+    border-block-start: var(--hairline) solid var(--rule);
+  }
+
+  .provenance-list {
+    margin: 0;
+    display: grid;
+    gap: var(--space-2);
+  }
+
+  .provenance-row {
+    display: grid;
+    gap: 2px;
+  }
+
+  /* The digest is 71 characters and must not be broken across a hyphen or re-wrapped into
+     something that looks like a different digest. It wraps anywhere rather than overflowing. */
+  .provenance-row dd {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--step--1);
+    line-height: 1.5;
+    margin: 0;
+    overflow-wrap: anywhere;
+    color: var(--ink-muted);
+  }
+
+  .provenance-row dt {
+    font-size: var(--step--1);
+    color: var(--ink);
+  }
+
+  @media (min-width: 48rem) {
+    .provenance-row {
+      grid-template-columns: 12rem minmax(0, 1fr);
+      gap: var(--space-4);
+      align-items: baseline;
+    }
+  }
+
+  .provenance-note {
+    max-width: var(--measure);
+    margin-block-start: var(--space-4);
+    font-size: var(--step--1);
+    line-height: var(--leading-body);
+    color: var(--ink-muted);
   }
 
   .licence {

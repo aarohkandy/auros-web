@@ -19,5 +19,5 @@ copier on the network usually prints from Linux without anything being installed
 
 The part that needs checking is the layer on top: the thing that holds a job until somebody taps
 a card at the machine, or counts pages against a pupil's allowance. That is vendor software, it
-is frequently Windows-only, and it is worth five minutes before you order rather than an
-afternoon afterwards.
+is frequently Windows-only, and it is worth one question to your supplier before you order
+rather than a discovery afterwards.

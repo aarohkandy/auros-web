@@ -33,6 +33,13 @@ const CACHE = join(ROOT, ".font-cache");
 const OUT = join(ROOT, "public", "fonts");
 const SUBSET_PY = join(ROOT, "tools", "fonts-subset.py");
 const FORCE = process.argv.includes("--force");
+/**
+ * `--verify` runs the two CHECKS and nothing else: no network, no python subsetting.
+ * That is the form `pnpm build` runs, because a build must not depend on github.com being up or
+ * on the build machine having fonttools — the subsets are committed. Building them is a
+ * deliberate act; checking that what is committed is coherent happens every time.
+ */
+const VERIFY = process.argv.includes("--verify");
 
 const UPSTREAM = "https://raw.githubusercontent.com/google/fonts/main/ofl";
 
@@ -64,6 +71,21 @@ const LATIN =
  */
 const DEVANAGARI =
   "U+0900-097F,U+1CD0-1CF9,U+200C-200D,U+20A8,U+20B9,U+25CC,U+A830-A839,U+A8E0-A8FF";
+
+/**
+ * The handful of marks that NONE of the three §7 faces contain.
+ *
+ * Found by checkGlyphCoverage() below, not by eye: the build console prints a real failing line
+ * from a real pipeline run, and that line contains "✗" — which Instrument Serif, IBM Plex Sans
+ * and IBM Plex Mono all lack. The console's credibility rests on that character being a red
+ * cross rather than an empty box, and the machines this product exists for are exactly the ones
+ * with the thinnest system font coverage.
+ *
+ * Noto Sans Symbols 2 (OFL, google/fonts) supplies them. Subset to these five codepoints it is
+ * about a kilobyte. "✓" is included even though IBM Plex Mono has one, so that the tick and the
+ * cross in a log line are drawn by the same hand.
+ */
+const SYMBOLS = "U+2713-2717,U+25C6,U+25CB,U+2601,U+2660";
 
 /** Every face we ship. `preload` marks the two that block first paint. */
 const FACES = [
@@ -132,6 +154,16 @@ const FACES = [
     preload: false,
   },
   {
+    out: "noto-sans-symbols-2-400.woff2",
+    family: "Noto Sans Symbols 2",
+    dir: "notosanssymbols2",
+    file: "NotoSansSymbols2-Regular.ttf",
+    weight: "400",
+    style: "normal",
+    unicodes: SYMBOLS,
+    preload: false,
+  },
+  {
     out: "ibm-plex-sans-devanagari-400.woff2",
     family: "IBM Plex Sans Devanagari",
     dir: "ibmplexsansdevanagari",
@@ -194,6 +226,28 @@ async function downloadLicence(dir) {
 const sha256 = (p) => createHash("sha256").update(readFileSync(p)).digest("hex");
 
 async function main() {
+  if (VERIFY) {
+    checkStylesheetRanges();
+    const manifestPath = join(OUT, "MANIFEST.json");
+    if (!existsSync(manifestPath)) {
+      fail("public/fonts/MANIFEST.json is missing. Run `pnpm fonts` to build the subsets.");
+    }
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    for (const face of manifest.faces) {
+      const path = join(OUT, face.file);
+      if (!existsSync(path)) fail(`${face.file} is in MANIFEST.json but not in public/fonts/.`);
+      if (sha256(path) !== face.sha256) {
+        fail(
+          `${face.file} does not match its SHA-256 in MANIFEST.json. The file was edited or ` +
+            `replaced by hand; rebuild it with \`pnpm fonts\`.`,
+        );
+      }
+    }
+    console.log(`  fonts:    ${manifest.faces.length} committed subsets match MANIFEST.json.`);
+    await checkGlyphCoverage(manifest);
+    return;
+  }
+
   const ftVersion = checkPython();
   mkdirSync(CACHE, { recursive: true });
   mkdirSync(OUT, { recursive: true });
@@ -251,6 +305,7 @@ async function main() {
 
   writeFileSync(join(OUT, "MANIFEST.json"), JSON.stringify(manifest, null, 2) + "\n");
 
+  checkStylesheetRanges();
   await checkGlyphCoverage(manifest);
 
   const total = manifest.faces.reduce((n, f) => n + f.bytes, 0);
@@ -261,6 +316,78 @@ async function main() {
       `(${preloaded.map((f) => f.file).join(", ")})`,
   );
 }
+
+/**
+ * `src/styles/fonts.css` must declare the SAME unicode-range this script subsetted to.
+ *
+ * These two are independent statements of the same fact, and only one of them is enforced by the
+ * browser. `unicode-range` gates USE: a glyph that is in the file but outside the declared range
+ * is never drawn — the browser silently falls back to a system face instead. So a range that is
+ * narrower than the subset is a glyph we shipped and cannot use, with no error anywhere.
+ *
+ * That is not hypothetical. The box-drawing range was widened here to include "═" and the
+ * stylesheet still said U+2500 only; the font contained the glyph and the page would have drawn
+ * the system's.
+ */
+function checkStylesheetRanges() {
+  const css = readFileSync(join(ROOT, "src", "styles", "fonts.css"), "utf8");
+  const declared = new Map();
+  for (const block of css.matchAll(/@font-face\s*\{([\s\S]*?)\}/g)) {
+    const file = /url\(\s*"\/fonts\/([^"]+)"/.exec(block[1])?.[1];
+    const range = /unicode-range\s*:\s*([^;]+);/.exec(block[1])?.[1];
+    if (!file || !range) continue;
+    const set = expandRange(range);
+    const previous = declared.get(file);
+    // One file may be declared under several family names. They must agree, or a character
+    // renders in one family and falls back in another.
+    if (previous && setKey(previous) !== setKey(set)) {
+      fail(`src/styles/fonts.css declares /fonts/${file} with two DIFFERENT unicode-ranges.`);
+    }
+    declared.set(file, set);
+  }
+
+  for (const face of FACES) {
+    const set = declared.get(face.out);
+    if (!set) {
+      fail(
+        `src/styles/fonts.css has no @font-face for /fonts/${face.out}. It is built and shipped ` +
+          `and never used — either declare it or remove it from FACES.`,
+      );
+    }
+    const wanted = expandRange(face.unicodes);
+    if (setKey(set) !== setKey(wanted)) {
+      const missing = [...wanted].filter((cp) => !set.has(cp));
+      const extra = [...set].filter((cp) => !wanted.has(cp));
+      fail(
+        `the unicode-range for /fonts/${face.out} in src/styles/fonts.css does not match the ` +
+          `range this script subsets to.\n` +
+          `      subsetted but not declared (shipped and unusable): ${summarise(missing)}\n` +
+          `      declared but not subsetted (falls back silently):   ${summarise(extra)}`,
+      );
+    }
+  }
+  console.log(`  ranges:   src/styles/fonts.css matches the subset ranges for all ${FACES.length} faces.`);
+}
+
+/** "U+0-FF, U+131" -> Set of code points. */
+function expandRange(spec) {
+  const out = new Set();
+  for (const part of spec.split(",")) {
+    const text = part.trim().replace(/^U\+/i, "");
+    if (!text) continue;
+    const [lo, hi] = text.includes("-") ? text.split("-") : [text, text];
+    for (let cp = parseInt(lo, 16); cp <= parseInt(hi, 16); cp++) out.add(cp);
+  }
+  return out;
+}
+
+const setKey = (set) => [...set].sort((a, b) => a - b).join(",");
+
+const summarise = (cps) =>
+  cps.length === 0
+    ? "none"
+    : cps.slice(0, 8).map((cp) => `U+${cp.toString(16).toUpperCase().padStart(4, "0")}`).join(" ") +
+      (cps.length > 8 ? ` … and ${cps.length - 8} more` : "");
 
 /**
  * Every non-ASCII character in src/ must be renderable by at least one face we ship.
@@ -274,7 +401,7 @@ async function main() {
  */
 async function checkGlyphCoverage(manifest) {
   const script = `
-import json, re, sys, pathlib, collections
+import html as html_mod, json, re, sys, pathlib, collections
 from fontTools.ttLib import TTFont
 
 root = pathlib.Path(sys.argv[1])
@@ -288,11 +415,11 @@ pages = sorted((root / "dist").glob("*.html"))
 mode = "dist"
 if pages:
     for path in pages:
-        html = path.read_text(encoding="utf-8", errors="replace")
-        html = re.sub(r"<script[\\s\\S]*?</script>", " ", html)
-        html = re.sub(r"<style[\\s\\S]*?</style>", " ", html)
-        html = re.sub(r"<!--[\\s\\S]*?-->", " ", html)
-        text = re.sub(r"<[^>]+>", " ", html)
+        markup = path.read_text(encoding="utf-8", errors="replace")
+        markup = re.sub(r"<script[\\s\\S]*?</script>", " ", markup)
+        markup = re.sub(r"<style[\\s\\S]*?</style>", " ", markup)
+        markup = re.sub(r"<!--[\\s\\S]*?-->", " ", markup)
+        text = html_mod.unescape(re.sub(r"<[^>]+>", " ", markup))
         for ch in text:
             if ord(ch) > 127:
                 used[ch] += 1

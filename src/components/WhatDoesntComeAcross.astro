@@ -15,6 +15,18 @@
  *    reads it first, and it is never truncated to make the layout balance.
  *
  * All prose comes from `src/content/migration/` and `copy.ts`. Nothing here is paraphrased.
+ *
+ * ── `columns`, `limit` and `showHowToCheck` ────────────────────────────────────────────────────
+ *
+ * Added so the landing page can put a SHORT version of this column in the fold. Measured in a
+ * browser, the full seven entries with their how-to-check tests ran 5,086px tall, which pushed the
+ * build console — D29's "living element", §7's replacement for every decorative animation impulse
+ * — to y=3783, nearly five screens down. Nobody had opened the page.
+ *
+ * Rule 2 above still holds and is the reason `limit` is not a general-purpose knob: truncation
+ * here is never for balance, and the does-not column is never shortened to fit beside the
+ * comes-across one. What the landing page shows is the first five named entries and a link to the
+ * rest; the full inventory page shows all of them with every test, at full width, untouched.
  */
 import { landingMigrationEntries, migrationByVerdict } from "./content";
 import { doesNotComeAcrossColumn, comesAcrossColumn } from "../content/copy";
@@ -23,19 +35,37 @@ import Panel from "./Panel.astro";
 interface Props {
   /** Render the "what does come across" column beside it. */
   showComesAcross?: boolean;
+  /** Render only one of the two columns. "comes" is used where the migration ordering is argued. */
+  columns?: "both" | "does-not" | "comes";
+  /** Show at most this many does-not entries, with the rest behind the existing "full inventory" link. */
+  limit?: number;
+  /** The per-entry test. It belongs on the inventory page; in the fold it is four lines of wrap. */
+  showHowToCheck?: boolean;
   /** Heading level, so the column can sit under a page h1 or a section h2. */
   headingLevel?: 2 | 3;
 }
 
-const { showComesAcross = true, headingLevel = 2 } = Astro.props;
+const {
+  showComesAcross = true,
+  columns = "both",
+  limit,
+  showHowToCheck = true,
+  headingLevel = 2,
+} = Astro.props;
 const H = `h${headingLevel}` as any;
 const Hsub = `h${headingLevel + 1}` as any;
 
-const doesNot = await landingMigrationEntries();
+const all = await landingMigrationEntries();
+const doesNot = typeof limit === "number" ? all.slice(0, limit) : all;
 const comes = await migrationByVerdict("comes");
+const showDoesNot = columns !== "comes";
+const showComes = columns !== "does-not" && showComesAcross;
+/** Only claimed when entries were actually withheld, and it names the number. */
+const withheld = all.length - doesNot.length;
 ---
 
-<div class:list={["columns", { paired: showComesAcross }]}>
+<div class:list={["columns", { paired: showDoesNot && showComes }]}>
+  {showDoesNot && (
   <Panel tone="panel" marked class="column">
     <H class="title">{doesNotComeAcrossColumn.title}</H>
     <p class="standfirst">{doesNotComeAcrossColumn.standfirst}</p>
@@ -54,7 +84,7 @@ const comes = await migrationByVerdict("comes");
                 ))}
               </ul>
             )}
-            {entry.data.howToCheck && (
+            {showHowToCheck && entry.data.howToCheck && (
               <p class="how-to-check">
                 <span class="how-to-check-label">How to check yours. </span>
                 {entry.data.howToCheck}
@@ -68,11 +98,13 @@ const comes = await migrationByVerdict("comes");
     <p class="footnote">{doesNotComeAcrossColumn.footnote}</p>
     <p class="more">
       <a href={doesNotComeAcrossColumn.moreLink.href}>{doesNotComeAcrossColumn.moreLink.label}</a>
+      {withheld > 0 && <span class="withheld"> · {withheld} more on that page, each with a test you can run</span>}
     </p>
   </Panel>
+  )}
 
   {
-    showComesAcross && (
+    showComes && (
       <Panel tone="panel-2" class="column">
         <H class="title">{comesAcrossColumn.title}</H>
         <p class="standfirst">{comesAcrossColumn.standfirst}</p>
@@ -138,7 +170,7 @@ const comes = await migrationByVerdict("comes");
   }
   .verdict {
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.72rem;
+    font-size: 0.875rem;
     letter-spacing: 0.02em;
     text-transform: lowercase;
     margin: 0 0 0.4rem;
@@ -186,10 +218,34 @@ const comes = await migrationByVerdict("comes");
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.92rem;
   }
+  .withheld {
+    color: var(--ink-muted, #5a4e40);
+    font-size: 0.86rem;
+  }
   .more a {
     color: var(--ink, #24231f);
     text-decoration-line: underline;
     text-decoration-color: var(--rule, #8a7358);
     text-underline-offset: 2px;
+  }
+
+  /* ── A type floor for substantive text on a phone ──────────────────────────────────────────
+     Measured at 375px: `.verdict` — "does not come across", the single most load-bearing phrase
+     in §6D's converting column — rendered at 11.52px, and the mono lists naming the actual
+     Windows programs at 12.48px. Those are content, not captions, and a reader on a phone was
+     being asked to squint at the best argument on the site. Margin labels and counts may stay
+     small; a verdict and a list of proper nouns may not. */
+  @media (max-width: 47.99rem) {
+    .verdict {
+      font-size: 0.9375rem;
+    }
+    .examples li {
+      font-size: 0.9375rem;
+    }
+    .one-line,
+    .how-to-check,
+    .footnote {
+      font-size: 1rem;
+    }
   }
 </style>

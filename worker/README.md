@@ -77,8 +77,19 @@ Set with `wrangler secret put <NAME>`. Nothing in this table appears anywhere in
 | `BUILD_RESULT_SECRET` | HMAC secret shared with CI | **Refuses every request, 503.** This endpoint charges cards; an unset secret is a configuration failure, and the only safe reading of a configuration failure here is "refuse everything". |
 
 CI signs its callback with the same code the Worker verifies with — `signPayload()` in
-`lib/signature.js` is exported for exactly that, so the two sides agree by construction rather than by
-both reading the same paragraph of a README:
+`lib/signature.js` is exported for exactly that, and `worker/tools/sign-build-result.mjs` is the four
+lines of CLI around it that `auros-recipes/.github/workflows/order-check.yml` runs. The two sides
+agree by construction rather than by both reading the same paragraph of a README.
+
+That sentence was false for a while and it is worth saying why, because the failure had the shape
+this product argues against. The endpoint was correct and could not be forged — 400 on a missing
+header, 401 on a forged `v1`, 400 outside the window, 404 for an unknown order, 503 with the secret
+unset, idempotent by run id — and **nothing ever called it.** No workflow signed anything and no
+workflow POSTed anything, so "your card is authenticated now and billed only when the test build
+passes" had a consumer and no producer: every order would have sat at `awaiting-checkout` forever.
+The producer is `order-check.yml`, which test-builds an order branch, publishes nothing, and reports
+with `if: always()` so a failed build releases the authorisation as reliably as a passing one bills
+it.
 
 ```
 x-auros-signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "<t>.<raw body>">

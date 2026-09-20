@@ -41,8 +41,8 @@
  * ──────────────────────────────────────────────────────────────────────────────────────────
  */
 
-import { FALLBACK_BACKGROUND, PALETTES, type Theme } from "./render";
-import { PX, STRATA, boundaryRows } from "./strata";
+import { FALLBACK_BACKGROUND, PALETTES, type Theme } from "./render.ts";
+import { PX, STRATA, boundaryRows } from "./strata.ts";
 import {
   BLOCK_PX,
   CLOUD_BAND_HEIGHT,
@@ -50,14 +50,14 @@ import {
   WORLD_HEIGHT,
   WORLD_SEED,
   WORLD_WIDTH,
-} from "./terrain";
+} from "./terrain.ts";
 import {
   createEngine,
   type Engine,
   type EngineReport,
   type FromWorker,
   type PaintTarget,
-} from "./worker";
+} from "./worker.ts";
 
 /** §7 ceiling for cloud drift. Used to derive the animation duration, not to describe it. */
 const CLOUD_DRIFT_PX_PER_SEC = 2;
@@ -74,6 +74,14 @@ export interface TerrainEventDetail extends EngineReport {
   readonly theme: Theme;
   /** Total wall time from mount to painted, including the deferral. */
   readonly totalMs: number;
+  /**
+   * What each canvas ACTUALLY renders at, measured off the box the browser gave it, in CSS px per
+   * logical block. Both must equal cssBlockPx. They did not: a global `canvas { max-width: 100% }`
+   * in base.css clamped the cloud canvas -- which is a period wider than its parent by design --
+   * from 2440px to 1480px, so the clouds drew at 2.4262 px/block against the terrain's 4. Nothing
+   * looked broken in the source; it was only visible in a measurement. So it is measured.
+   */
+  readonly measuredBlockPx: { readonly ground: number; readonly clouds: number };
 }
 
 let mounted = false;
@@ -205,8 +213,27 @@ export function mountTerrain(): void {
 
   const finish = (report: EngineReport) => {
     host.dataset.ready = "true";
+    const measuredBlockPx = {
+      ground: terrainCanvas.getBoundingClientRect().width / windowWidth,
+      clouds: cloudCanvas.getBoundingClientRect().width / (windowWidth + CLOUD_PERIOD),
+    };
+    // A canvas that is not drawing at the block size it was built for is not a rendering nicety --
+    // §7 fixes the logical block at 4 CSS px, and two different block sizes in one picture is the
+    // background disagreeing with itself. This cannot be caught by reading the stylesheet this
+    // module writes, because the rule that broke it lives in a different file and applies to every
+    // canvas on the site. So it is asserted against the measurement, out loud, once.
+    for (const [which, value] of Object.entries(measuredBlockPx)) {
+      if (Math.abs(value - cssBlock) > 0.01) {
+        console.warn(
+          `auros/terrain: the ${which} canvas renders at ${value.toFixed(4)} CSS px per block, not ` +
+            `${cssBlock}. Something outside this module is resizing it — check for a global rule on ` +
+            `\`canvas\` (base.css has max-width:100%, which this module overrides with max-width:none).`,
+        );
+      }
+    }
     const detail: TerrainEventDetail = {
       ...report,
+      measuredBlockPx,
       cssBlockPx: cssBlock,
       devicePixelRatio: dpr,
       staticMode,
@@ -386,6 +413,19 @@ function css(o: CssOptions): string {
   top: 0;
   left: 0;
   display: block;
+  /* THE GLOBAL MEDIA RESET DOES NOT APPLY TO THESE TWO.
+     base.css has \`img, picture, svg, canvas, video { max-width: 100% }\`, which is right for content
+     images and wrong for a canvas whose whole design is to be WIDER THAN ITS PARENT. The cloud
+     canvas is one full cloud period wider than the world by construction, so max-width:100%
+     clamped it every time: specified 2440px, used 1480px at a 1024px viewport. The terrain then
+     drew at exactly 4 CSS px per block and the clouds at 2.4262, in the same picture -- and a
+     non-integer block size defeats image-rendering:pixelated, so the clouds were also resampled.
+     The drift keyframe translates by one period measured at 4px/block, so with no slack left past
+     the world width the canvas walked off the right-hand edge: 54% of the sky had no cloud canvas
+     over it near the end of the cycle. Motion that reports nothing, which §7 forbids.
+     Asserted at mount by assertBlockSize(), so a future global rule cannot do this again. */
+  max-width: none;
+  max-height: none;
   /* crisp-edges first as the fallback; pixelated is the value §7 names and it must be the one
      that wins wherever it is understood. Declared the other way round, browsers that support
      both -- which is now most of them -- silently take crisp-edges. Measured in the harness. */

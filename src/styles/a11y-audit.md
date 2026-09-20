@@ -6,7 +6,7 @@ Spec §7 requires "WCAG AA contrast on every text/panel pair, verified not assum
 below was computed from `src/styles/tokens.css` and the site's own stylesheets. This file holds no
 colour that was typed into it by a person.
 
-- Pairs measured: **1440** (2 themes)
+- Pairs measured: **1546** (2 themes)
 - Failing: **0**
 - Evidence: **the built pages in dist/ — 9 page(s), real elements, real cascade**
 - Measured from: `/Users/aaroh/auros/auros-web` (a real build of these sources)
@@ -20,6 +20,10 @@ None.
 
 | theme | page | where | kind | text | panel | ratio | needs | verdict |
 |---|---|---|---|---|---|---|---|---|
+| light | `/faq.html` | `pre.astro-code.github-light (outline)` | non-text mark | `#d9682e` | `#f4f1ea` | **3.12:1** | 3.00:1 | pass |
+| light | `/replaceable.html` | `pre.astro-code.github-light (outline)` | non-text mark | `#d9682e` | `#f4f1ea` | **3.12:1** | 3.00:1 | pass |
+| dark | `/faq.html` | `pre.astro-code.github-light (outline)` | non-text mark | `#d9682e` | `#f4f1ea` | **3.12:1** | 3.00:1 | pass |
+| dark | `/replaceable.html` | `pre.astro-code.github-light (outline)` | non-text mark | `#d9682e` | `#f4f1ea` | **3.12:1** | 3.00:1 | pass |
 | light | `/configure.html` | `pre.cfg-panel__code (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
 | light | `/configure.html` | `input#cfg-machines.cfg-input.cfg-input--number (border)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
 | light | `/configure.html` | `input#cfg-models.cfg-input (border)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
@@ -44,22 +48,18 @@ None.
 | light | `/configure.html` | `button.cfg-button.cfg-button--primary (border)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
 | light | `/configure.html` | `button.cfg-button.cfg-button--primary (border-color)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
 | light | `/configure.html` | `div.fallback (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/configure.html` | `div.fallback (border-left)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
 | light | `/configure.html` | `a.mail (text-decoration-color)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
 | light | `/configure.html` | `p.placeholder (border-top)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
-| light | `/` | `a.cta.primary (border)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
 | light | `/` | `a.cta (border)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
 | light | `/` | `section.panel.tone-panel-2.column (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
 | light | `/` | `li.entry (border-top)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
 | light | `/` | `a (text-decoration-color)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
-| light | `/order.html` | `a.cta (border)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
-| light | `/order.html` | `div.fallback (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
-| light | `/order.html` | `a.mail (text-decoration-color)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
-| light | `/order.html` | `p.placeholder (border-top)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
-| light | `/pricing.html` | `section.panel.tone-panel-2.intro (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
-| light | `/pricing.html` | `form.arithmetic (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
-| light | `/pricing.html` | `span.key (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
-| light | `/pricing.html` | `p.formula (border-top)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
-| light | `/pricing.html` | `section.panel.tone-panel-2.notes (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/` | `section.panel.tone-panel-2.measured (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/` | `p.measured-consequence-figure (border-top)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/` | `p.measured-source (border-top)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/` | `section.panel.tone-panel-2 (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/` | `div.row (border-bottom)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
 
 ## What this tool could not measure
 

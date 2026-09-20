@@ -8,7 +8,7 @@ whose evidence column says **UNEVIDENCED** must not be published until a human h
 
 Maintained by the agent that owns content.
 
-**Reviewed against DECISIONS.md: D34** — 2026-09-20.
+**Reviewed against DECISIONS.md: D35 (re-read 2026-09-20: D35 moves the INSTALLER to Go 1.25.14 after its vulnerability scan was found never to have run; every "vulnerability" sentence on the site is about the OS image's CVE rebuild path, not the installer toolchain, so no published sentence changes)** — 2026-09-20.
 
 Of those, `D30` and `D31` rewrote what this file says about trust and replaceability (section 7).
 Two were read and change nothing published. `D33` exempts one named script endpoint on the

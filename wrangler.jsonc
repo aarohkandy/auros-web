@@ -18,11 +18,20 @@
     "binding": "ASSETS",
     "not_found_handling": "404-page",
 
-    // Without this, Cloudflare serves a matching static asset before the Worker ever runs. There is no
-    // page at /order today, but a future `src/pages/order.astro` would silently shadow the POST
-    // endpoint and the failure would look like a routing bug rather than a file collision. These four
-    // must stay identical to ROUTES in worker/index.js.
-    "run_worker_first": ["/order", "/build-result", "/stripe-webhook", "/build-console"]
+    // Set explicitly rather than inherited. The default is "auto-trailing-slash", which serves
+    // dist/order.html at /order AND redirects /order.html -> /order. That default is what turned a
+    // page route and an API route sharing the name "order" into a visitor following the order page's
+    // own canonical link and being answered by a POST-only endpoint. The submit endpoint is now
+    // /order-submit, and the handling is written down here so the next person can see which rule is
+    // producing which URL instead of inferring it.
+    "html_handling": "auto-trailing-slash",
+
+    // Without this, Cloudflare serves a matching static asset before the Worker ever runs. No page
+    // may share a path with one of these, and none does: /order-submit has no src/pages/order-submit
+    // .astro and never will, because the name is reserved for this endpoint. These four must stay
+    // identical to ROUTES in worker/index.js — worker/test/routes.test.js asserts exactly that, by
+    // parsing this file.
+    "run_worker_first": ["/order-submit", "/build-result", "/stripe-webhook", "/build-console"]
   },
 
   // Order records, the GitHub installation-token cache, the once-only claims that stop /build-result

@@ -35,10 +35,21 @@ import RecipePanel from "./RecipePanel.astro";
 import AnswerForm from "./AnswerForm.astro";
 
 interface Props {
-  /** Where the Worker lives. It re-validates this recipe server-side before writing anything. */
+  /**
+   * Where the Worker lives. It re-validates this recipe server-side before writing anything.
+   *
+   * `/order-submit`, not `/order` and not `/api/order`. The default used to be `/api/order`, which
+   * the Worker has never had a route for: the POST fell through to the static 404 page and every
+   * visitor was told the order did not go through. It is not `/order` either, because that is a
+   * PAGE on this site (`src/pages/order.astro`) and Cloudflare's asset routing would hand the
+   * page's own canonical URL to a POST-only endpoint. The four paths the Worker owns are listed in
+   * `worker/index.js` and `wrangler.jsonc`, and they have to stay in step with this default.
+   */
   endpoint?: string;
+  /** Turnstile sitekey, passed down to the form. Defaults to the published TEST key. */
+  sitekey?: string;
 }
-const { endpoint = "/api/order" } = Astro.props;
+const { endpoint = "/order-submit", sitekey } = Astro.props;
 ---
 
 <section class="cfg" data-configurator data-endpoint={endpoint} aria-label="Configure a build">
@@ -74,7 +85,7 @@ const { endpoint = "/api/order" } = Astro.props;
     </div>
   </div>
 
-  <AnswerForm />
+  <AnswerForm sitekey={sitekey} />
 </section>
 
 <script>
@@ -113,10 +124,18 @@ const { endpoint = "/api/order" } = Astro.props;
   }
 
   /* Two columns only when there is room for the file to be legible in one of them. Below that
-     it is one column, panel first, which is the document order anyway. */
+     it is one column, panel first, which is the document order anyway.
+
+     The ratio was 1fr/1.1fr, which measured 423px against 466px in a browser — 0.91:1, read by the
+     eye as a 50/50 split with a rounding error. D29 item 4 names "the configurator is two unequal
+     columns" as a source of life, and CONFIGURATOR.md says the `remove:` block is "never rendered
+     smaller than the install block" and that if the layout forces a choice, cut the form. So the
+     file takes half again as much width as the questions. The form loses nothing: every question is
+     one short line and a set of radio buttons. The panel gains directly — it is mono at a fixed
+     measure, and every extra pixel is a removal line that no longer wraps. */
   @media (min-width: 62rem) {
     .cfg__layout {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr);
     }
     .cfg__panel {
       grid-column: 2;

@@ -1,0 +1,83 @@
+# ─────────────────────────────────────────────────────────────────────────────────────────────────
+# build-log-snapshot — keep the build console showing a build that recently happened.
+#
+# The site is statically built, so the console's resting state has to exist at build time. Spec §7
+# says that state must be genuine pipeline output; D29 makes it the page's living element. Both are
+# only true if the committed snapshot is a recent real run, so a job re-cuts it from the GitHub
+# Actions API and opens a commit when the run it points at has moved on.
+#
+# WHY IT COMMITS RATHER THAN FETCHING AT BUILD TIME
+#   A build-time fetch would mean the site's content depends on an API call succeeding, and the
+#   failure mode of that is a deploy with an empty console — or, worse, a tempting `catch` that
+#   substitutes something plausible. Committing makes the reduction visible in a diff: anyone can
+#   see exactly which real lines we chose to show, and that the tool is what chose them.
+#
+# It runs after `auros-base`'s build workflow finishes, and on a schedule as a backstop, because a
+# console labelled "last build, four months ago" is honest and useless, which is only half the job.
+# ─────────────────────────────────────────────────────────────────────────────────────────────────
+name: build-log-snapshot
+
+on:
+  schedule:
+    - cron: '25 5 * * *' # after the nightly base rebuild at 04:17 UTC has had time to finish
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/lib/console/last-build.json'
+      - 'tools/snapshot-build-log.mjs'
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
+jobs:
+  refresh:
+    name: re-cut the snapshot from the latest real run
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read # job logs are not public even for a public repository
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # On a pull request this only VERIFIES: it fails if the committed snapshot no longer points at
+      # the latest completed run, rather than rewriting a contributor's branch under them.
+      - name: Check the committed snapshot
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/snapshot-build-log.mjs --repo aarohkandy/auros-base --check
+
+      - name: Re-cut the snapshot
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/snapshot-build-log.mjs --repo aarohkandy/auros-base
+
+      # The tool exits 2 rather than writing anything it could not fetch, so reaching this step at
+      # all means the file on disk came from the API. An unchanged file is the normal case between
+      # runs and is not a failure.
+      - name: Commit it if the run it points at has moved
+        if: github.event_name != 'pull_request'
+        run: |
+          if git diff --quiet -- src/lib/console/last-build.json; then
+            echo "snapshot already points at the latest completed run"
+            exit 0
+          fi
+          RUN_URL=$(node -e 'process.stdout.write(require("./src/lib/console/last-build.json").run.url)')
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/lib/console/last-build.json
+          git commit -m "Build console: snapshot the latest real run
+
+          Re-cut by tools/snapshot-build-log.mjs from ${RUN_URL}. Every line in the
+          file was printed by a runner; the reducer only chooses which of them to show."
+          git push

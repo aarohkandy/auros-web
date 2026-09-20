@@ -82,10 +82,26 @@ my file, but the pages do not build without it.
 
 | Component | Method + path | State if it is not there |
 |---|---|---|
-| `BuildConsole` | `GET /api/build/stream` (SSE, `text/event-stream`) | says there is no build to show |
+| `BuildConsole` | `GET /build-console?recipe=<name>` or `?run=<id>` (SSE) | the last real run, already rendered |
 | `NoScriptFallback` | none — `mailto:` only | n/a |
 
-`BuildConsole` takes the path as a prop, so the Worker agent renaming the route is a prop change.
-It sends `Last-Event-ID` on reconnect (the Cloudflare runtime drops in-flight requests on a
-runtime update) and it treats "endpoint missing", "endpoint erroring" and "no build running" as
-the same honest outcome: it says so. It has no code path that can invent a line of output.
+This is no longer an assumed contract: `worker/routes/build-console.js` implements it. Events are
+named — `hello`, `job`, `step`, `stale`, `status`, `idle`, `done`, `reconnect` — and every `data`
+is JSON, not text. The Worker **refuses** a request naming neither a recipe nor a run, because
+"whatever is building right now" would leak which customers exist, so `BuildConsole` does not open
+a stream at all unless the page names one. `id:` is derived from the run's own structure rather
+than a counter, so `Last-Event-ID` resumes exactly where a cut stream stopped — which matters
+because the Cloudflare runtime drops in-flight requests on a runtime update, a few times a week.
+
+GitHub has no line-level live log (`/actions/jobs/{id}/logs` 404s until the job finishes), so what
+streams is real job and step *state*. Coarser than a log tail, and entirely true.
+
+**The resting state is not emptiness.** `src/lib/console/snapshot.ts` reads
+`src/lib/console/last-build.json` — the last run that really happened, cut from the Actions API by
+`tools/snapshot-build-log.mjs`, committed, and re-cut by `.github/workflows/build-log-snapshot.yml`.
+The component server-renders it, labelled with when it happened and linked to the run, so the
+console is correct and complete with no JavaScript at all. Live output, when there is any, replaces
+it; "endpoint missing", "endpoint erroring" and "no build running" all leave it exactly where it
+is. If the snapshot file is absent the console says there is no record of a run and falls back to
+the labelled ILLUSTRATION in `copy.ts`. Nothing in the component, the client or the tool can invent
+a line of output, and there is no fourth state in which something plausible appears.

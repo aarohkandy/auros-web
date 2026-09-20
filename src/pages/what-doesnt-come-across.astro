@@ -3,17 +3,35 @@
  * The honest inventory. The page the spec says converts organisations, in full rather than in
  * summary: the document's own argument, then every migration entry grouped by verdict, each with
  * its examples and — where the verdict is conditional — the test the reader can run this week.
+ *
+ * ── THE ONE MOMENT ON THIS PAGE ────────────────────────────────────────────────────────────────
+ *
+ * It is the bare list, and it is bare on purpose. Every title in the `does-not` group, one per
+ * line, in mono, at reading size, with a hairline between each and nothing else — no verdict
+ * label, no reassuring sentence after it, no link out. The full entry for each is a scroll below
+ * and says what to do about it; this block exists so that a reader who came here to find out what
+ * they lose finds out in four seconds rather than four screens.
+ *
+ * Softening it would be the whole mistake. §4.2 and D16 are not satisfied by a page that
+ * eventually admits this — they are satisfied by a page that says it first and does not flinch,
+ * and an IT person who reads this list and closes the tab has been served correctly.
+ *
+ * Nothing here is written by this file: the titles are the content author's, the heading is
+ * `migrationPage.filterDoesNot`, and the ordering is the collection's.
  */
 import PageShell from "../components/PageShell.astro";
 import PageHeader from "../components/PageHeader.astro";
 import Panel from "../components/Panel.astro";
 import Prose from "../components/Prose.astro";
 import MigrationInventory from "../components/MigrationInventory.astro";
-import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
-import { site } from "../content/copy";
+import { pageByOrder, renderEntry, PAGE_ORDER, migrationByVerdict, entryAnchor } from "../components/content";
+import { site, migrationPage } from "../content/copy";
 
 const page = await pageByOrder(PAGE_ORDER.whatDoesntComeAcross);
 const { Content } = await renderEntry(page);
+
+/** The bare list. Titles only — the entry below carries everything else. */
+const doesNot = await migrationByVerdict("does-not");
 ---
 
 <PageShell
@@ -23,11 +41,87 @@ const { Content } = await renderEntry(page);
 >
   <PageHeader page={page} />
 
-  <Panel tone="panel">
-    <Prose>
-      <Content />
-    </Prose>
-  </Panel>
+  <section class="bare stratum-section" aria-labelledby="bare-title">
+    <Panel tone="panel">
+      <h2 class="bare-title" id="bare-title">{migrationPage.filterDoesNot}</h2>
+      <ol class="bare-list" role="list">
+        {
+          doesNot.map((entry) => (
+            <li>
+              <a href={`#${entryAnchor(entry)}`}>{entry.data.title}</a>
+            </li>
+          ))
+        }
+      </ol>
+    </Panel>
+  </section>
 
-  <MigrationInventory />
+  <div class="argument">
+    <Panel tone="panel">
+      <Prose>
+        <Content />
+      </Prose>
+    </Panel>
+  </div>
+
+  <div class="inventory stratum-section">
+    <MigrationInventory />
+  </div>
 </PageShell>
+
+<style>
+  .bare {
+    padding-block-start: 0;
+  }
+  /*
+    Lowercase, mono, small: a section marker rather than a headline. The list under it is the
+    thing that is meant to be loud, and it is loud by being long and plain.
+  */
+  .bare-title {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-weight: 400;
+    font-size: var(--step--1, 0.8125rem);
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    margin: 0 0 0.85rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .bare-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-block-start: 1px solid var(--rule, #8a7358);
+  }
+  .bare-list li {
+    border-block-end: 1px solid var(--rule, #8a7358);
+  }
+  .bare-list a {
+    display: block;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: clamp(1rem, 2.6vw, var(--step-1, 1.1875rem));
+    line-height: 1.3;
+    padding: 0.7rem 0;
+    color: var(--ink, #24231f);
+    text-decoration: none;
+  }
+  /* The underline only on hover and focus: an underline on every row would turn a list of facts
+     into a list of links, and the list is the point. */
+  .bare-list a:hover {
+    text-decoration: underline;
+    text-decoration-color: var(--rule, #8a7358);
+    text-underline-offset: 3px;
+  }
+  .bare-list a:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--focus, #be3a12);
+    outline-offset: -2px;
+  }
+
+  /* The document is prose; Prose caps it at one measure, so the panel around it is constrained
+     too rather than running the full 72rem and leaving a column of empty panel. */
+  .argument :global(.panel) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
+  }
+  .inventory {
+    padding-block-end: var(--space-8, 64px);
+  }
+</style>

@@ -37,8 +37,8 @@ from Google's servers, and there are three reasons not to:
 
 ## What ships
 
-Seven faces, 599,184 bytes on disk in total — but `unicode-range` means an English reader
-downloads **103,024 bytes**, the two preloaded faces, and nothing else until a character needs it.
+Eight faces, 606,532 bytes on disk in total. `unicode-range` means a page downloads only the
+faces it has characters for: **103,024 bytes** are preloaded and the rest arrive only on demand.
 These figures are copied from `public/fonts/MANIFEST.json`, which the build writes; if they
 disagree with it, the manifest is right.
 
@@ -50,6 +50,7 @@ disagree with it, the manifest is right.
 | `ibm-plex-sans-600.woff2` | IBM Plex Sans | 600 | 54,864 | no |
 | `ibm-plex-mono-400.woff2` | IBM Plex Mono | 400 | 60,024 | no |
 | `ibm-plex-mono-600.woff2` | IBM Plex Mono | 600 | 63,340 | no |
+| `noto-sans-symbols-2-400.woff2` | Noto Sans Symbols 2 | 400 | 7,348 | no |
 | `ibm-plex-sans-devanagari-400.woff2` | IBM Plex Sans Devanagari | 400 | 267,528 | no |
 
 Exact bytes and the SHA-256 of every file, plus the SHA-256 of the upstream TTF each was cut from,
@@ -58,6 +59,12 @@ are in `public/fonts/MANIFEST.json`. Each family's `OFL.txt` ships beside them.
 **Only two faces are preloaded**, and that restraint is the point: preloading a face the first
 screen does not use is a request competing with one it does. The Devanagari face in particular must
 stay lazy — it is 261 KB, larger than everything else combined.
+
+**Measured, and it corrects an earlier claim in this file.** The landing page *does* fetch the
+Devanagari face, because `copy.ts` prints the Marathi school's real first-boot message
+(`नमस्कार! काही अडचण असल्यास शिक्षकांना सांगा.`). That is `unicode-range` working: the face is
+fetched where Devanagari is rendered and nowhere else. "An English reader never downloads it" was
+written here before anyone opened a browser, and it was wrong.
 
 ---
 
@@ -111,8 +118,8 @@ Read out of the shipped `woff2` files, not off a specimen page:
 | `═` U+2550 double rule | absent | absent | **present** |
 | `█` U+2588 block | absent | absent | **present** |
 | `✓` U+2713 check | absent | **present** | **present** |
-| `✗` U+2717 cross | **absent** | **absent** | **absent** |
-| `◆` U+25C6 lozenge | **absent** | **absent** | **absent** |
+| `✗` U+2717 cross | absent | absent | absent → **Noto Sans Symbols 2** |
+| `◆` U+25C6 lozenge | absent | absent | absent → **Noto Sans Symbols 2** |
 | `§ — · × … − →` | present | present | present |
 
 Three consequences, stated rather than discovered later:
@@ -121,14 +128,20 @@ Three consequences, stated rather than discovered later:
    and blocks appear, and IBM Plex Mono is the only one of the three faces that has them. That is
    already how `StratumLabel.astro` and `BuildConsole.astro` are written; this is why it has to
    stay that way.
-2. **`✗` (U+2717) is in none of the three faces.** If it reaches a page it falls back to whatever
-   the visitor's system has, which on an old Windows laptop is often nothing. Use `×` (U+00D7),
-   which is present everywhere, or the word. This matters because `hardware/compat.tsv` is built
-   around "at least one honest ✗" (§10, Gate 5) — the **table** may use that character, the **web
-   page** should not.
-3. **`◆` (U+25C6) is in none of them either.** §7 uses it in the spec's own ASCII diagram to mark
-   ore at a layer boundary. On the site that mark is drawn — a border or a canvas pixel — not
-   typed, so this costs nothing as long as it stays drawn.
+2. **`✗` (U+2717) is in none of the three §7 faces, and the site prints one.** The build console
+   streams a real failing line from a real pipeline run, and that line contains `✗`. §6D's whole
+   argument for the console is that a red line is better advertising than a green one — which is
+   not true if it renders as an empty box on the 2014 laptop this product exists for.
+
+   So a **fourth face ships**: Noto Sans Symbols 2 (OFL, same upstream), subset to five
+   codepoints, **7,348 bytes**. It is declared under all three family names and placed last in
+   `fonts.css`, so `✓` and `✗` in the same log line are drawn by the same hand.
+
+   This was found by the coverage check, not by looking at the page — on a developer's Mac the
+   character renders fine from a system font and nothing looks wrong.
+3. **`◆` (U+25C6) and `○` (U+25CB)** are covered by the same symbols face. §7 uses `◆` in its own
+   diagram to mark ore at a layer boundary; on the site that mark is normally *drawn* — a border
+   or a canvas pixel — rather than typed, but now it renders either way.
 
 `tools/fetch-fonts.mjs` re-checks all of this on every run. It reads the **built pages in `dist/`**
 — what a browser is actually asked to render — and fails if a character there is in none of the

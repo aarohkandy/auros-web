@@ -34,8 +34,8 @@
  * ──────────────────────────────────────────────────────────────────────────────────────────
  */
 
-import { PALETTE_SIZE, PX, TRANSPARENT } from "./strata";
-import type { CloudBuffer, TerrainBuffer } from "./terrain";
+import { PALETTE_SIZE, PX, TRANSPARENT } from "./strata.ts";
+import type { CloudBuffer, TerrainBuffer } from "./terrain.ts";
 
 export type Theme = "light" | "dark";
 

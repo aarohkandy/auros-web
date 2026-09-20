@@ -69,21 +69,92 @@ function walk(dir, out = []) {
     if (statSync(p).isDirectory()) {
       if (name === "node_modules" || name === "dist" || name.startsWith(".")) continue;
       walk(p, out);
-    } else if ([".css", ".astro"].includes(extname(name))) {
+    } else if ([".css", ".astro", ".ts"].includes(extname(name))) {
+      // .ts is here because the LARGEST stylesheet a visitor receives is not in a .css file.
+      // src/terrain/parallax.ts builds it in a template literal and injects it into <head> at
+      // mount: both @keyframes blocks, will-change, contain, image-rendering and every canvas
+      // size. This lint's own header claims it reads "every stylesheet the site has", and that
+      // was the one it could not see — which is also where the cloud-canvas clamp lived.
       out.push(p);
     }
   }
   return out;
 }
 
-/** For an .astro file, only the <style> blocks are CSS. For a .css file, all of it is. */
+/**
+ * Which parts of a file are CSS.
+ *
+ *   .css    all of it
+ *   .astro  the <style> blocks
+ *   .ts     a template literal returned from, or assigned to, something called css/styles/sheet,
+ *           which is how src/terrain/parallax.ts ships its stylesheet. Anything else in a .ts file
+ *           is not CSS and is not read.
+ */
 function stylesOf(path, text) {
-  if (extname(path) === ".css") return [{ text, lineOffset: 0 }];
+  const ext = extname(path);
+  if (ext === ".css") return [{ text, lineOffset: 0 }];
+  if (ext === ".ts") return templateStylesOf(text);
   const blocks = [];
   const re = /<style[^>]*>([\s\S]*?)<\/style>/g;
   let m;
   while ((m = re.exec(text))) {
     blocks.push({ text: m[1], lineOffset: text.slice(0, m.index).split("\n").length - 1 });
+  }
+  return blocks;
+}
+
+/**
+ * The outermost template literal of every `function css|styles|sheet(...)` in a .ts file.
+ *
+ * A regex cannot do this. parallax.ts's stylesheet contains NESTED template literals — the
+ * keyframes are emitted from `${ staticMode ? "" : `@keyframes …` }` — so a lazy /`([\s\S]*?)`/
+ * stops at the first inner backtick and hands the lint sixty harmless characters of the wrong
+ * block. The first version of this function did exactly that, reported the file clean, and
+ * missed a `box-shadow` planted in it on purpose. So it scans: backticks open and close literals,
+ * `${` opens an interpolation that may itself contain literals, and the matching close is found
+ * by depth. The whole span is returned, nested literals included, because they are CSS too.
+ */
+function templateStylesOf(text) {
+  const blocks = [];
+  const head = /function\s+(?:css|styles|sheet)\s*\(/g;
+  let h;
+  while ((h = head.exec(text))) {
+    // Skip the parameter list and return type to the `{` that opens the body.
+    let i = text.indexOf("{", text.indexOf(")", h.index));
+    if (i === -1) break;
+    let depth = 0;
+    for (; i < text.length; i++) {
+      const c = text[i];
+      if (c === "/" && text[i + 1] === "/") { i = text.indexOf("\n", i); if (i === -1) i = text.length; continue; }
+      if (c === "/" && text[i + 1] === "*") { i = text.indexOf("*/", i + 2) + 1; if (i === 0) i = text.length; continue; }
+      if (c === '"' || c === "'") {
+        for (i++; i < text.length && text[i] !== c; i++) if (text[i] === "\\") i++;
+        continue;
+      }
+      if (c === "{") { depth++; continue; }
+      if (c === "}") { depth--; if (depth === 0) break; continue; }
+      if (c === "`") {
+        // An outermost template literal. Walk it with a context stack so nested literals inside
+        // ${ } are consumed as part of it rather than ending it.
+        const start = i;
+        const stack = ["t"];
+        for (i++; i < text.length && stack.length; i++) {
+          const d = text[i];
+          const top = stack[stack.length - 1];
+          if (top === "t") {
+            if (d === "\\") { i++; continue; }
+            if (d === "`") { stack.pop(); if (!stack.length) break; continue; }
+            if (d === "$" && text[i + 1] === "{") { stack.push("i"); i++; continue; }
+          } else {
+            if (d === "`") { stack.push("t"); continue; }
+            if (d === "{") { stack.push("i"); continue; }
+            if (d === "}") { stack.pop(); continue; }
+          }
+        }
+        blocks.push({ text: text.slice(start + 1, i), lineOffset: text.slice(0, start).split("\n").length - 1 });
+      }
+    }
+    head.lastIndex = i;
   }
   return blocks;
 }

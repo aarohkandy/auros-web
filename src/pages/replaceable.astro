@@ -10,6 +10,17 @@ import PageHeader from "../components/PageHeader.astro";
 import Panel from "../components/Panel.astro";
 import Prose from "../components/Prose.astro";
 import FactList from "../components/FactList.astro";
+/**
+ * The compatibility table is a component another agent is currently moving in and out of the tree.
+ * A static import of a file that is not there stops the whole site building, so it is resolved the
+ * same way `PageShell` resolves the layout: if it exists it renders, and if it does not the page
+ * still builds and simply does not claim to have a table. Nothing here fabricates one.
+ */
+const compatModules = import.meta.glob("../components/CompatTable.astro", { eager: true }) as Record<
+  string,
+  { default?: any }
+>;
+const CompatTable = Object.values(compatModules)[0]?.default;
 import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
 import { site, replaceable } from "../content/copy";
 
@@ -29,23 +40,54 @@ const { Content } = await renderEntry(page);
     <FactList facts={replaceable.requirements} />
   </Panel>
 
-  <Panel tone="panel">
-    <Prose>
-      <Content />
-    </Prose>
-  </Panel>
+  <div class="document">
+    <Panel tone="panel">
+      <Prose>
+        <Content />
+      </Prose>
+    </Panel>
+  </div>
+
+  <!--
+    The document above says, under "What forking does not give you", that `hardware/compat.tsv` is
+    a header row with nothing under it. This prints the header row. Describing an empty table is
+    a claim; showing it is a fact, and an empty table is the one table on the internet a
+    competitor cannot fake being behind on.
+  -->
+  <div class="compat-section">
+    {CompatTable && <CompatTable headingLevel={2} />}
+  </div>
 </PageShell>
 
 <style>
+  /*
+    Prose is one measure wide and Prose.astro already caps it. The panel AROUND it was the thing
+    running the full 72rem, which left a column of empty panel beside every paragraph and made
+    every section on the page the same width as every other — the shape a template has when it has
+    accepted content rather than been laid out. The panel is constrained; the type is untouched.
+  */
+  .document :global(.panel) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
+  }
+
+  /*
+    The requirements are four short facts and the list is the point, so the panel is as wide as it
+    needs to be and no wider. It sits above a document that is one measure wide; two blocks of
+    different widths are a page somebody laid out.
+  */
   .requirements {
     margin-bottom: 1rem;
+    max-width: calc(var(--measure, 38rem) + 4rem);
   }
   .requirements-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.4rem;
+    font-size: var(--step-2, 1.5rem);
     line-height: 1.15;
     margin: 0 0 0.75rem;
     color: var(--ink, #24231f);
+  }
+  .compat-section {
+    margin-top: var(--space-7, 48px);
   }
 </style>

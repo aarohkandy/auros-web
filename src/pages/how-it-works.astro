@@ -2,10 +2,30 @@
 /**
  * How it works — the five layers, read from the bottom up.
  *
- * The document ends on a "## The stack" heading with no list under it, because the stack is the
- * `layers` collection and belongs to the terrain, not to prose. This page renders the document and
- * then the stack itself, so the two halves of the same diagram sit together and neither is a
- * paraphrase of the other.
+ * The document used to open with "The background of this site is a cross-section of ground, and it
+ * is not decoration" and end on a bare "## The stack" heading with nothing under it. `LayerStack`
+ * then printed its own h2 "The stack" and its own standfirst, "The background of this site is a
+ * cross-section of ground, and it is the diagram." The comment here claimed neither was a
+ * paraphrase of the other. `dist/how-it-works.html` disagreed: its heading list read
+ * `h2 The stack / h2 The stack`, and the two sentences differed by four words.
+ *
+ * Both now live in `LayerStack`, which owns the diagram and should own the sentence introducing it.
+ * The document is the argument about why there is exactly one base image, and starts there.
+ *
+ * ── SHAPE ──────────────────────────────────────────────────────────────────────────────────────
+ *
+ * The page used to be three identical full-width panels 2rem apart. It is now a descent, and each
+ * region has a different job, a different width and a different weight:
+ *
+ *   argument    one measure, left-aligned — it is prose and Prose caps it anyway
+ *   the stack   full width — it is the diagram
+ *   the console full width, deep, labelled in the margin — the only thing here that is happening
+ *
+ * Two things that belong to this subject are deliberately NOT on this page. `copy.provenance` —
+ * the pinned digest and the two crons — is printed in the footer of every page by the layout, so
+ * repeating it here would put the same four facts twice on one screen. `copy.compatTable` is on
+ * /replaceable, where the document argues about what forking does not give you and names that
+ * file. Both were written and unrendered, and the fix for that is rendering each of them once.
  */
 import PageShell from "../components/PageShell.astro";
 import PageHeader from "../components/PageHeader.astro";
@@ -13,6 +33,7 @@ import Panel from "../components/Panel.astro";
 import Prose from "../components/Prose.astro";
 import LayerStack from "../components/LayerStack.astro";
 import BuildConsole from "../components/BuildConsole.astro";
+import StratumLabel from "../components/StratumLabel.astro";
 import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
 import { site } from "../content/copy";
 
@@ -27,24 +48,36 @@ const { Content } = await renderEntry(page);
 >
   <PageHeader page={page} />
 
-  <Panel tone="panel">
-    <Prose>
-      <Content />
-    </Prose>
-  </Panel>
+  <div class="argument">
+    <Panel tone="panel">
+      <Prose>
+        <Content />
+      </Prose>
+    </Panel>
+  </div>
 
-  <div class="stack-section">
+  <div class="stack-section stratum-section">
     <LayerStack fromBottom headingLevel={2} />
   </div>
 
-  <div class="console-section">
-    <BuildConsole headingLevel={2} />
+  <div class="console-section stratum-section">
+    <div class="with-margin-label">
+      <StratumLabel layer="stratum-2" />
+      <BuildConsole headingLevel={2} />
+    </div>
   </div>
+
 </PageShell>
 
 <style>
-  .stack-section,
+  /* Prose is one measure wide; the panel around it was the thing that was too wide. */
+  .argument :global(.panel) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
+  }
+  .stack-section {
+    padding-block: var(--space-7, 48px);
+  }
   .console-section {
-    margin-top: 2rem;
+    padding-block: var(--space-7, 48px) var(--space-8, 64px);
   }
 </style>

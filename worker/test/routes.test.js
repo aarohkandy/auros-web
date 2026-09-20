@@ -113,7 +113,7 @@ describe('POST /order — the happy path', () => {
 
   test('a valid order becomes a pull request, and no card is touched', async () => {
     const env = baseEnv()
-    const res = await worker.fetch(post('/order', orderBody()), env, ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const body = await res.json()
 
     assert.equal(res.status, 201, JSON.stringify(body))
@@ -136,7 +136,7 @@ describe('POST /order — the happy path', () => {
 
   test('the committed file is YAML the emitter wrote, and the PR body is the explain output', async () => {
     const env = baseEnv()
-    await worker.fetch(post('/order', orderBody()), env, ctx)
+    await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const put = net.calls.find(c => c.url.includes('/contents/customers/') && c.method === 'PUT')
     const committed = Buffer.from(JSON.parse(put.body).content, 'base64').toString('utf8')
     assert.match(committed, /^name: example-school$/m)
@@ -152,7 +152,7 @@ describe('POST /order — the happy path', () => {
 
   test('the order is recorded, so the webhook and the build result can find it', async () => {
     const env = baseEnv()
-    await worker.fetch(post('/order', orderBody()), env, ctx)
+    await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const stored = JSON.parse(env.AUROS_KV.store.get('order:example-school'))
     assert.equal(stored.prNumber, 7)
     assert.equal(stored.tier, 'school')
@@ -166,16 +166,16 @@ describe('POST /order — the refusals, which are the point', () => {
 
   test('no Turnstile token: refused, and nothing is created', async () => {
     const env = baseEnv()
-    const res = await worker.fetch(post('/order', orderBody({ turnstileToken: undefined })), env, ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody({ turnstileToken: undefined })), env, ctx)
     assert.equal(res.status, 400)
     assert.equal(net.calls.length, 0, 'a request with no token must not reach any network at all')
-    assert.equal(env.AUROS_KV.store.size, 1, 'only the rate-limit counter should have been written')
+    assert.equal(env.AUROS_KV.store.size, 2, 'only the two rate-limit counters (per-address and global) should have been written')
   })
 
   test('a failed Turnstile check: refused before validation even runs', async () => {
     net.restore()
     net = stubNetwork({ turnstile: { success: false, 'error-codes': ['timeout-or-duplicate'] } })
-    const res = await worker.fetch(post('/order', orderBody()), baseEnv(), ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody()), baseEnv(), ctx)
     const body = await res.json()
     assert.equal(res.status, 403)
     assert.equal(body.stage, 'turnstile')
@@ -183,7 +183,7 @@ describe('POST /order — the refusals, which are the point', () => {
   })
 
   test('a recipe that pins a version: refused with the schema\'s own argument', async () => {
-    const res = await worker.fetch(post('/order', orderBody({ recipe: { ...REAL['example-school'], version: '1.2' } })), baseEnv(), ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody({ recipe: { ...REAL['example-school'], version: '1.2' } })), baseEnv(), ctx)
     const body = await res.json()
     assert.equal(res.status, 422)
     assert.equal(body.stage, 'validation')
@@ -193,7 +193,7 @@ describe('POST /order — the refusals, which are the point', () => {
   })
 
   test('a recipe that names a different base: refused', async () => {
-    const res = await worker.fetch(post('/order', orderBody({ recipe: { ...REAL['example-school'], from: 'ubuntu:24.04' } })), baseEnv(), ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody({ recipe: { ...REAL['example-school'], from: 'ubuntu:24.04' } })), baseEnv(), ctx)
     assert.equal((await res.json()).stage, 'validation')
     assert.equal(res.status, 422)
   })
@@ -201,21 +201,21 @@ describe('POST /order — the refusals, which are the point', () => {
   test('a school order below the 25-device floor: refused', async () => {
     const small = structuredClone(REAL['example-school'])
     small.hardware.machines = 10
-    const res = await worker.fetch(post('/order', orderBody({ recipe: small })), baseEnv(), ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody({ recipe: small })), baseEnv(), ctx)
     const body = await res.json()
     assert.equal(res.status, 422)
     assert.match(body.because, /starts at 25 devices/)
   })
 
   test('an oversized body is refused before it is parsed', async () => {
-    const res = await worker.fetch(post('/order', 'x'.repeat(200_000)), baseEnv(), ctx)
+    const res = await worker.fetch(post('/order-submit', 'x'.repeat(200_000)), baseEnv(), ctx)
     assert.equal(res.status, 413)
   })
 
   test('a name that already has an order: refused, and the existing PR is named', async () => {
     const env = baseEnv()
-    await worker.fetch(post('/order', orderBody()), env, ctx)
-    const res = await worker.fetch(post('/order', orderBody()), env, ctx)
+    await worker.fetch(post('/order-submit', orderBody()), env, ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const body = await res.json()
     assert.equal(res.status, 409)
     assert.match(body.because, /already an order/)
@@ -225,27 +225,40 @@ describe('POST /order — the refusals, which are the point', () => {
   test('a name already taken in the repository: refused before a branch exists', async () => {
     net.restore()
     net = stubNetwork({ githubOverrides: { '/contents/customers/': (reply, _href, init) => init.method === 'PUT' ? reply(201, {}) : reply(200, { name: 'recipe.yaml' }) } })
-    const res = await worker.fetch(post('/order', orderBody()), baseEnv(), ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody()), baseEnv(), ctx)
     assert.equal(res.status, 409)
     assert.ok(!net.calls.some(c => c.url.includes('/git/refs') && c.method === 'POST'), 'no orphan branch may be left behind by a refused order')
   })
 
   test('with no Turnstile secret configured, the endpoint refuses rather than opening up', async () => {
-    const res = await worker.fetch(post('/order', orderBody()), baseEnv({ TURNSTILE_SECRET_KEY: undefined }), ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody()), baseEnv({ TURNSTILE_SECRET_KEY: undefined }), ctx)
     assert.equal(res.status, 503)
     assert.equal(net.calls.length, 0)
   })
 
   test('the always-passes Turnstile TEST secret is refused in production', async () => {
-    const res = await worker.fetch(post('/order', orderBody()), baseEnv({ TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA' }), ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody()), baseEnv({ TURNSTILE_SECRET_KEY: '1x0000000000000000000000000000000AA' }), ctx)
     const body = await res.json()
     assert.equal(res.status, 503)
     assert.match(body.because, /TEST secret/)
   })
 
   test('a GET is refused', async () => {
-    const res = await worker.fetch(new Request('https://auros.dev/order'), baseEnv(), ctx)
+    const res = await worker.fetch(new Request('https://auros.dev/order-submit'), baseEnv(), ctx)
     assert.equal(res.status, 405)
+  })
+
+  // REGRESSION. /order is a PAGE (src/pages/order.astro) and must fall through to the static site,
+  // not be answered by the submit endpoint. When the endpoint was called /order, a visitor following
+  // that page's own canonical link got {"ok":false,"refused":"anything but a POST to this endpoint"}
+  // instead of the page explaining what ordering does.
+  test('/order belongs to the static site and this Worker does not answer it', async () => {
+    let served = null
+    const env = baseEnv({ ASSETS: { async fetch (request) { served = new URL(request.url).pathname; return new Response('the order page', { status: 200 }) } } })
+    const res = await worker.fetch(new Request('https://auros.dev/order'), env, ctx)
+    assert.equal(served, '/order', 'the Worker handled /order itself instead of handing it to the static site')
+    assert.equal(res.status, 200)
+    assert.equal(await res.text(), 'the order page')
   })
 
   test('the rate limit stops one solved challenge becoming a PR factory', async () => {
@@ -255,10 +268,43 @@ describe('POST /order — the refusals, which are the point', () => {
     for (const name of names) {
       const recipe = structuredClone(REAL['example-school'])
       recipe.name = name
-      const res = await worker.fetch(post('/order', orderBody({ recipe })), env, ctx)
+      const res = await worker.fetch(post('/order-submit', orderBody({ recipe })), env, ctx)
       statuses.push(res.status)
     }
     assert.equal(statuses[5], 429, `the sixth order in an hour should be refused; got ${statuses.join(',')}`)
+  })
+
+  /*
+   * REGRESSION. The per-address window worked and bounded nothing: ten orders from one address gave
+   * 201,201,201,201,201,429,429,429,429,429, and ten orders from ten addresses gave 201 ten times.
+   * `cf-connecting-ip` is set by Cloudflare and a client cannot spoof it, but one IPv6 /64 is 2^64
+   * addresses, so "five per address" cost an attacker nothing. With no ceiling above it, Turnstile
+   * was the only thing bounding how many pull requests could be opened in a public repository under
+   * our name — which made the blast radius of any future Turnstile weakness unbounded rather than
+   * bounded. The thing being filled is the repository carrying every customer's operating system.
+   */
+  test('a ceiling across every address, so one address per order buys nothing', async () => {
+    const env = baseEnv()
+    const statuses = []
+    // Forty-one orders, each from a different address and each with a different recipe name, so
+    // neither the per-address window nor the duplicate-name check is what refuses them.
+    for (let i = 0; i < 41; i++) {
+      const recipe = structuredClone(REAL['example-school'])
+      recipe.name = `fleet-${String(i).padStart(3, '0')}`
+      const request = post('/order-submit', orderBody({ recipe }))
+      // A fresh address every time. Cloudflare sets this header; the test is impersonating
+      // Cloudflare, not a client.
+      const withIp = new Request(request, { headers: { ...Object.fromEntries(request.headers), 'cf-connecting-ip': `2001:db8::${i}` } })
+      const res = await worker.fetch(withIp, env, ctx)
+      statuses.push(res.status)
+    }
+    assert.ok(statuses.slice(0, 40).every(s => s === 201), `the first forty should be accepted; got ${statuses.slice(0, 40).join(',')}`)
+    assert.equal(statuses[40], 429, 'the forty-first order in an hour, from a forty-first address, must be refused')
+
+    const refused = await worker.fetch(new Request(post('/order-submit', orderBody()), { headers: { 'content-type': 'application/json', 'cf-connecting-ip': '2001:db8::ffff' } }), env, ctx)
+    const body = await refused.json()
+    assert.equal(body.scope, 'global', 'a globally rate-limited order should say which ceiling it hit')
+    assert.match(body.because, /across every address/)
   })
 })
 
@@ -267,7 +313,7 @@ describe('POST /build-result — the endpoint that charges a card', () => {
 
   /** Place an order first, so there is something to settle. */
   async function withOrder (env) {
-    await worker.fetch(post('/order', orderBody()), env, ctx)
+    await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const record = JSON.parse(env.AUROS_KV.store.get('order:example-school'))
     record.subscriptionId = 'sub_fake'
     record.state = 'card-authenticated'
@@ -408,7 +454,7 @@ describe('POST /stripe-webhook — signature first, always', () => {
 
   test('a valid checkout.session.completed records which object to bill later', async () => {
     const env = baseEnv()
-    await worker.fetch(post('/order', orderBody()), env, ctx)
+    await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const raw = event()
     const res = await worker.fetch(post('/stripe-webhook', raw, { 'stripe-signature': await signPayload('whsec_test', raw) }), env, ctx)
     assert.equal(res.status, 200)
@@ -419,7 +465,7 @@ describe('POST /stripe-webhook — signature first, always', () => {
 
   test('a redelivered event is acknowledged and not re-applied', async () => {
     const env = baseEnv()
-    await worker.fetch(post('/order', orderBody()), env, ctx)
+    await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const raw = event()
     const sig = await signPayload('whsec_test', raw)
     await worker.fetch(post('/stripe-webhook', raw, { 'stripe-signature': sig }), env, ctx)
@@ -529,7 +575,7 @@ describe('the router', () => {
   test('an unhandled error becomes a refusal, not a stack trace', async () => {
     const env = baseEnv()
     env.AUROS_KV = { get () { throw new Error('kv exploded, and this message names our internals') }, put () {} }
-    const res = await worker.fetch(post('/order', orderBody()), env, ctx)
+    const res = await worker.fetch(post('/order-submit', orderBody()), env, ctx)
     const body = await res.json()
     assert.equal(res.status, 500)
     assert.ok(!JSON.stringify(body).includes('kv exploded'))

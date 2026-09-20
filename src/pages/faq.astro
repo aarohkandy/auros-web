@@ -23,11 +23,31 @@ const { Content } = await renderEntry(page);
 >
   <PageHeader page={page} />
 
-  <Panel tone="panel">
-    <Prose>
-      <Content />
-    </Prose>
-  </Panel>
+  <div class="document">
+    <Panel tone="panel">
+      <Prose>
+        <Content />
+      </Prose>
+    </Panel>
+  </div>
 
-  <FaqList />
+  <div class="answers">
+    <FaqList />
+  </div>
 </PageShell>
+
+<style>
+  /*
+    Prose is one measure wide and Prose.astro already caps it. The panel AROUND it was the thing
+    running the full 72rem, which left a column of empty panel beside every paragraph and made
+    every section on the page the same width as every other — the shape a template has when it has
+    accepted content rather than been laid out. The panel is constrained; the type is untouched.
+  */
+  .document :global(.panel) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
+  }
+
+  .answers {
+    padding-block: var(--space-7, 48px) var(--space-8, 64px);
+  }
+</style>

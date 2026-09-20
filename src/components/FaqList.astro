@@ -60,22 +60,30 @@ const sections = await Promise.all(
   .group-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.6rem;
+    font-size: var(--step-3, 2rem);
     line-height: 1.15;
     margin: 0;
     color: var(--ink, #24231f);
   }
+  /*
+    `minmax(0, 1fr)`, not the implicit `auto`. An answer containing a command line has a
+    min-content width wider than a 375px screen, and an auto track grows to fit it — which pushed
+    the whole page 11px wide and gave a phone a horizontal scrollbar on the one page an IT person
+    reads first. With a zero minimum the track holds the gutter and the <pre> scrolls inside its
+    own box, which is where a long command should scroll.
+  */
   .entries {
     list-style: none;
     margin: 0;
     padding: 0;
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: 0.75rem;
   }
   .question {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.3rem;
+    font-size: var(--step-2, 1.5rem);
     line-height: 1.2;
     margin: 0 0 0.5rem;
     color: var(--ink, #24231f);

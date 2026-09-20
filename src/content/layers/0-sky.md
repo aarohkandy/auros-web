@@ -2,7 +2,7 @@
 id: sky
 marginLabel: "── sky ──"
 name: An OS with only what you asked for
-ownedBy: Auros
+ownedBy: nobody
 refMono: ""
 depth: 0
 ---

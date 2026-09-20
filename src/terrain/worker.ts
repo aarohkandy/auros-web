@@ -21,7 +21,7 @@
  * ──────────────────────────────────────────────────────────────────────────────────────────
  */
 
-import { paint, paintToCanvas, type Theme } from "./render";
+import { paint, paintToCanvas, type Theme } from "./render.ts";
 import {
   CLOUD_BAND_HEIGHT,
   CLOUD_PERIOD,
@@ -32,7 +32,7 @@ import {
   generateTerrain,
   type CloudBuffer,
   type TerrainBuffer,
-} from "./terrain";
+} from "./terrain.ts";
 
 /** Anything with a 2D context. An `OffscreenCanvas` in a Worker, a `<canvas>` on main. */
 export type PaintTarget = {

@@ -48,6 +48,8 @@ export interface BuildSnapshot {
   run: BuildRun;
   linesShown: number;
   linesOmitted: number;
+  /** Every line the runner printed, before the reducer chose any. Quoted on the page as a ratio. */
+  linesInLog?: number;
   lines: BuildLine[];
 }
 

@@ -13,12 +13,20 @@
 // against a document somebody else could serve.
 import schema from '../schema/recipe.schema.json' with { type: 'json' }
 import { compile, validate } from './jsonschema.js'
+import { freeTextRefusals, reservedKeyRefusals, catalogueRefusals, collectKnownKeys, reservedByName } from './rules.js'
 
 // Compiled once at module load, not per request. If the schema ever gains a keyword the evaluator does
 // not implement, this throws while the Worker is starting — every route 500s and the deploy is
 // obviously broken. That is the correct blast radius: the alternative is one quiet request accepting a
 // recipe because the rule that would have rejected it was a keyword we skipped.
 compile(schema)
+
+/**
+ * The two key sets the family detector needs, derived once at module load for the same reason the
+ * schema is compiled once: they are a function of a file that cannot change while the Worker runs.
+ */
+const KNOWN_KEYS = collectKnownKeys(schema)
+const NAMED_REFUSALS = reservedByName(schema)
 
 export { schema }
 
@@ -48,7 +56,23 @@ export function validateRecipe (candidate) {
     }
   }
   const { valid, errors } = validate(schema, candidate)
-  if (!valid) return { ok: false, errors }
+
+  // The rules a grammar cannot carry — the ones CI also runs. Before these existed the Worker was a
+  // SUBSET of the control it told the customer it was, and a recipe it had blessed into a public
+  // pull request could be refused by the CI it named in the blessing.
+  //
+  // They run ALONGSIDE the schema rather than after it, and that is deliberate. `postInstall` fails
+  // the schema as "there is no postInstall field in this form" and fails the family detector as "A
+  // recipe cannot run code", with the paragraph explaining why a format a stranger can send us a
+  // command in is a format we cannot accept. Returning only the first would give the reader the
+  // least useful of the two. CI reports both; so does this.
+  const beyondTheGrammar = [
+    ...freeTextRefusals(candidate),
+    ...reservedKeyRefusals(candidate, KNOWN_KEYS, NAMED_REFUSALS),
+    ...catalogueRefusals(/** @type {Record<string, any>} */ (candidate))
+  ]
+
+  if (!valid || beyondTheGrammar.length > 0) return { ok: false, errors: [...beyondTheGrammar, ...errors] }
   return { ok: true, recipe: /** @type {Record<string, unknown>} */ (candidate) }
 }
 
@@ -75,7 +99,15 @@ export function presentRefusal (errors) {
   // because both fire for a forbidden field and only `not` carries the specific argument — writing
   // `version:` trips the root's additionalProperties AND `$defs/refusals/pins`, and it is "Nothing can
   // be held at a version" the reader needs to see, not "Customer recipe".
-  const refusals = [...errors.filter(e => e.keyword === 'not'), ...errors.filter(e => e.keyword === 'additionalProperties')]
+  // `refusal` first: those are the rules that come with an argument attached — a reserved key
+  // family, a catalogue miss, command substitution in free text — and the argument is the thing
+  // worth reading. Then `not`, then `additionalProperties`, which is the least informative of the
+  // three and the one a reader learns nothing from.
+  const refusals = [
+    ...errors.filter(e => e.keyword === 'refusal'),
+    ...errors.filter(e => e.keyword === 'not'),
+    ...errors.filter(e => e.keyword === 'additionalProperties')
+  ]
   const primary = refusals[0] ?? errors[0]
   return {
     refused: refusals.length > 0,
