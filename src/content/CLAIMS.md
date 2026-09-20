@@ -8,13 +8,15 @@ whose evidence column says **UNEVIDENCED** must not be published until a human h
 
 Maintained by the agent that owns content.
 
-**Reviewed against DECISIONS.md: D33** — 2026-09-20.
+**Reviewed against DECISIONS.md: D34** — 2026-09-20.
 
-Of those, `D30` and `D31` rewrote what this file says about trust and replaceability (section 7),
-and `D33` was read and changes nothing published: it exempts one named script endpoint on the
+Of those, `D30` and `D31` rewrote what this file says about trust and replaceability (section 7).
+Two were read and change nothing published. `D33` exempts one named script endpoint on the
 configurator page from SPEC §4.5, and no content file makes a claim about what the site loads.
-Recording the ones that turned out not to matter is the point — the date is worthless if it only
-moves when somebody feels like it does.
+`D34` adds a direction audit and 27 red-proving mutations to the base's build-script suite; it
+makes the check-matrix rows in section 6 better evidenced rather than differently true, and no
+sentence on the site moves. Recording the ones that turned out not to matter is the point — the
+date is worthless if it only moves when somebody feels like it does.
 
 That line is not bookkeeping. On 2026-09-20 two decisions landed (`D30`, then `D31`), the site
 did not change, and about twenty-five sentences across thirteen files went from true to false in
