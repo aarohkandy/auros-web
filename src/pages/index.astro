@@ -46,8 +46,8 @@ const { Content } = await renderEntry(page);
   </div>
 
   <div class="body">
-    <StratumLabel layer="surface" />
     <Panel tone="panel">
+      <StratumLabel layer="surface" />
       <Prose>
         <Content />
       </Prose>
@@ -55,7 +55,9 @@ const { Content } = await renderEntry(page);
   </div>
 
   <div class="console-section">
-    <StratumLabel layer="stratum-2" />
+    <Panel tone="panel" class="console-label">
+      <StratumLabel layer="stratum-2" />
+    </Panel>
     <BuildConsole />
   </div>
 
@@ -132,6 +134,9 @@ const { Content } = await renderEntry(page);
   .console-section,
   .safety {
     margin: 2rem 0;
+  }
+  .console-label {
+    margin-bottom: 0.75rem;
   }
   .section-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);

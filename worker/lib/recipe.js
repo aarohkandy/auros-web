@@ -7,6 +7,10 @@
  * chosen to find a gap.
  */
 
+// The import attribute is required by Node (ESM refuses a JSON import without it) and understood by
+// esbuild, which is what wrangler bundles with. If a future bundler chokes on it, the fix is to inline
+// the schema as a generated .js module — NOT to fetch it at runtime, which would mean validating
+// against a document somebody else could serve.
 import schema from '../schema/recipe.schema.json' with { type: 'json' }
 import { compile, validate } from './jsonschema.js'
 

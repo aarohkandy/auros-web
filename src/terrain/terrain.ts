@@ -148,10 +148,11 @@ function noise1(
 
 /** Octave spacings. All divide 960. Amplitudes halve, which is the usual fBm arrangement. */
 const OCTAVES: readonly (readonly [spacing: number, amplitude: number])[] = [
-  [240, 0.5],
-  [120, 0.25],
-  [60, 0.15],
-  [30, 0.1],
+  [240, 0.46],
+  [120, 0.26],
+  [60, 0.16],
+  [30, 0.08],
+  [16, 0.04],
 ];
 
 /** Layered value noise in −0.5..+0.5. Sums to 1.0 amplitude, then re-centres. */
@@ -223,11 +224,22 @@ export function columnBoundaries(
   worldHeight: number,
   worldWidth: number,
 ): Int32Array {
+  // One shared landform, scaled down layer by layer, plus a small independent component.
+  //
+  // Real strata are conformable: a deeper bed carries the shape of the ones above it, flattened.
+  // Five independent noise fields would cross each other, and a crossed boundary would draw
+  // stratum 2 above stratum 1 — a diagram that lies. The clamp below would then straighten them
+  // out, which is exactly the flat layer-cake this is not supposed to be.
+  //
+  // It also happens to be the thing the picture is saying: the surface is weather, the bedrock
+  // is not. Upstream does not move under you.
+  const shared = fbm(worldX, SALT.relief, seed, worldWidth);
   const rows = new Int32Array(STRATA.length);
   for (let i = 0; i < STRATA.length; i++) {
     const s = STRATA[i]!;
-    const nominal = s.top * worldHeight;
-    const displaced = nominal + fbm(worldX, SALT.relief + i, seed, worldWidth) * s.reliefBlocks;
+    const own = fbm(worldX, SALT.relief + 1 + i, seed, worldWidth);
+    const displaced =
+      s.top * worldHeight + (shared * 0.8 + own * 0.2) * s.reliefBlocks;
     rows[i] = Math.round(displaced);
   }
   rows[0] = 0; // the sky starts at the top of the world, always
@@ -265,10 +277,9 @@ const STAR_DENSITY = 0.0018;
  * "is my draw the largest in ±TREE_SPACING?" is positional, so a tree that straddles the left
  * edge of a phone-sized window is still drawn, and still drawn in exactly the same place.
  */
-const TREE_SPACING = 4;
-const TREE_THRESHOLD = 0.42;
-const TREE_HALF_WIDTH = 2;
-const TREE_TIERS = 3;
+const TREE_SPACING = 7;
+const TREE_THRESHOLD = 0.4;
+const TREE_HALF_WIDTH = 3;
 
 function isTreeRoot(worldX: number, seed: number, worldWidth: number): boolean {
   const me = hash(seed, SALT.tree, wrap(worldX, worldWidth));
@@ -313,8 +324,12 @@ export function generateTerrain(req: TerrainRequest = {}): TerrainBuffer {
     // Ore is clustered by a low-frequency vein field rather than sprinkled uniformly. A uniform
     // sprinkle reads as dirt on the screen; a vein reads as a seam, and a seam is the thing the
     // accent colour is supposed to mean.
+    // Squared so ore clusters into runs, but with a floor: a seam that died out completely
+    // would leave a stretch of boundary unmarked, and on a narrow viewport that stretch might
+    // be the whole thing the visitor sees. The accent has one job and it has to do it at every
+    // width.
     const vein = noise1(worldX, 60, SALT.vein, seed, worldWidth);
-    const veinStrength = vein * vein;
+    const veinStrength = 0.3 + 0.7 * vein * vein;
 
     for (let y = 0; y < worldHeight; y++) {
       let px: number;
@@ -371,25 +386,22 @@ export function generateTerrain(req: TerrainRequest = {}): TerrainBuffer {
     if (!isTreeRoot(worldX, seed, worldWidth)) continue;
     const rows = columnBoundaries(worldX, seed, worldHeight, worldWidth);
     const rootY = rows[1]!;
-    const height = 5 + Math.floor(hash(seed, SALT.tree + 1, worldX) * 4); // 5..8 blocks
+    const height = 9 + Math.floor(hash(seed, SALT.tree + 1, worldX) * 6); // 9..14 blocks
 
-    // A conifer: TREE_TIERS stacked triangles, then a one-block trunk. Every block is written
-    // whole, so the silhouette is stepped, never a smoothed diagonal.
-    for (let tier = 0; tier < TREE_TIERS; tier++) {
-      const tierTop = rootY - height + Math.floor((tier * height) / (TREE_TIERS + 1));
-      const tierRows = Math.max(1, Math.floor(height / (TREE_TIERS + 1)) + 1);
-      for (let r = 0; r < tierRows; r++) {
-        const y = tierTop + r;
-        if (y < 0 || y >= rootY) continue;
-        const spread = Math.min(TREE_HALF_WIDTH, Math.floor((r + tier) / 2));
-        for (let dx = -spread; dx <= spread; dx++) {
-          const col = rx + dx;
-          if (col < 0 || col >= width) continue;
-          // One light direction for the whole scene: lit from the left, so the right side of
-          // every tree is the darker tone. Consistency here is what stops pixel art looking
-          // like clip art.
-          indices[col * worldHeight + y] = dx > 0 ? PX.TREE_LO : PX.TREE_HI;
-        }
+    // A stepped conifer: the silhouette widens by two blocks every third row, so it is a stack
+    // of whole blocks rather than a triangle that has been rasterised. Nothing here can produce
+    // a smoothed diagonal.
+    for (let r = 0; r < height - 2; r++) {
+      const y = rootY - height + r;
+      if (y < 0 || y >= rootY) continue;
+      const spread = Math.min(TREE_HALF_WIDTH, Math.floor(r / 3));
+      for (let dx = -spread; dx <= spread; dx++) {
+        const col = rx + dx;
+        if (col < 0 || col >= width) continue;
+        // One light direction for the whole scene: lit from the left, so the right side of
+        // every tree is the darker tone. Consistency here is what stops pixel art looking
+        // like clip art.
+        indices[col * worldHeight + y] = dx > 0 ? PX.TREE_LO : PX.TREE_HI;
       }
     }
     for (let y = rootY - 2; y < rootY; y++) {
@@ -471,18 +483,18 @@ export function generateClouds(req: CloudRequest = {}): CloudBuffer {
 
   const indices = new Uint8Array(width * height).fill(TRANSPARENT);
 
-  // Eight clouds per period. Enough that the sky is not empty, few enough that it is a sky and
-  // not a ceiling.
-  const CLOUDS = 8;
+  // Six clouds per period. Enough that the sky is not empty, few enough that it is a sky and
+  // not a ceiling — measured coverage is reported by the suite rather than asserted by eye.
+  const CLOUDS = 6;
   for (let i = 0; i < CLOUDS; i++) {
     const cx = Math.round(
       (i * period) / CLOUDS + hash(seed, SALT.cloud, i) * (period / CLOUDS),
     );
     // Clouds sit in the upper two thirds of the sky band and never near the horizon, where they
     // would collide with the tree line and blur the one edge that has to stay legible.
-    const cy = Math.round(height * (0.08 + hash(seed, SALT.cloud + 1, i) * 0.42));
-    const halfW = 6 + Math.floor(hash(seed, SALT.cloud + 2, i) * 12);
-    const rowsTall = 2 + Math.floor(hash(seed, SALT.cloud + 3, i) * 3);
+    const cy = Math.round(height * (0.06 + hash(seed, SALT.cloud + 1, i) * 0.56));
+    const halfW = 14 + Math.floor(hash(seed, SALT.cloud + 2, i) * 20);
+    const rowsTall = 3 + Math.floor(hash(seed, SALT.cloud + 3, i) * 3);
 
     for (let r = 0; r < rowsTall; r++) {
       const y = cy + r;

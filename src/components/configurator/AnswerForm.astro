@@ -354,24 +354,24 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
   .cfg-form {
     display: grid;
     gap: 1.25rem;
-    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
-    color: var(--cfg-ink, #24231f);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    color: var(--ink, #24231f);
   }
 
   .cfg-fieldset,
   .cfg-block {
-    border: 1px solid var(--cfg-rule, #8a7358);
+    border: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
     padding: 1rem;
     margin: 0;
-    background: var(--cfg-panel, #f4f1ea);
+    background: var(--panel, #f4f1ea);
     display: grid;
     gap: 0.9rem;
   }
 
   .cfg-subfield {
     border: 0;
-    border-top: 1px solid var(--cfg-rule, #8a7358);
+    border-top: 1px solid var(--rule, #8a7358);
     padding: 0.75rem 0 0;
     margin: 0;
     display: grid;
@@ -379,7 +379,7 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
   }
 
   .cfg-legend {
-    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     /* Instrument Serif has 400 normal and 400 italic. There is no bold, and faking one with
        synthetic weight is the thing the decision sheet says not to do. */
     font-weight: 400;
@@ -388,10 +388,14 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     padding: 0;
   }
 
+  /* Ore is never a glyph colour (CONVENTIONS.md, measured). The number is ink-muted and the
+     ore appears as the rule beside the legend instead. */
   .cfg-legend__n {
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.875rem;
-    color: var(--cfg-ore, #be3a12);
+    color: var(--ink-muted, #5a4e40);
+    border-left: 3px solid var(--ore, #be3a12);
+    padding-left: 0.4rem;
     margin-right: 0.4rem;
   }
 
@@ -409,11 +413,11 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     margin: 0;
     font-size: 0.8125rem;
     line-height: 1.55;
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
   }
 
   .cfg-hint--warning {
-    border-left: 2px solid var(--cfg-ore, #be3a12);
+    border-left: 2px solid var(--ore, #be3a12);
     padding-left: 0.6rem;
   }
 
@@ -421,10 +425,10 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     font: inherit;
     font-size: 1rem;
     padding: 0.45rem 0.55rem;
-    border: 1px solid var(--cfg-rule, #8a7358);
+    border: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
-    background: var(--cfg-field, #ffffff);
-    color: var(--cfg-ink, #24231f);
+    background: var(--panel-2, #e6e0d2);
+    color: var(--ink, #24231f);
     max-width: 34rem;
     width: 100%;
   }
@@ -436,7 +440,7 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     max-width: 100%;
   }
   .cfg-input--area {
-    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     line-height: 1.5;
     resize: vertical;
   }
@@ -445,7 +449,7 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
   .cfg-choice input:focus-visible,
   .cfg-button:focus-visible,
   .cfg-form a:focus-visible {
-    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline: 2px solid var(--ore, #be3a12);
     outline-offset: 2px;
   }
 
@@ -472,7 +476,7 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     /* A 10-year-old laptop with a trackpad, used by somebody in a hurry. */
     width: 1.05rem;
     height: 1.05rem;
-    accent-color: var(--cfg-ore, #be3a12);
+    accent-color: var(--ore, #be3a12);
   }
   .cfg-choice--wide {
     align-items: flex-start;
@@ -487,10 +491,10 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
   .cfg-choice__note {
     font-size: 0.8125rem;
     line-height: 1.5;
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
   }
   .cfg-choice--emphasis {
-    border-top: 1px solid var(--cfg-rule, #8a7358);
+    border-top: 1px solid var(--rule, #8a7358);
     padding-top: 0.75rem;
   }
 
@@ -500,12 +504,12 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
   .cfg-conditional {
     display: grid;
     gap: 0.75rem;
-    border-top: 1px solid var(--cfg-rule, #8a7358);
+    border-top: 1px solid var(--rule, #8a7358);
     padding-top: 0.75rem;
   }
 
   .cfg-tier {
-    border-top: 1px solid var(--cfg-rule, #8a7358);
+    border-top: 1px solid var(--rule, #8a7358);
     padding-top: 0.75rem;
     display: grid;
     gap: 0.2rem;
@@ -516,39 +520,46 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
   }
   .cfg-tier__price {
     margin: 0;
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 1.05rem;
   }
   .cfg-tier__note {
     margin: 0;
     font-size: 0.8125rem;
     line-height: 1.55;
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
   }
   .cfg-tier[data-conversation="true"] {
-    border-left: 2px solid var(--cfg-ore, #be3a12);
+    border-left: 2px solid var(--ore, #be3a12);
     padding-left: 0.6rem;
   }
 
+  /* An opaque panel, like every other block of text on this site (section 7). It is also what
+     makes the pair measurable: text floating on the page background has no panel to be measured
+     against, and `tools/contrast.mjs` reports that as unmeasured rather than passing it. */
   .cfg-submit {
     display: grid;
     gap: 0.6rem;
+    background: var(--panel, #f4f1ea);
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 3px;
+    padding: 1rem;
   }
   .cfg-submit__reason {
     margin: 0;
     font-size: 0.875rem;
     line-height: 1.55;
-    color: var(--cfg-ink, #24231f);
+    color: var(--ink, #24231f);
   }
 
   .cfg-button {
     font: inherit;
     font-size: 0.9375rem;
     padding: 0.5rem 0.9rem;
-    border: 1px solid var(--cfg-rule, #8a7358);
+    border: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
-    background: var(--cfg-panel, #f4f1ea);
-    color: var(--cfg-ink, #24231f);
+    background: var(--panel, #f4f1ea);
+    color: var(--ink, #24231f);
     cursor: pointer;
     justify-self: start;
   }
@@ -556,16 +567,19 @@ const TURNSTILE_TEST_SITEKEY = "1x00000000000000000000AA";
     font-size: 0.8125rem;
     padding: 0.3rem 0.6rem;
   }
+  /* The primary action is marked with ore as a border, not filled with it. White on ore is
+     3.5:1 once the dark theme swaps the tone, and this button carries text. */
   .cfg-button--primary {
-    background: var(--cfg-ore, #be3a12);
-    border-color: var(--cfg-ore, #be3a12);
-    color: #ffffff;
+    background: var(--panel, #f4f1ea);
+    border: 2px solid var(--ore, #be3a12);
+    color: var(--ink, #24231f);
+    padding: 0.5rem 0.9rem;
   }
   .cfg-button[disabled] {
     cursor: not-allowed;
-    background: var(--cfg-panel-deep, #e6e0d2);
-    border-color: var(--cfg-rule, #8a7358);
-    color: var(--cfg-ink-soft, #5a4e40);
+    background: var(--panel-2, #e6e0d2);
+    border-color: var(--rule, #8a7358);
+    color: var(--ink-muted, #5a4e40);
   }
 
   .cfg-form a {

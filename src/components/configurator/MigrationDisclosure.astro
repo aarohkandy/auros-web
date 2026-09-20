@@ -13,16 +13,22 @@
  *
  * The words come from `src/content/migration`, which another agent wrote. Nothing is restated
  * here, because two copies of a disclosure is one copy that goes stale.
+ *
+ * `src/pages/configure.astro` renders the FULL inventory further down the page, including the
+ * conditional entries and their tests. This block carries only the outright noes, because those
+ * are the ones that decide whether a migration is a good idea and they have to be above the
+ * button rather than below it. Rendering the conditionals twice on one page would not make them
+ * more read; it would make the page longer and teach the reader to scroll past a heading they
+ * have already seen.
  */
 import { getCollection } from "astro:content";
-import { doesNotComeAcrossColumn, migrationPage } from "../../content/copy";
+import { doesNotComeAcrossColumn } from "../../content/copy";
 
 const migration = await getCollection("migration");
 const entries = migration
   .filter((e) => e.data.onLanding || e.data.verdict === "does-not")
   .sort((a, b) => a.data.order - b.data.order);
 const doesNot = entries.filter((e) => e.data.verdict === "does-not");
-const conditional = entries.filter((e) => e.data.verdict === "conditional");
 ---
 
 <section class="cfg-disclosure" aria-labelledby="cfg-disclosure-title">
@@ -48,48 +54,28 @@ const conditional = entries.filter((e) => e.data.verdict === "conditional");
     }
   </ul>
 
-  {
-    conditional.length > 0 && (
-      <div class="cfg-disclosure__conditional">
-        <p class="cfg-disclosure__conditional-note">{migrationPage.conditionalNote}</p>
-        <ul class="cfg-disclosure__list">
-          {conditional.map((entry) => (
-            <li class="cfg-disclosure__item">
-              <p class="cfg-disclosure__name">{entry.data.title}</p>
-              <p class="cfg-disclosure__verdict">{doesNotComeAcrossColumn.verdictLabels.conditional}</p>
-              <p class="cfg-disclosure__one-line">{entry.data.oneLine}</p>
-              {entry.data.howToCheck && (
-                <p class="cfg-disclosure__how">
-                  <span class="cfg-disclosure__how-label">{migrationPage.howToCheckLabel}:</span>{" "}
-                  {entry.data.howToCheck}
-                </p>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    )
-  }
-
   <p class="cfg-disclosure__footnote">{doesNotComeAcrossColumn.footnote}</p>
   <p class="cfg-disclosure__more">
-    <a href={doesNotComeAcrossColumn.moreLink.href}>{doesNotComeAcrossColumn.moreLink.label}</a>
+    Some things depend on a fact about your copy that we cannot know from here, and each of those
+    carries a test you can run this week without buying anything. They are listed in full further
+    down this page, and in the complete inventory:
+    <a href={doesNotComeAcrossColumn.moreLink.href}>{doesNotComeAcrossColumn.moreLink.label}</a>.
   </p>
 </section>
 
 <style>
   .cfg-disclosure {
-    background: var(--cfg-panel, #f4f1ea);
-    color: var(--cfg-ink, #24231f);
-    border: 1px solid var(--cfg-rule, #8a7358);
-    border-left: 3px solid var(--cfg-ore, #be3a12);
+    background: var(--panel, #f4f1ea);
+    color: var(--ink, #24231f);
+    border: 1px solid var(--rule, #8a7358);
+    border-left: 3px solid var(--ore, #be3a12);
     border-radius: 3px;
     padding: 1rem;
-    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
   }
 
   .cfg-disclosure__title {
-    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
     font-size: 1.5rem;
     line-height: 1.15;
@@ -97,15 +83,14 @@ const conditional = entries.filter((e) => e.data.verdict === "conditional");
   }
 
   .cfg-disclosure__standfirst,
-  .cfg-disclosure__footnote,
-  .cfg-disclosure__conditional-note {
+  .cfg-disclosure__footnote {
     font-size: 0.9375rem;
     line-height: 1.6;
     margin: 0 0 0.75rem;
   }
 
   .cfg-disclosure__footnote {
-    border-top: 1px solid var(--cfg-rule, #8a7358);
+    border-top: 1px solid var(--rule, #8a7358);
     padding-top: 0.75rem;
     margin-top: 0.75rem;
     margin-bottom: 0.5rem;
@@ -120,7 +105,7 @@ const conditional = entries.filter((e) => e.data.verdict === "conditional");
   }
 
   .cfg-disclosure__item {
-    border-top: 1px solid var(--cfg-rule, #8a7358);
+    border-top: 1px solid var(--rule, #8a7358);
     padding-top: 0.6rem;
   }
 
@@ -132,22 +117,18 @@ const conditional = entries.filter((e) => e.data.verdict === "conditional");
 
   .cfg-disclosure__verdict {
     margin: 0.1rem 0 0.3rem;
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.75rem;
     letter-spacing: 0.04em;
-    color: var(--cfg-ore, #be3a12);
+    color: var(--ink-muted, #5a4e40);
+    border-left: 3px solid var(--ore, #be3a12);
+    padding-left: 0.4rem;
   }
 
-  .cfg-disclosure__one-line,
-  .cfg-disclosure__how {
+  .cfg-disclosure__one-line {
     margin: 0 0 0.3rem;
     font-size: 0.875rem;
     line-height: 1.55;
-  }
-
-  .cfg-disclosure__how-label {
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
-    font-size: 0.8125rem;
   }
 
   .cfg-disclosure__examples {
@@ -155,11 +136,7 @@ const conditional = entries.filter((e) => e.data.verdict === "conditional");
     padding-left: 1.1rem;
     font-size: 0.8125rem;
     line-height: 1.6;
-    color: var(--cfg-ink-soft, #5a4e40);
-  }
-
-  .cfg-disclosure__conditional {
-    margin-top: 1rem;
+    color: var(--ink-muted, #5a4e40);
   }
 
   .cfg-disclosure__more {
@@ -168,12 +145,12 @@ const conditional = entries.filter((e) => e.data.verdict === "conditional");
   }
 
   .cfg-disclosure a {
-    color: var(--cfg-ink, #24231f);
+    color: var(--ink, #24231f);
     text-decoration-thickness: 1px;
     text-underline-offset: 0.2em;
   }
   .cfg-disclosure a:focus-visible {
-    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline: 2px solid var(--ore, #be3a12);
     outline-offset: 2px;
   }
 </style>

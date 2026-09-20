@@ -2,6 +2,11 @@
 /**
  * The configurator: the panel and the four questions, together.
  *
+ * WHAT THIS COMPONENT DOES NOT DO
+ * `src/pages/configure.astro` owns the frame — the `<h1>`, the standfirst, the privacy warning,
+ * the full migration inventory and the site-wide `<noscript>` block. None of that is repeated
+ * here. This component is the panel, the questions, and the wiring between them.
+ *
  * LAYOUT DECISIONS THAT ARE ARGUMENTS, NOT TASTE
  *
  * The panel comes FIRST IN THE DOCUMENT. On a phone that puts it above the form, which
@@ -14,13 +19,18 @@
  * box truncates, and the one rule this whole workstream has is that the prune block is never
  * truncated. Losing the sticky behaviour is the cheaper thing to lose.
  *
- * WITHOUT JAVASCRIPT the form is not there at all, and the fallback says why rather than
- * showing a dead form. Turnstile has no `<noscript>` path and the Worker never accepts a POST
- * without a valid token, so a form that looked submittable would be a lie about what happens
- * when you press the button. The panel still renders, because a file you can read is worth
- * having even when you cannot edit it here.
+ * WITHOUT JAVASCRIPT the form is not there at all. Turnstile has no `<noscript>` path and the
+ * Worker never accepts a POST without a valid token, so a form that looked submittable would be
+ * a lie about what happens when you press the button. The panel still renders, because a file
+ * you can read is worth having even when you cannot edit it here.
+ *
+ * TOKENS
+ * Per `src/components/CONVENTIONS.md`: every colour and typeface is `var(--token, <fallback>)`
+ * with a spec section 7 palette literal as the fallback, and the dark theme is the styles
+ * agent's — these components carry no dark rules of their own. ORE IS NEVER A GLYPH COLOUR:
+ * `#BE3A12` is 2.83:1 on the dark panel and `#D9682E` is 4.39:1, both under AA, so ore is only
+ * ever a border, a background or a mark here.
  */
-import { configurator, site } from "../../content/copy";
 import RecipePanel from "./RecipePanel.astro";
 import AnswerForm from "./AnswerForm.astro";
 
@@ -29,38 +39,9 @@ interface Props {
   endpoint?: string;
 }
 const { endpoint = "/api/order" } = Astro.props;
-
-const mailtoSubject = encodeURIComponent("Auros build, configured by hand");
-const mailtoBody = encodeURIComponent(
-  [
-    "This is the degraded path. It is not the same as the configurator: nothing here is validated",
-    "against the schema as you type, and no pull request is opened by sending it.",
-    "",
-    "How many machines:",
-    "Roughly what age:",
-    "What they are (models), if you know:",
-    "What kind of place this is (school or nonprofit / business / just me):",
-    "",
-    "What language the machines should be in:",
-    "What is printed on the keys:",
-    "",
-    "What people actually do on these (browse, write documents, email, print, scan, video calls,",
-    "USB drives, wireless accessories, learning programs, software development, remote support):",
-    "Anything not on that list should be deleted:",
-    "",
-    "Who is allowed to change things (anyone / staff only / nobody / single-purpose machine):",
-    "",
-    "I have read what does not come across, including that Windows programs do not run on Linux:",
-  ].join("\n"),
-);
 ---
 
-<section class="cfg" data-configurator data-endpoint={endpoint} aria-labelledby="cfg-title">
-  <header class="cfg__head">
-    <h1 class="cfg__title" id="cfg-title">{configurator.title}</h1>
-    <p class="cfg__standfirst">{configurator.standfirst}</p>
-  </header>
-
+<section class="cfg" data-configurator data-endpoint={endpoint} aria-label="Configure a build">
   <div class="cfg__layout">
     <!-- First in the document on purpose. See the note at the top of this file. -->
     <div class="cfg__panel">
@@ -69,32 +50,24 @@ const mailtoBody = encodeURIComponent(
 
     <div class="cfg__form">
       <div data-form-mount>
-        <p class="cfg__booting">{configurator.emptyState}</p>
+        <p class="cfg__booting">
+          The questions load in a moment. The file beside them is real either way.
+        </p>
       </div>
 
       <noscript>
         <div class="cfg__noscript">
-          <h2 class="cfg__noscript-title">This form needs JavaScript, and we are not going to fake it</h2>
-          <p>{configurator.noJsFallback}</p>
           <p>
-            The honest reason: every submission passes a human check before the server will look at it,
-            that check has no version that works without JavaScript, and the server refuses a submission
-            without it. A form here that appeared to work would be a form that could not send. So there
-            is no form here.
+            The questions need JavaScript, and there is no version of them here that does not.
+            Every submission passes a human check before the server will look at it, that check has
+            no path that works without JavaScript, and the server refuses a submission without it.
+            A form here that looked live would be a form that could not send, so there is not one.
           </p>
           <p>
-            This is a degraded path, not an equivalent one. Emailing us gets a person writing your recipe
-            by hand and sending you the file to read. It does not open a pull request by itself, and
-            nothing is built until you have read the file and said yes.
-          </p>
-          <p>
-            <a href={`mailto:${site.contactEmail}?subject=${mailtoSubject}&body=${mailtoBody}`}>
-              Email the answers to {site.contactEmail}
-            </a>
-          </p>
-          <p class="cfg__noscript-note">
-            That address is a placeholder until a human sets a real one. The file on this page is a real
-            recipe in the starting state, and it is the same file the form would build.
+            The file above is a real recipe in its starting state, and it is the same file these
+            questions build. The email fallback is further down this page. It is a degraded path,
+            not an equivalent one: it gets you a person writing the recipe by hand and sending you
+            the file to read, rather than a pull request you opened yourself.
           </p>
         </div>
       </noscript>
@@ -110,21 +83,10 @@ const mailtoBody = encodeURIComponent(
 
 <style>
   .cfg {
-    /* One place where every colour and typeface this component uses is named. Each one defers
-       to the site token if the design system has published it, and falls back to the spec 7
-       palette literal if it has not. No gradients, no shadows, 3px radius ceiling, hairline
-       rules: those are section 7 rules and they are not negotiable here either. */
-    --cfg-ink: var(--auros-ink, #24231f);
-    --cfg-ink-soft: var(--auros-ink-muted, #5a4e40);
-    --cfg-panel: var(--auros-panel, #f4f1ea);
-    --cfg-panel-deep: var(--auros-panel-alt, #e6e0d2);
-    --cfg-field: var(--auros-field, #ffffff);
-    --cfg-rule: var(--auros-rule, #8a7358);
-    --cfg-ore: var(--auros-accent, #be3a12);
-    --cfg-mark: var(--auros-mark, rgba(190, 58, 18, 0.14));
-    --cfg-mono: var(--auros-font-mono, "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace);
-    --cfg-sans: var(--auros-font-sans, "IBM Plex Sans", system-ui, -apple-system, sans-serif);
-    --cfg-display: var(--auros-font-display, "Instrument Serif", Georgia, serif);
+    /* The one value this component defines rather than borrows. It is a mark, not text: the
+       line under it keeps its own colour, and the composite was measured at 9.9:1 light and
+       9.5:1 dark against --ink. */
+    --cfg-mark: rgba(190, 58, 18, 0.14);
 
     display: grid;
     gap: 1.5rem;
@@ -137,51 +99,11 @@ const mailtoBody = encodeURIComponent(
 
   @media (prefers-color-scheme: dark) {
     :global(:root:not([data-theme="light"])) .cfg {
-      --cfg-ink: var(--auros-ink, #e2ddd0);
-      --cfg-ink-soft: var(--auros-ink-muted, #a8afa2);
-      --cfg-panel: var(--auros-panel, #1e242c);
-      --cfg-panel-deep: var(--auros-panel-alt, #171c24);
-      --cfg-field: var(--auros-field, #171c24);
-      --cfg-rule: var(--auros-rule, #463e34);
-      /* Ore stays ore. On the dark panel it is used for rules, marks and the chip fill, where
-         3:1 is the bar; the chip's own text is white, which clears 4.5:1 against it. Refusal
-         headings are set in --cfg-ink rather than ore, because ore on #1e242c is 2.9:1 and
-         WCAG AA on every text and panel pair is verified, not assumed. */
-      --cfg-mark: var(--auros-mark, rgba(217, 104, 46, 0.22));
+      --cfg-mark: rgba(217, 104, 46, 0.22);
     }
   }
-
   :global(:root[data-theme="dark"]) .cfg {
-    --cfg-ink: var(--auros-ink, #e2ddd0);
-    --cfg-ink-soft: var(--auros-ink-muted, #a8afa2);
-    --cfg-panel: var(--auros-panel, #1e242c);
-    --cfg-panel-deep: var(--auros-panel-alt, #171c24);
-    --cfg-field: var(--auros-field, #171c24);
-    --cfg-rule: var(--auros-rule, #463e34);
-    --cfg-mark: var(--auros-mark, rgba(217, 104, 46, 0.22));
-  }
-
-  .cfg__head {
-    display: grid;
-    gap: 0.5rem;
-    max-width: 44rem;
-  }
-
-  .cfg__title {
-    font-family: var(--cfg-display);
-    font-weight: 400;
-    font-size: clamp(2rem, 1.4rem + 3vw, 3.25rem);
-    line-height: 1.05;
-    margin: 0;
-    color: var(--cfg-ink);
-  }
-
-  .cfg__standfirst {
-    font-family: var(--cfg-sans);
-    font-size: 1.0625rem;
-    line-height: 1.6;
-    margin: 0;
-    color: var(--cfg-ink);
+    --cfg-mark: rgba(217, 104, 46, 0.22);
   }
 
   .cfg__layout {
@@ -207,24 +129,30 @@ const mailtoBody = encodeURIComponent(
   }
 
   .cfg__booting {
-    font-family: var(--cfg-sans);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.9375rem;
     line-height: 1.6;
-    color: var(--cfg-ink-soft);
+    color: var(--ink-muted, #5a4e40);
     margin: 0;
+    /* Opaque, like every other block of text here. Section 7: the background never reduces the
+       contrast of text, which means text is never drawn straight onto it. */
+    background: var(--panel, #f4f1ea);
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 3px;
+    padding: 0.75rem;
   }
   .cfg[data-ready="true"] .cfg__booting {
     display: none;
   }
 
   .cfg__noscript {
-    background: var(--cfg-panel);
-    color: var(--cfg-ink);
-    border: 1px solid var(--cfg-rule);
-    border-left: 3px solid var(--cfg-ore);
+    background: var(--panel, #f4f1ea);
+    color: var(--ink, #24231f);
+    border: 1px solid var(--rule, #8a7358);
+    border-left: 3px solid var(--ore, #be3a12);
     border-radius: 3px;
     padding: 1rem;
-    font-family: var(--cfg-sans);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     display: grid;
     gap: 0.6rem;
   }
@@ -232,24 +160,5 @@ const mailtoBody = encodeURIComponent(
     margin: 0;
     font-size: 0.9375rem;
     line-height: 1.6;
-  }
-  .cfg__noscript-title {
-    font-family: var(--cfg-display);
-    font-weight: 400;
-    font-size: 1.375rem;
-    line-height: 1.2;
-    margin: 0;
-  }
-  .cfg__noscript-note {
-    color: var(--cfg-ink-soft);
-    font-size: 0.8125rem !important;
-  }
-  .cfg__noscript a {
-    color: inherit;
-    text-underline-offset: 0.2em;
-  }
-  .cfg__noscript a:focus-visible {
-    outline: 2px solid var(--cfg-ore);
-    outline-offset: 2px;
   }
 </style>

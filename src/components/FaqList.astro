@@ -32,7 +32,9 @@ const sections = await Promise.all(
     .filter((section) => section.rendered.length > 0)
     .map((section) => (
       <section class="group" id={`questions-${section.group}`}>
-        <h2 class="group-title">{section.title}</h2>
+        <Panel tone="panel" class="group-head">
+          <h2 class="group-title">{section.title}</h2>
+        </Panel>
         <ul class="entries">
           {section.rendered.map(({ entry, Body }) => (
             <Panel as="li" tone="panel" class="entry" id={entryAnchor(entry)}>
@@ -52,12 +54,15 @@ const sections = await Promise.all(
   .group {
     margin: 2.25rem 0;
   }
+  .group-head {
+    margin-bottom: 0.75rem;
+  }
   .group-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
     font-size: 1.6rem;
     line-height: 1.15;
-    margin: 0 0 0.75rem;
+    margin: 0;
     color: var(--ink, #24231f);
   }
   .entries {

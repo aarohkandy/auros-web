@@ -49,7 +49,7 @@ const comes = await migrationByVerdict("comes");
             <p class="one-line">{entry.data.oneLine}</p>
             {entry.data.examples.length > 0 && (
               <ul class="examples">
-                {entry.data.examples.map((example) => (
+                {entry.data.examples.map((example: string) => (
                   <li>{example}</li>
                 ))}
               </ul>

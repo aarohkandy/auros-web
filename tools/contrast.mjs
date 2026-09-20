@@ -52,6 +52,11 @@ const AUDIT_OUT = join(SRC, "styles", "a11y-audit.md");
 const args = process.argv.slice(2);
 const WRITE = args.includes("--write");
 const VERBOSE = args.includes("--verbose");
+/** `--note "..."` adds one provenance line to the written audit. For saying where a build came from. */
+const NOTE = (() => {
+  const i = args.indexOf("--note");
+  return i !== -1 && args[i + 1] ? args[i + 1] : "";
+})();
 
 const THRESH = { body: 4.5, large: 3.0, nonText: 3.0 };
 
@@ -795,7 +800,7 @@ colour that was typed into it by a person.
 - Failing: **${findings.length}**
 - Evidence: **${mode === "built page" ? `the built pages in dist/ — ${built.length} page(s), real elements, real cascade` : "the stylesheets' declared pairs; there was no build in dist/ when this ran, so these are pairs the CSS can produce rather than pairs a page was observed to produce"}**
 - Measured from: \`${ROOT}\` (${mode === "built page" ? "a real build of these sources" : "sources only"})
-- Thresholds: body text ${THRESH.body}:1 · large text ${THRESH.large}:1 (≥24px, or ≥18.66px at weight ≥700) · non-text marks ${THRESH.nonText}:1
+${NOTE ? `- Note: ${NOTE}\n` : ""}- Thresholds: body text ${THRESH.body}:1 · large text ${THRESH.large}:1 (≥24px, or ≥18.66px at weight ≥700) · non-text marks ${THRESH.nonText}:1
 
 ## Every failing pair
 

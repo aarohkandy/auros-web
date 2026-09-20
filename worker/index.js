@@ -44,7 +44,7 @@ export default {
 
     try {
       switch (path) {
-        case '/order': return await handleOrder(request, env, ctx)
+        case '/order': return await handleOrder(request, env)
         case '/build-result': return await handleBuildResult(request, env)
         case '/stripe-webhook': return await handleStripeWebhook(request, env)
         case '/build-console': return await handleBuildConsole(request, env, ctx)

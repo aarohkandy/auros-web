@@ -65,7 +65,7 @@ const sections = await Promise.all(
               <div class="examples">
                 <p class="examples-label">{migrationPage.examplesLabel}</p>
                 <ul>
-                  {entry.data.examples.map((example) => (
+                  {entry.data.examples.map((example: string) => (
                     <li>{example}</li>
                   ))}
                 </ul>

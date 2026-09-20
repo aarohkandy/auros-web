@@ -34,9 +34,8 @@ const ORDERS_PER_HOUR = 5
 /**
  * @param {Request} request
  * @param {Record<string, any>} env
- * @param {{ waitUntil: (p: Promise<unknown>) => void }} ctx
  */
-export async function handleOrder (request, env, ctx) {
+export async function handleOrder (request, env) {
   if (request.method !== 'POST') return refuse(405, 'anything but a POST to this endpoint', 'orders are submitted, not fetched')
   if (!env.AUROS_KV) return refuse(503, 'the order', 'this deployment has no KV binding, so it cannot record an order it creates. Refusing rather than creating something it will forget.')
 

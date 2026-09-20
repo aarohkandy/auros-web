@@ -80,9 +80,9 @@ const linesHtml = linesToHtml(initial.lines);
 
   .cfg-panel {
     /* Opaque. The terrain behind this page never reduces the contrast of text. */
-    background: var(--cfg-panel, #f4f1ea);
-    color: var(--cfg-ink, #24231f);
-    border: 1px solid var(--cfg-rule, #8a7358);
+    background: var(--panel, #f4f1ea);
+    color: var(--ink, #24231f);
+    border: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
     padding: 1.25rem 1rem 1rem;
     display: flex;
@@ -96,12 +96,12 @@ const linesHtml = linesToHtml(initial.lines);
     align-items: baseline;
     justify-content: space-between;
     gap: 0.5rem 1rem;
-    border-bottom: 1px solid var(--cfg-rule, #8a7358);
+    border-bottom: 1px solid var(--rule, #8a7358);
     padding-bottom: 0.6rem;
   }
 
   .cfg-panel__title {
-    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     /* Instrument Serif ships 400 normal and 400 italic only. There is no bold to ask for. */
     font-weight: 400;
     font-size: clamp(1.4rem, 1.1rem + 1.4vw, 2rem);
@@ -110,9 +110,9 @@ const linesHtml = linesToHtml(initial.lines);
   }
 
   .cfg-panel__path {
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.8125rem;
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
     margin: 0;
     overflow-wrap: anywhere;
   }
@@ -122,14 +122,14 @@ const linesHtml = linesToHtml(initial.lines);
   .cfg-panel__summary,
   .cfg-panel__note {
     margin: 0;
-    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.875rem;
     line-height: 1.5;
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
   }
 
   .cfg-panel__illustration {
-    border-left: 2px solid var(--cfg-ore, #be3a12);
+    border-left: 2px solid var(--ore, #be3a12);
     padding-left: 0.6rem;
   }
   .cfg-panel__illustration[hidden] {
@@ -137,7 +137,7 @@ const linesHtml = linesToHtml(initial.lines);
   }
 
   .cfg-panel__status {
-    color: var(--cfg-ink, #24231f);
+    color: var(--ink, #24231f);
   }
 
   /* The summary is what the polite live region actually announces. It is available to a screen
@@ -155,14 +155,14 @@ const linesHtml = linesToHtml(initial.lines);
   }
 
   .cfg-panel__code {
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     /* No max-height, no overflow-y, no collapse. The whole file is on the page. */
     font-size: 0.8125rem;
     line-height: 1.55;
     margin: 0;
     padding: 0.75rem;
-    background: var(--cfg-panel-deep, #e6e0d2);
-    border: 1px solid var(--cfg-rule, #8a7358);
+    background: var(--panel-2, #e6e0d2);
+    border: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
@@ -170,7 +170,7 @@ const linesHtml = linesToHtml(initial.lines);
   }
 
   .cfg-panel__code:focus-visible {
-    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline: 2px solid var(--ore, #be3a12);
     outline-offset: 2px;
   }
 
@@ -180,17 +180,17 @@ const linesHtml = linesToHtml(initial.lines);
   }
 
   .cfg-line[data-kind="comment"] {
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
   }
 
   .cfg-line[data-pending="true"] {
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
     font-style: italic;
   }
 
   /* THE PRUNE BLOCK. Marked, never hidden, never smaller. */
   .cfg-line[data-section="prune"] {
-    border-left: 2px solid var(--cfg-ore, #be3a12);
+    border-left: 2px solid var(--ore, #be3a12);
     padding-left: 0.5rem;
     margin-left: -0.5rem;
   }
@@ -199,7 +199,7 @@ const linesHtml = linesToHtml(initial.lines);
      is 2.9:1, and section 7 says AA on every text and panel pair is verified rather than assumed. */
   .cfg-line[data-section="refused"] {
     text-decoration: line-through;
-    text-decoration-color: var(--cfg-ore, #be3a12);
+    text-decoration-color: var(--ore, #be3a12);
     text-decoration-thickness: 2px;
   }
 
@@ -217,7 +217,7 @@ const linesHtml = linesToHtml(initial.lines);
   }
 
   .cfg-panel__note--count code {
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.95em;
   }
 
@@ -228,20 +228,20 @@ const linesHtml = linesToHtml(initial.lines);
   }
 
   .cfg-button {
-    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.875rem;
     padding: 0.45rem 0.8rem;
-    border: 1px solid var(--cfg-rule, #8a7358);
+    border: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
-    background: var(--cfg-panel, #f4f1ea);
-    color: var(--cfg-ink, #24231f);
+    background: var(--panel, #f4f1ea);
+    color: var(--ink, #24231f);
     cursor: pointer;
   }
   .cfg-button:hover {
-    background: var(--cfg-panel-deep, #e6e0d2);
+    background: var(--panel-2, #e6e0d2);
   }
   .cfg-button:focus-visible {
-    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline: 2px solid var(--ore, #be3a12);
     outline-offset: 2px;
   }
 
@@ -249,17 +249,19 @@ const linesHtml = linesToHtml(initial.lines);
      A refusal is printed in full. It is not truncated, not collapsed and not softened: it is
      the most persuasive state this panel has. */
   .cfg-finding {
-    border: 1px solid var(--cfg-rule, #8a7358);
+    border: 1px solid var(--rule, #8a7358);
     border-radius: 3px;
     padding: 0.75rem;
     margin-bottom: 0.5rem;
-    background: var(--cfg-panel, #f4f1ea);
+    background: var(--panel, #f4f1ea);
   }
   .cfg-finding--refusal {
-    border-left: 3px solid var(--cfg-ore, #be3a12);
+    border-left: 3px solid var(--ore, #be3a12);
   }
+  /* The flag is ink on the second panel tone with an ore rule down its edge. Ore is the mark,
+     never the glyph: white on ore drops to 3.5:1 the moment the dark theme swaps the tone. */
   .cfg-finding__flag {
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.75rem;
     letter-spacing: 0.06em;
     text-transform: lowercase;
@@ -267,43 +269,42 @@ const linesHtml = linesToHtml(initial.lines);
     display: inline-block;
     padding: 0.1rem 0.4rem;
     border-radius: 3px;
-    background: var(--cfg-ore, #be3a12);
-    color: #ffffff;
+    border-left: 3px solid var(--rule, #8a7358);
+    background: var(--panel-2, #e6e0d2);
+    color: var(--ink, #24231f);
   }
-  .cfg-finding--conflict .cfg-finding__flag,
-  .cfg-finding--invalid .cfg-finding__flag,
-  .cfg-finding--incomplete .cfg-finding__flag {
-    background: var(--cfg-ink-soft, #5a4e40);
+  .cfg-finding--refusal .cfg-finding__flag {
+    border-left-color: var(--ore, #be3a12);
   }
   .cfg-finding__title {
-    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
     font-size: 1.15rem;
     line-height: 1.25;
     margin: 0 0 0.4rem;
-    color: var(--cfg-ink, #24231f);
+    color: var(--ink, #24231f);
   }
   .cfg-finding__detail,
   .cfg-finding__where {
-    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.9375rem;
     line-height: 1.55;
     margin: 0 0 0.4rem;
-    color: var(--cfg-ink, #24231f);
+    color: var(--ink, #24231f);
   }
   .cfg-finding__where {
     font-size: 0.8125rem;
-    color: var(--cfg-ink-soft, #5a4e40);
+    color: var(--ink-muted, #5a4e40);
   }
   .cfg-finding__list {
     margin: 0;
     padding-left: 1.1rem;
-    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.875rem;
     line-height: 1.6;
   }
   .cfg-finding code {
-    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: 0.95em;
   }
 

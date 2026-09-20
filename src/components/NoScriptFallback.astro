@@ -75,7 +75,7 @@ const Wrapper = alwaysVisible ? "div" : "noscript";
     <p class="what-to-send">{configurator.noJsFallback}</p>
 
     <ul class="lines">
-      {body.map((line) => <li>{line}</li>)}
+      {body.map((line: string) => <li>{line}</li>)}
     </ul>
 
     <p class="action">

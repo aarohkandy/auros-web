@@ -1,0 +1,42 @@
+{
+  "//": [
+    "AUROS — TypeScript. Strict, and a little past strict.",
+    "",
+    "astro/tsconfigs/strict turns on `strict: true` and the Astro globals. The additions below are",
+    "the ones that catch real defects in a site whose whole argument is that it does not overstate",
+    "what it knows:",
+    "",
+    "  noUncheckedIndexedAccess   an array lookup is `T | undefined`, because it is. This site reads",
+    "                             content collections by index in several places; without this flag",
+    "                             a missing document types as present and renders as blank.",
+    "  exactOptionalPropertyTypes an optional prop is absent or a value, never explicitly undefined.",
+    "  noImplicitOverride         a component that stops overriding something says so.",
+    "  noFallthroughCasesInSwitch",
+    "  verbatimModuleSyntax       type-only imports are written as such, so the emitted graph is",
+    "                             the real one.",
+    "",
+    "`astro check` runs this in `pnpm build`, so a type error stops a publish rather than shipping."
+  ],
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": false,
+    "verbatimModuleSyntax": true,
+    "allowJs": true,
+    "checkJs": false,
+    "resolveJsonModule": true,
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@styles/*": ["src/styles/*"],
+      "@components/*": ["src/components/*"],
+      "@layouts/*": ["src/layouts/*"]
+    }
+  },
+  "include": [".astro/types.d.ts", "src/**/*", "tools/**/*.mjs", "astro.config.mjs"],
+  "exclude": ["dist", "node_modules", "worker", "public"]
+}

@@ -1,0 +1,65 @@
+---
+/**
+ * The skip link. First focusable thing on every page.
+ *
+ * §6D requires full keyboard operation, and this page has a nav and a terrain canvas between the
+ * top of the document and the content. Without this, a keyboard or switch user tabs through the
+ * whole header on every page before reaching a sentence.
+ *
+ * Two rules it keeps that skip links routinely break:
+ *   1. It is IN THE DOM, always, positioned off-screen — never `display: none`, which removes it
+ *      from the focus order and turns it into decoration that only a code reviewer sees.
+ *   2. Its target is focusable. `#main` on this site is a `<main tabindex="-1">`, because in
+ *      Safari and older Chrome, moving the *scroll* position is not the same as moving *focus*:
+ *      without the tabindex the next Tab press returns to the top of the page and the skip link
+ *      silently does nothing.
+ */
+import { nav } from "../content/copy";
+
+interface Props {
+  /** The id of the element to skip to. Must be a focusable element — see the note above. */
+  href?: string;
+  /** Override the label. Defaults to the content author's string. */
+  label?: string;
+}
+
+const { href = "#main", label = nav.skipToContent } = Astro.props;
+---
+
+<a class="skip-link" href={href}>{label}</a>
+
+<style>
+  .skip-link {
+    position: absolute;
+    z-index: 100;
+    /* Off-screen, not hidden: still in the focus order. */
+    top: 0;
+    left: 0;
+    transform: translateY(-120%);
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--panel);
+    color: var(--ink);
+    border: var(--hairline) solid var(--rule);
+    border-left: 3px solid var(--ore);
+    border-radius: 0 0 var(--radius) 0;
+    font-family: var(--font-ui);
+    font-size: var(--step-0);
+    text-decoration: none;
+  }
+
+  /* :focus, not :focus-visible — a skip link is only ever reached by keyboard, and some
+     browsers do not set :focus-visible on a link focused by an initial Tab from the URL bar. */
+  .skip-link:focus {
+    transform: translateY(0);
+    outline: var(--focus-ring-width) solid var(--focus);
+    outline-offset: calc(var(--focus-ring-offset) * -1);
+  }
+
+  /* The slide is 120ms of movement that tells the user where the thing came from. It is off
+     under prefers-reduced-motion by the global rule in base.css. */
+  @media (prefers-reduced-motion: no-preference) {
+    .skip-link {
+      transition: transform 120ms ease-out;
+    }
+  }
+</style>

@@ -6,67 +6,65 @@ Spec §7 requires "WCAG AA contrast on every text/panel pair, verified not assum
 below was computed from `src/styles/tokens.css` and the site's own stylesheets. This file holds no
 colour that was typed into it by a person.
 
-- Pairs measured: **1662** (2 themes)
-- Failing: **10**
+- Pairs measured: **819** (2 themes)
+- Failing: **0**
 - Evidence: **the built pages in dist/ — 9 page(s), real elements, real cascade**
+- Measured from: `/private/tmp/claude-501/-Users-aaroh-auros/34740983-a98e-4c0a-aa70-34ed36aba268/scratchpad/webcheck` (a real build of these sources)
+- Note: Measured from a build of these exact sources made in an isolated copy, because at the time of writing auros-web has no astro.config.* and src/content/config.ts is still in the pre-Astro-7 legacy form, so the repository itself cannot yet build. The copy added only those two files; every stylesheet, component and page measured here is the one in the repository.
 - Thresholds: body text 4.5:1 · large text 3:1 (≥24px, or ≥18.66px at weight ≥700) · non-text marks 3:1
 
 ## Every failing pair
 
-| theme | page | where | kind | text | panel | ratio | needs | verdict |
-|---|---|---|---|---|---|---|---|---|
-| light | `/faq.html` | `h2.group-title` | large text | `#e2ddd0` | `#ffffff` | **1.36:1** | 3.00:1 | **FAIL** |
-| light | `/` | `p.margin-label` | body text | `#a8afa2` | `#ffffff` | **2.25:1** | 4.50:1 | **FAIL** |
-| light | `/` | `p.name` | body text | `#e2ddd0` | `#ffffff` | **1.36:1** | 4.50:1 | **FAIL** |
-| light | `/` | `p.ref` | body text | `#a8afa2` | `#ffffff` | **2.25:1** | 4.50:1 | **FAIL** |
-| light | `/` | `p.owned` | body text | `#a8afa2` | `#ffffff` | **2.25:1** | 4.50:1 | **FAIL** |
-| dark | `/faq.html` | `h2.group-title` | large text | `#e2ddd0` | `#ffffff` | **1.36:1** | 3.00:1 | **FAIL** |
-| dark | `/` | `p.margin-label` | body text | `#a8afa2` | `#ffffff` | **2.25:1** | 4.50:1 | **FAIL** |
-| dark | `/` | `p.name` | body text | `#e2ddd0` | `#ffffff` | **1.36:1** | 4.50:1 | **FAIL** |
-| dark | `/` | `p.ref` | body text | `#a8afa2` | `#ffffff` | **2.25:1** | 4.50:1 | **FAIL** |
-| dark | `/` | `p.owned` | body text | `#a8afa2` | `#ffffff` | **2.25:1** | 4.50:1 | **FAIL** |
+None.
 
 ## The 40 tightest passing pairs
 
 | theme | page | where | kind | text | panel | ratio | needs | verdict |
 |---|---|---|---|---|---|---|---|---|
-| light | `/404.html` | `section.panel.tone-panel (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `header.panel.tone-panel.head (border-bottom)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `header.panel.tone-panel.head (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `section.panel.tone-panel.disclosure-head (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `section.panel.tone-panel.marked.column (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `ul.examples (border-top)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `p.how-to-check (border-top)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `p.how-to-check (border-left)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/configure.html` | `p.footnote (border-top)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `header.panel.tone-panel.page-head (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `section.panel.tone-panel (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `li#1-if-you-disappear.panel.tone-panel.entry (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `p.short-answer (border-bottom)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `li#2-who-has-root.panel.tone-panel.entry (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `li#4-can-i-get-windows-back.panel.tone-panel.entry (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `li#3-update-breaks-a-machine.panel.tone-panel.entry (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `li#7-updates-one-uplink.panel.tone-panel.entry (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `li#5-do-you-see-my-data.panel.tone-panel.entry (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/faq.html` | `li#6-machine-wont-boot.panel.tone-panel.entry (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `header.panel.tone-panel.page-head (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `section.panel.tone-panel (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `section.panel.tone-panel.stack-head (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `li#layer-bedrock.panel.tone-panel.layer (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `p.meta (border-bottom)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `li#layer-stratum-2.panel.tone-panel.layer (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `li#layer-stratum-1.panel.tone-panel.layer (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `li#layer-topsoil.panel.tone-panel.layer (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `li#layer-surface.panel.tone-panel.layer (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/how-it-works.html` | `li#layer-sky.panel.tone-panel.layer (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
-| light | `/` | `section.panel.tone-panel.hero (border)` | non-text mark | `#8a7358` | `#1e242c` | **3.48:1** | 3.00:1 | pass |
+| dark | `/configure/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/configure/` | `p.privacy (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/configure/` | `section.panel.tone-panel.marked.column (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/faq/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/faq/` | `p.unfinished (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `li#layer-bedrock.panel.tone-panel.layer (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `li#layer-stratum-2.panel.tone-panel.layer (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `li#layer-stratum-1.panel.tone-panel.layer (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `li#layer-topsoil.panel.tone-panel.layer (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `li#layer-surface.panel.tone-panel.layer (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `li#layer-sky.panel.tone-panel.layer (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/` | `section.panel.tone-panel.marked.column (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/order/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/pricing/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/pricing/` | `li.panel.tone-panel.marked.tier (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/pricing/` | `p.no-figure (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/replaceable/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/what-doesnt-come-across/` | `aside.stratum (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/what-doesnt-come-across/` | `li#01-windows-programs.panel.tone-panel.marked.entry (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/what-doesnt-come-across/` | `li#02-saved-passwords-and-cookies.panel.tone-panel.marked.entry (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/what-doesnt-come-across/` | `li#03-dongles-and-licence-keys.panel.tone-panel.marked.entry (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/what-doesnt-come-across/` | `li#04-active-directory.panel.tone-panel.marked.entry (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| dark | `/what-doesnt-come-across/` | `li#06-exam-and-lockdown-software.panel.tone-panel.marked.entry (border-left)` | decorative mark | `#be3a12` | `#1e242c` | **2.83:1** | — (3.00:1 for reference) | pass |
+| light | `/how-it-works/` | `div.illustration (border-left)` | decorative mark | `#be3a12` | `#24231f` | **2.85:1** | — (3.00:1 for reference) | pass |
+| light | `/` | `div.illustration (border-left)` | decorative mark | `#be3a12` | `#24231f` | **2.85:1** | — (3.00:1 for reference) | pass |
+| light | `/order/` | `div.illustration (border-left)` | decorative mark | `#be3a12` | `#24231f` | **2.85:1** | — (3.00:1 for reference) | pass |
+| dark | `/configure/` | `div.fallback (border-left)` | decorative mark | `#be3a12` | `#171c24` | **3.10:1** | — (3.00:1 for reference) | pass |
+| dark | `/how-it-works/` | `div.illustration (border-left)` | decorative mark | `#be3a12` | `#171c24` | **3.10:1** | — (3.00:1 for reference) | pass |
+| dark | `/` | `a.cta.primary (border-left-color)` | non-text mark | `#be3a12` | `#171c24` | **3.10:1** | 3.00:1 | pass |
+| dark | `/` | `a.cta (border-left-color)` | non-text mark | `#be3a12` | `#171c24` | **3.10:1** | 3.00:1 | pass |
+| dark | `/` | `div.illustration (border-left)` | decorative mark | `#be3a12` | `#171c24` | **3.10:1** | — (3.00:1 for reference) | pass |
+| dark | `/order/` | `a.cta (border-left-color)` | non-text mark | `#be3a12` | `#171c24` | **3.10:1** | 3.00:1 | pass |
+| dark | `/order/` | `div.illustration (border-left)` | decorative mark | `#be3a12` | `#171c24` | **3.10:1** | — (3.00:1 for reference) | pass |
+| dark | `/order/` | `div.fallback (border-left)` | decorative mark | `#be3a12` | `#171c24` | **3.10:1** | — (3.00:1 for reference) | pass |
+| light | `/configure/` | `section.panel.tone-panel-2 (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/configure/` | `div.fallback (border)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
+| light | `/configure/` | `a.mail (text-decoration-color)` | non-text mark | `#8a7358` | `#e6e0d2` | **3.41:1** | 3.00:1 | pass |
+| light | `/configure/` | `p.placeholder (border-top)` | decorative mark | `#8a7358` | `#e6e0d2` | **3.41:1** | — (3.00:1 for reference) | pass |
 
 ## What this tool could not measure
 
-- selector not supported by the matcher — `.entry + .entry` (src/components/WhatDoesntComeAcross.astro)
-- selector not supported by the matcher — `:root` (src/styles/tokens.css)
-- could not resolve color: inherit — `a` (src/styles/base.css)
-- could not resolve color: inherit — `input` (src/styles/base.css)
+Nothing — every colour-bearing declaration resolved.
 
 ## Limits of the method
 

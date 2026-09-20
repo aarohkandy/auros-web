@@ -103,10 +103,19 @@ export function mountTerrain(): void {
   // The world is always WORLD_WIDTH blocks so the picture is the same everywhere (§7: "it is
   // the brand"). A narrow viewport holds a centred crop of it, generated directly rather than
   // cropped afterwards, so a phone never allocates a 3840px-wide canvas.
-  const windowWidth = Math.min(
-    WORLD_WIDTH,
-    Math.ceil(window.innerWidth / cssBlock) + 2,
-  );
+  //
+  // The crop is sized to the widest the *device* could ever present, not to the window as it is
+  // right now: the longer screen edge covers rotation, and a maximised window cannot exceed the
+  // screen. That is what lets "render once" be literally true — there is no resize path that
+  // regenerates anything, because there is no resize that can outgrow the buffer.
+  //
+  // It is also the fix for a real failure found in the browser harness: mounted inside a pane
+  // that had not been laid out yet, `innerWidth` read 0 and the whole world came out two blocks
+  // wide. `screen` is never zero, and the floor underneath it means no arrangement of a hidden
+  // or zero-size viewport can produce a degenerate canvas.
+  const screenEdge = typeof screen !== "undefined" ? Math.max(screen.width, screen.height) : 0;
+  const widest = Math.max(window.innerWidth || 0, screenEdge, 400);
+  const windowWidth = Math.min(WORLD_WIDTH, Math.ceil(widest / cssBlock) + 2);
   const x0 = Math.floor((WORLD_WIDTH - windowWidth) / 2);
 
   const worldCssWidth = windowWidth * cssBlock;

@@ -13,11 +13,12 @@ interface Props {
 }
 
 const { facts, ordered = false, class: className } = Astro.props;
+const rows: readonly Fact[] = facts;
 ---
 
 <dl class:list={["facts", { ordered }, className]}>
   {
-    facts.map((fact, index) => (
+    rows.map((fact: Fact, index: number) => (
       <div class="row">
         <dt class="label">
           {ordered && <span class="index">{String(index + 1).padStart(2, "0")}</span>}

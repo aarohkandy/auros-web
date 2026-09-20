@@ -207,8 +207,8 @@ type AnyCtx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
  *
  * The canvas is *block-resolution*. It is CSS that scales it up to 4 px per block with
  * `image-rendering: pixelated`, which is what keeps memory at 1.5 million pixels instead of 24
+ * auros-allow: 'guarantees' below describes a mechanism (integer alignment), not a promise to anyone.
  * million on a retina display, and is also what guarantees every block edge lands on an integer
- * auros-allow: 'guarantees' here describes a mechanism (integer alignment), not a promise to a customer.
  * device pixel. Drawing at device resolution and relying on `imageSmoothingEnabled = false`
  * would be the same picture at sixteen times the cost.
  */
@@ -219,6 +219,10 @@ export function paintToCanvas(
   scratch?: Uint8ClampedArray,
 ): Uint8ClampedArray {
   const rgba = paint(buffer.indices, theme, scratch);
-  ctx.putImageData(new ImageData(rgba, buffer.width, buffer.height), 0, 0);
+  // A view over the same bytes, not a copy. The cast is only to tell TypeScript the backing
+  // store is a plain ArrayBuffer rather than possibly a SharedArrayBuffer, which `ImageData`
+  // will not accept; nothing is reallocated.
+  const view = new Uint8ClampedArray(rgba.buffer as ArrayBuffer, rgba.byteOffset, rgba.length);
+  ctx.putImageData(new ImageData(view, buffer.width, buffer.height), 0, 0);
   return rgba;
 }

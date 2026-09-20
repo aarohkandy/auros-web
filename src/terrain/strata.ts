@@ -166,7 +166,7 @@ export const STRATA: readonly Stratum[] = [
     depth: 1,
     isImageLayer: false,
     top: 0.175,
-    reliefBlocks: 14,
+    reliefBlocks: 56,
     // Turf, not soil. The surface has to be visibly a different material from the topsoil
     // directly under it, or "your machine" and "your image" read as one band and the diagram
     // loses its first distinction.
@@ -180,7 +180,7 @@ export const STRATA: readonly Stratum[] = [
     depth: 2,
     isImageLayer: true,
     top: 0.19,
-    reliefBlocks: 11,
+    reliefBlocks: 46,
     paint: { body: PX.SOIL_HI, grain: PX.SOIL_LO, grainDensity: 0.22 },
   },
   {
@@ -191,7 +191,7 @@ export const STRATA: readonly Stratum[] = [
     depth: 3,
     isImageLayer: true,
     top: 0.33,
-    reliefBlocks: 8,
+    reliefBlocks: 34,
     paint: { body: PX.ROCK_1, grain: PX.ROCK_2, grainDensity: 0.18 },
   },
   {
@@ -202,7 +202,7 @@ export const STRATA: readonly Stratum[] = [
     depth: 4,
     isImageLayer: true,
     top: 0.545,
-    reliefBlocks: 5,
+    reliefBlocks: 20,
     paint: { body: PX.ROCK_3, grain: PX.ROCK_2, grainDensity: 0.14 },
   },
   {
@@ -213,7 +213,7 @@ export const STRATA: readonly Stratum[] = [
     depth: 5,
     isImageLayer: true,
     top: 0.775,
-    reliefBlocks: 2,
+    reliefBlocks: 11,
     paint: { body: PX.ROCK_4, grain: PX.ROCK_3, grainDensity: 0.1 },
   },
 ] as const;

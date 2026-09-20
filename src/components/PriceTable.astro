@@ -71,7 +71,7 @@ const rendered = await Promise.all(
 
           <Hsub class="list-title">{pricing.includesLabel}</Hsub>
           <ul class="includes">
-            {tier.data.includes.map((item) => (
+            {tier.data.includes.map((item: string) => (
               <li>{item}</li>
             ))}
           </ul>
@@ -80,7 +80,7 @@ const rendered = await Promise.all(
             <>
               <Hsub class="list-title">{pricing.excludesLabel}</Hsub>
               <ul class="excludes">
-                {tier.data.excludes.map((item) => (
+                {tier.data.excludes.map((item: string) => (
                   <li>{item}</li>
                 ))}
               </ul>

@@ -1,0 +1,33 @@
+# Copy to auros-web/.dev.vars (wrangler reads it from the config root, next to wrangler.jsonc).
+#
+#   cp worker/dev-vars.example .dev.vars
+#
+# ⚠ `.dev.vars` is NOT in auros-web/.gitignore yet. Add it before putting anything real in one.
+#    The ignore file belongs to another workstream, so this is a note rather than an edit.
+#
+# Everything below is either a documented public test value or a placeholder. There is no real
+# credential in this file and there must never be one.
+
+ENVIRONMENT = "development"
+SITE_ORIGIN = "http://localhost:8787"
+
+# Cloudflare's published Turnstile test keys (docs/DECISION-SHEET.md).
+# The secret accepts EVERY token, which is why lib/turnstile.js refuses to run with it unless
+# ENVIRONMENT is exactly "development". Sitekey for the page: 1x00000000000000000000AA
+TURNSTILE_SECRET_KEY = "1x0000000000000000000000000000000AA"
+
+# A GitHub App on a scratch repository — never the real auros-recipes installation.
+# The key MUST be PKCS#8: openssl pkcs8 -topk8 -nocrypt -in app.pem -out app.pkcs8.pem
+GITHUB_APP_ID = ""
+GITHUB_APP_INSTALLATION_ID = ""
+GITHUB_APP_PRIVATE_KEY = ""
+RECIPES_OWNER = "your-github-username"
+RECIPES_REPO = "auros-recipes-scratch"
+
+# Any two strings locally. In production these are `wrangler secret put`, never here.
+BUILD_RESULT_SECRET = "local-development-only-not-a-secret"
+STRIPE_WEBHOOK_SECRET = "local-development-only-not-a-secret"
+
+# Leave these off. Spec §9 reserves a real card and §4.6 reserves a real inbox for the human.
+STRIPE_LIVE_ENABLED = "false"
+OPERATOR_EMAIL_ENABLED = "false"
