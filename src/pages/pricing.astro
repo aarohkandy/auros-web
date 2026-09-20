@@ -1,6 +1,6 @@
 ---
 /**
- * Pricing. The five tiers are §9-reserved and fixed; every figure on this page is read from
+ * Pricing. The tiers are §9-reserved and fixed; every figure on this page is read from
  * `src/content/tiers/` and none is computed here. The school tier carries the replacement-cost
  * comparison beside it, which is arithmetic with the reader's own numbers and never a saving
  * (spec §4.4, §6D).
@@ -24,11 +24,13 @@ const { Content } = await renderEntry(page);
 >
   <PageHeader page={page} />
 
-  <Panel tone="panel">
-    <Prose>
-      <Content />
-    </Prose>
-  </Panel>
+  <div class="document">
+    <Panel tone="panel">
+      <Prose>
+        <Content />
+      </Prose>
+    </Panel>
+  </div>
 
   <Panel tone="panel" class="table-head">
     <h2 class="table-title">{pricing.title}</h2>
@@ -37,13 +39,29 @@ const { Content } = await renderEntry(page);
 </PageShell>
 
 <style>
+  /*
+    Prose is one measure wide and Prose.astro already caps it. The panel AROUND it was the thing
+    running the full 72rem, which left a column of empty panel beside every paragraph and made
+    every section on the page the same width as every other — the shape a template has when it has
+    accepted content rather than been laid out. The panel is constrained; the type is untouched.
+  */
+  .document :global(.panel) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
+  }
+
+  /*
+    A section marker, not a band. This panel holds one word, and at full width one word in a
+    72rem box reads as an empty row somebody forgot to fill. It shrinks to its heading.
+  */
   .table-head {
-    margin: 2rem 0 1rem;
+    margin: var(--space-8, 3rem) 0 1rem;
+    width: fit-content;
+    min-width: min(100%, 14rem);
   }
   .table-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.75rem;
+    font-size: var(--step-3, 2rem);
     line-height: 1.15;
     margin: 0;
     color: var(--ink, #24231f);

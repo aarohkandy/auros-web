@@ -13,11 +13,12 @@ What we do receive is the recipe: a list of package names, a locale, a keyboard 
 mode, and the name you gave the build. That is what the build service needs and it is all it
 gets.
 
-One thing to know before you type into the configurator: recipes are published in a public
-repository, because that is what makes them rebuildable without us. So the name of your build
-and any note attached to it is public. Do not put a pupil's name, a password, or anything else
-private into a recipe. If you would rather the recipe carried no identifying name at all, say
-so and we will use something neutral.
+One thing to know before you type into the configurator: recipes are committed where anybody can
+read them, so that you can check exactly what is on your machines and so that our build costs
+nothing to run. Whatever the reason, the effect is the same — the name of your build and any note
+attached to it can be read by anybody. Do not put a pupil's name, a password, or anything else
+private into a recipe. If you would rather the recipe carried no identifying name at all, say so
+and we will use something neutral.
 
 Once machines are running, they fetch images from a public registry. That fetch tells the
 registry that an address pulled an image, the same way installing any software does. It does not

@@ -61,10 +61,17 @@ export async function migrationByVerdict(
   return (await migrationEntries()).filter((e) => e.data.verdict === verdict);
 }
 
-/** The five §9-fixed tiers, in the author's order. */
+/**
+ * The §9-fixed tiers that may be shown, in the author's order.
+ *
+ * `blocked` tiers are filtered out here rather than at each call site, so a tier cannot be held
+ * back on one page and rendered on another. Today that is the $0 self-serve tier: D30 took the
+ * product out of it and what replaces it is BLOCKED.md B9, a pricing decision reserved for a
+ * human. The file is still in the collection and still schema-checked; it just does not render.
+ */
 export async function tiers(): Promise<TierEntry[]> {
   const all = await getCollection("tiers");
-  return all.sort((a, b) => a.data.order - b.data.order);
+  return all.filter((t) => !t.data.blocked).sort((a, b) => a.data.order - b.data.order);
 }
 
 export async function faqEntries(): Promise<FaqEntry[]> {

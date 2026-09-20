@@ -19,12 +19,14 @@ Three things bound it.
 1. Images are signed, and the machine verifies the signature before it will use one. An image
    that is not signed by our build does not install, including one that is ours in every other
    respect.
-2. Every line that goes into your image is in a public repository. You can read the change. You
-   can diff last night against tonight. You do not have to take our word for what is in it,
-   which means you should not.
-3. If that is still more trust than you want to extend, build from the public repository and
-   point your machines at your own registry. Then you are the only one who can change what your
-   machines run. That path is documented because we expect some customers to take it.
+2. Every line that goes into your image is in a repository you can read, from a browser, with
+   no account. You can read the change. You can diff last night against tonight. You do not have
+   to take our word for what is in it, which means you should not.
+3. If that is still more trust than you want to extend, the honest answer is that today it is
+   more trust than we can remove. Until 2026-09-20 this answer said "then build it yourself and
+   point your machines at your own registry", and the licence that made that legal is gone. What
+   exists instead is the wind-down term on the replaceable page, which is a smaller thing and
+   only bites if we stop. Reading is yours now; building is not.
 
 A fleet console is in the plan and does not exist yet. When it does, a machine will appear in it
 because you enrolled it, not because it was built by us.

@@ -28,6 +28,7 @@ page would be deciding it by publishing it. So the honest version is this: the b
 nightly for everyone, and the length of the commitment attached to this tier is a question we
 have not answered yet.
 
-If we stop existing, the recipe is still in a public repository and you can rebuild it yourself.
-That is the point of the whole design and it is not a consolation prize, and unlike the
-paragraph above it does not depend on anything we promise.
+If we stop existing, the machine keeps booting — the image is on it and nothing about it phones
+home. Whether you can keep it *patched* is the term on the replaceable page: you receive the
+recipe, the base Containerfile and the build scripts, which is what a rebuild actually needs.
+Unlike the paragraph above, that one is written down.

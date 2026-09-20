@@ -43,7 +43,7 @@ that person, or not migrating that person.
 ask nothing else of the machine. Older utilities. Single-purpose tools written years ago that
 your school never replaced because they still do the job.
 
-**What a real answer looks like.** The worked example recipe in our public repository carries two
+**What a real answer looks like.** The worked example recipe, which anybody can read, carries two
 Windows programs, tested on `2026-09-11`, with the result written into the file:
 
 - `Vidyalaya School ERP desktop client` — *works with caveats*. Prints report cards. The

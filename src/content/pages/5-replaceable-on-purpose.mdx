@@ -1,7 +1,7 @@
 ---
 title: Replaceable on purpose
 navLabel: Replaceable
-summary: Every recipe is a public git repository, including yours. Here are the actual commands to rebuild your operating system without us.
+summary: You already have the image and it keeps booting without us. What would die with us is the maintenance, so the commitment is written down as a term — if Auros stops operating, you get the build files for your own image.
 layer: stratum-1
 order: 5
 ---
@@ -11,56 +11,102 @@ is left with two hundred machines running an operating system that nobody alive 
 Everything still works until the day it does not, and then there is no path forward that is not
 a replacement programme.
 
-We designed against that outcome, and the design is the only part of this page worth reading,
-because the promise is only as good as the commands underneath it.
+This page used to answer that with a licence, and it is worth saying which one.
 
-This is also the one page on this site with a command line on it. Nobody using these machines
-should ever need one. The person deciding whether to trust us with two hundred of them deserves
-to see exactly what the escape hatch is.
+{/* auros-allow: names the withdrawn licence in order to record that it was withdrawn. Recording a right we took back is the opposite of offering it. */}
+Until 2026-09-20 everything we wrote was Apache-2.0, and the answer on this page was *clone it
+and rebuild it yourself, today, without asking*. We took that back. The code is ours and we want
+it to stay ours, which is a commercial decision and not a noble one, and it is recorded in
+`DECISIONS.md` as **D30** rather than left for you to infer from a `LICENSE` file.
 
-## What is public
+So the answer has to be narrower, and it had better be exact.
 
-- `auros-recipes` holds every recipe, including yours. The readable file and the Containerfile
-  compiled from it, committed together, so nobody needs our compiler to build it.
-- `auros-base` holds the one base image: the hardening, the policy modules, the update agent,
-  the check matrix, and the workflows that build it.
-- `hardware/compat.tsv` holds what worked on which machine, including the failures.
+## What you actually have, today
 
-There is no private key to lose. Images are signed without one, against a public transparency
-log, so verifying a signature never depends on us handing anything over.
+**The image.** It is installed on the laptops. It boots. It is a self-contained operating system
+that does not call home to be allowed to start, does not check a licence server, and does not
+stop working on a date. If we shut the doors this afternoon, every machine you have imaged comes
+up tomorrow morning exactly as it did today.
 
-Nothing that would stop you rebuilding is held back, and there is no tier of this product where
-that changes.
+That was never the risk, and answering *you have the image* does not answer the question you
+asked.
 
-## Rebuild your image
+**What you do not have is the maintenance.** The nightly rebuild against upstream is the product
+— the spec says so in the first line, *the OS is not the product, the maintained image is* — and
+a frozen image is a perfectly good operating system for about a month. Your real question is not
+*do I have it*, it is *will it still be safe on my network in four years*.
 
-You need one `x86_64` Linux machine with `podman` installed and a few tens of gigabytes of free
-disk. We have not measured the working set of a full build yet, so we are not going to print a
-number you would size a disk from. You do not need an account with us.
+## The commitment, in the words it will appear in the terms
+
+> If Auros ceases operating, each customer receives the build files for their own image: their
+> recipe, the base Containerfile, and the build scripts needed to rebuild and keep patching it.
+
+Read what that is not, because the gap is the honest part.
+
+- It is **not** a licence to our tooling — the compiler, the check matrix harness, the installer,
+  the site. Those stay ours whatever happens.
+- It is **not** redistribution rights. You can keep your own fleet alive. You cannot sell it.
+- It is **not** in force today, because there is nothing to be in force about. It is a term that
+  attaches to a customer, and there are no customers.
+
+What it is: the specific artefacts needed to keep *your* machines patched, and nothing wider.
+It costs us nothing while we exist, it is worth a great deal to somebody buying from a company
+with no track record to check, and it hands a competitor nothing today — which was the entire
+objection to the permissive licence in the first place.
+
+## What the repositories being public does and does not mean
+
+The repositories are public. You can read every line that goes into your image right now, from a
+browser, without an account. That is deliberate and it is not going to change: a customer who
+cannot read what is on their own machines is being asked for more trust than anybody should give
+a company this size.
+
+Public is not a licence. Everything in those repositories is all rights reserved. Reading is not
+prevented; copying is not permitted. Both of those sentences are true at the same time and a site
+that blurred them would be doing the thing this whole page exists to avoid.
+
+There is one part we could not lock down even if we wanted to, and it is worth knowing: the image
+we hand you contains GPL and LGPL software, because Fedora does. Those licences give the
+*recipient* — you — rights we have no power to withhold, including the corresponding source for
+those components. That is the ordinary position of every company shipping a Linux appliance, and
+it is in your favour.
+
+## What the handover looks like in practice
+
+This is the one page on this site with a command line on it. Nobody using these machines should
+ever need one. The person deciding whether to trust us with two hundred of them deserves to see
+what the escape hatch actually consists of, rather than a sentence about our commitment to our
+customers.
+
+The files arrive laid out the way `auros-recipes` is laid out. From the top of that tree, on one
+`x86_64` Linux machine with `podman` and a few tens of gigabytes free:
 
 ```
-git clone https://github.com/aarohkandy/auros-recipes
 cd auros-recipes
 podman build -t myschool:local -f customers/myschool/Containerfile .
 ```
 
-That is your operating system, built from your file, with the same packages removed. If the
-registry we publish to is gone too, build the base first and point your recipe at the local
-copy:
+That is your operating system, from your file, with the same packages removed. The generated
+`Containerfile` is committed next to every recipe precisely so that nobody needs our compiler to
+build it — that is `DECISIONS.md` **D28**, decided before any of this licensing argument started,
+for this reason.
+
+If our registry is gone too, the base is built first and the recipe pointed at the local copy.
+`auros-base` sits beside `auros-recipes` in the same handover, so from the directory holding both:
 
 ```
-git clone https://github.com/aarohkandy/auros-base
 podman build -t auros-base:hardened auros-base
 podman build -t myschool:local \
   --build-arg BASE=localhost/auros-base:hardened \
   -f customers/myschool/Containerfile .
 ```
 
-`BASE` is a build argument in every compiled Containerfile, and its default is the base we
-publish. Overriding it is the only way anything outside a recipe can change what an image is
-built on, and it exists for exactly this paragraph.
+`BASE` is a build argument in every compiled Containerfile and its default is the base we publish.
+Overriding it is the only way anything outside a recipe can change what an image is built on, and
+it exists for exactly this paragraph.
 
-## Turn it into a bootable USB stick
+Turning that into a bootable stick is one more command, and it is written out because two other
+pages send you here for it:
 
 ```
 mkdir -p out
@@ -71,64 +117,45 @@ podman run --rm --privileged \
   --type iso localhost/myschool:local
 ```
 
-The image lands in `out/`. Write it to a stick the way you would write any other.
+Machines already running an Auros image do not need reimaging at all — push your build to any
+registry you control, point them at it, and they take their updates from you with the same staging
+and the same automatic rollback.
 
 ## The one thing that goes stale
 
 The base image names a specific upstream image by its exact fingerprint, and the people who
 publish that image delete old ones on a schedule — roughly three months, or sooner once enough
-newer releases have shipped. A recipe you pulled out of a drawer after a year will name a
-foundation that no longer exists, and the build will stop with a message saying the image is
-unknown.
+newer releases have shipped. Files that sat in a drawer for a year will name a foundation that no
+longer exists, and the build will stop with a message saying the image is unknown.
 
 The fix is to move the pin forward to a current upstream image and rebuild, which is a one-line
-change to a file in `auros-base` and then the check matrix. We also keep our own copy of the
-exact pinned image, so in the ordinary case the old pin still resolves — but that copy is in our
-registry, and this page is about the day our registry is gone.
+change and then the check matrix. We would rather write that down than let you discover it. A
+rebuild instruction that works on the day it is published and fails silently two years later is
+the failure mode this entire page exists to prevent, and pretending it does not apply to us would
+be the same mistake in a different coat.
 
-We would rather write this down than let you discover it. A rebuild instruction that works on
-the day it is published and fails silently two years later is the failure mode this entire page
-exists to prevent, and pretending it does not apply to us would be the same mistake in a
-different coat.
+## What none of this gives you
 
-## Keep your existing machines updating
-
-Machines already running an Auros image do not need reimaging. Push your build to any registry
-you control and point them at it, and they will take their updates from you instead of from us,
-with the same staging and the same automatic rollback.
-
-## Keep the nightly rebuild
-
-The part people forget is that a frozen image is a fine operating system for about a month.
-
-The nightly workflow that rebuilds the base against upstream lives in `auros-base`, fires at
-`04:17 UTC`, and runs on free CI for public repositories. Fork it and you have the same nightly rebuild and the same
-check matrix, running for you, without us. What you have taken on is that you now own the
-response when an image fails its checks at six in the morning.
-
-That is the actual trade the paid tiers describe. Not access. Attention.
-
-## What forking does not give you
-
-- Our test hardware, when we have any. As of `2026-09-20` we have not imaged a single physical
+- **Our test hardware, when we have any.** As of `2026-09-20` we have not imaged a single physical
   machine, and `hardware/compat.tsv` is a header row with nothing under it. Everything proven so
   far was proven in a virtual machine, which cannot tell you about your wireless chipset, your
-  trackpad or your firmware. Forking does not change that. It means the empty table is yours to
-  fill.
-- Anybody to call. The self-serve tier costs nothing and includes nothing, and both halves of
-  that sentence are meant literally.
+  trackpad or your firmware.
+- **Anybody to call.** What the paid tiers buy is not access to files. It is that somebody else
+  watches the nightly build go red at six in the morning.
 
-## You do not have to take this on trust
+## What we have not done yet, which is the part to hold us to
 
-Every Wednesday at `05:23 UTC` the recipes repository runs a workflow called `stranger`. It gets
-a container with `podman`, `git` and nothing of ours — no Node, no toolchain, no account, no
-working tree — clones the public repository the way the paragraph above tells you to, and runs
-the command printed on this page, verbatim. If an image does not come out, the build goes red.
-It goes red before you ever need it to work.
+There is a CI job in `auros-recipes` called `stranger`. It gets a container with `podman`, `git`
+and nothing of ours — no toolchain, no account, no working tree — and runs the published command
+verbatim, so that the claim on this page is executed rather than asserted.
 
-That job exists because the page a sceptical IT person reads first is the worst possible place
-for an untested claim.
+Being exact about the state of it, because this is the paragraph where a vendor would round up:
+**it is paused and it has never gone green.** It ran weekly while the Apache claim stood; D31 put
+it on manual dispatch until there is a handover artefact for it to execute against, and the base
+image it would need has not published once. The cron line is commented out in the file and the
+footer of this page says `paused` rather than a time.
 
-Then do it yourself anyway, on a Tuesday when nothing is wrong. Clone the repository, run the
-build, watch the image appear. If the commands above do not work, we would rather hear it from
-you than have written them.
+When there is a handover bundle, that job will build one from a cold container and this section
+will carry a date and a run number. Until then what you have is a written term and a test that
+exists and has not passed, which is less than we were claiming a week ago and is what we can
+actually show you.

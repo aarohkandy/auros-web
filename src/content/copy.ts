@@ -39,7 +39,7 @@ export const site = {
   /** Used as the <title> suffix. */
   tagline: "An OS with only what you asked for",
   description:
-    "We build schools and nonprofits a Linux image containing only what they asked for, in their language, under their rules, rebuilt every night so it is still patched in four years.",
+    "We build schools and nonprofits a Linux image containing only what they asked for, in their language, under their rules, rebuilt every night against upstream so a security fix is one file changed.",
   /**
    * PLACEHOLDER. Not a real inbox. Spec §9 reserves anything touching a real person's inbox to
    * the human, so this address is deliberately un-routable until a human sets it. The no-JS
@@ -71,7 +71,7 @@ export const nav = {
 export const hero = {
   headline: "An OS with only what you asked for",
   standfirst:
-    "Your 2012 to 2018 laptops are not broken. Windows stopped patching them, which is a different problem with a different fix. We build them an operating system holding the ten or so applications your staff actually open and nothing else, in the language the class is taught in, rebuilt every night so it is still patched in four years.",
+    "Your 2012 to 2018 laptops are not broken. Windows stopped patching them, which is a different problem with a different fix. We build them an operating system holding the ten or so applications your staff actually open and nothing else, in the language the class is taught in, rebuilt every night against upstream so that when a serious vulnerability lands there is one file to change and every machine has it on the next restart. How long we keep doing that for any one tier is a term nobody here has set, and the pricing page says so rather than implying a horizon.",
   /**
    * The real `first_boot_message` from `auros-recipes/customers/example-school/recipe.yaml` — a
    * committed public file carrying `# ILLUSTRATIVE EXAMPLE — not a customer` on line 1.
@@ -81,16 +81,16 @@ export const hero = {
    * behind a `unicode-range` waiting for a string that already existed in the repository.
    */
   firstBoot: {
-    lead: "The worked example in our public recipes repository is a Marathi-medium secondary school. Its laptops finish setting themselves up and say this:",
+    lead: "The worked example in our public recipes repository is written for a Marathi-medium secondary school that does not exist. Build it and the machines finish setting themselves up and say this:",
     messageMono: "नमस्कार! काही अडचण असल्यास शिक्षकांना सांगा.",
     gloss: "Hello. If something goes wrong, tell a teacher.",
     sourceMono: "auros-recipes/customers/example-school/recipe.yaml",
-    note: "One line of a file anyone can read, and most of the argument. A shared classroom laptop greets a fourteen-year-old in the language the lesson is in, because somebody wrote that sentence down and the build put it in the image. Nobody has to find a setting.",
+    note: "One line of a file anyone can read, and most of the argument. A shared classroom laptop would greet a fourteen-year-old in the language the lesson is in, because somebody wrote that sentence down and the build puts it in the image. Nobody has to find a setting afterwards. No such machine has been imaged yet, and the day one is, that is what it says.",
   },
   primaryCta: { label: "Configure a build", href: "/configure" },
   secondaryCta: { label: "Read what doesn't come across", href: "/what-doesnt-come-across" },
   /** Sits under the CTAs. A fact, so it renders mono. */
-  priceNoteMono: "$79 one machine · $15 per device per year for schools, 25 minimum · $0 self-serve",
+  priceNoteMono: "$79 one machine · $15 per device per year for schools, 25 minimum",
 } as const;
 
 /**
@@ -134,7 +134,7 @@ export const migrationPage = {
 export const pricing = {
   title: "Pricing",
   standfirst:
-    "Five tiers. One of them is zero, because the recipes are public and you can build them yourself.",
+    "Four tiers, each a price and a minimum. There was a fifth at $0, and what nothing bought was the right to build the recipes yourself. The licence changed on 2026-09-20 and took the product out of that tier, so it is held back rather than repriced by whoever happened to be editing this page. Pricing is a decision for a person.",
   perDeviceNote: "Prices are per device. There is no quote to request and no discount to negotiate for.",
   minimumLabel: "Minimum",
   includesLabel: "Includes",
@@ -203,7 +203,7 @@ export const configurator = {
   privacyWarning:
     "Recipes are public. Do not put a pupil's name, a password, or anything else private into a build name. If you would rather the recipe carried no identifying name, say so and we will use a neutral one.",
   questions: {
-    orgName: { label: "What should this build be called?", hint: "This becomes a folder in a public repository." },
+    orgName: { label: "What should this build be called?", hint: "This becomes a folder in the recipes repository, which anyone can read." },
     deviceCount: { label: "How many machines?", hint: "Roughly is fine. It sets the tier, not the build." },
     locale: { label: "What language should the machines be in?", hint: "This is in the image, not a setting somebody has to find." },
     keyboard: { label: "Which keyboard layout?", hint: "" },
@@ -235,8 +235,14 @@ export const buildConsole = {
   title: "Build output",
   liveLabel: "live",
   idleLabel: "No build running",
+  /*
+   * This said "most of the time this panel is empty — that is what a maintained image looks like
+   * from the outside." Present tense, describing a steady state that has never once existed:
+   * GATE.md has `auros-base:hardened` at Gate 1, in progress, never published. The panel is empty
+   * because nothing has gone green yet, which is a different sentence and a more interesting one.
+   */
   subtitle:
-    "The base rebuilds at 04:17 UTC, and again whenever a recipe changes. Free CI runs its schedules late, so in practice it is a little after that. Most of the time this panel is empty. That is what a maintained image looks like from the outside.",
+    "The base rebuilds at 04:17 UTC and again whenever a recipe changes, and free CI runs its schedules late, so in practice it is a little after that. Nothing has gone green yet. auros-base:hardened has never published, so what is below is the last run that actually happened rather than a picture of a steady state. The day the first one passes, this line will say so and carry the date.",
   /** ILLUSTRATION. Never presented as a build we ran for a customer. Mono, obviously. */
   sampleLinesMono: [
     "resolving base  ghcr.io/ublue-os/aurora:stable",
@@ -272,6 +278,7 @@ export const layerStack = {
     upstream: "Maintained by others. Not us.",
     Auros: "Ours. Exactly one of it.",
     you: "Yours.",
+    nobody: "No artefact.",
   },
   readFromBottom: "Read from the bottom up.",
 } as const;
@@ -292,16 +299,28 @@ export const faqPage = {
   },
 } as const;
 
+/**
+ * DECISIONS.md D31 rewrote this page's claim and this block with it.
+ *
+ * The old standfirst said "every recipe is a public git repository, including yours — if we
+ * disappear you rebuild the same operating system with the same commands we use." D30 made every
+ * repository all-rights-reserved, which left that sentence describing a licence we do not grant.
+ * Reading a file and being permitted to build from it are different rights, and the old wording
+ * collapsed them.
+ *
+ * What replaced it is weaker and true: the image is already on the machines, the thing that dies
+ * with us is the maintenance, and the commitment is a written term rather than a licence.
+ */
 export const replaceable = {
   title: "Replaceable on purpose",
   standfirst:
-    "Every recipe is a public git repository, including yours. If we disappear, you rebuild the same operating system with the same commands we use.",
-  requirementsLabel: "What you need",
+    "The image is already on your laptops and it keeps booting whether or not we are here. What would die with us is the maintenance — the nightly rebuild that keeps it patched. So the commitment is written down before there is a customer to reassure: if Auros stops operating, you receive the build files for your own image.",
+  requirementsLabel: "What the handover is, and what it takes to use it",
   requirements: [
-    { label: "One Linux machine", value: "x86_64" },
-    { label: "Container tooling", value: "podman" },
-    { label: "Free disk", value: "a few tens of GB" },
-    { label: "An account with us", value: "none" },
+    { label: "What you receive", value: "your recipe · the base Containerfile · the build scripts" },
+    { label: "What you need to run them", value: "one x86_64 Linux machine with podman" },
+    { label: "Free disk", value: "a few tens of GB · we have not measured the working set" },
+    { label: "An account with us", value: "none — there would not be one to have" },
   ] satisfies Fact[],
   /*
    * `terminalNote` and `verifyNote` were here, printed directly above the document that makes
@@ -387,7 +406,7 @@ export const recipeExcerpt = {
       "Text Editor",
       "VLC Media Player",
     ],
-    note: "Ten. That is the list a teacher would give you if you asked, and it is short because real ones are.",
+    note: "Ten, named individually, with no category headings and no etcetera. Every application that is not on this list is gone from the image — which is why the list on the right is the longer one.",
   },
   /** The removal side, which is longer, and looks it. */
   remove: {
@@ -491,50 +510,72 @@ export const howSmall = {
   body: [
     "Auros is newer and smaller than the tone of a website usually admits. There is no sales team. There is no support rota. The plan had the base image booting by the end of the first day and it is late, and it is late for a reason worth writing down: four assumptions about upstream turned out to be wrong, and two of them would have produced a green build that was not actually safe.",
     "Finding them cost hours. Not finding them would have cost a customer.",
-    "Today: no physical machine has been imaged. The base builds in CI and produces a bootable disk image; whether it reaches a login prompt is under test rather than proven. Propagation from base to recipe to a running machine is built and untested. Those three sentences are the current state of the thing, and you can check every one of them against the gate table in the public repository.",
+    "Today: no physical machine has been imaged. The base builds in CI and produces a bootable disk image; whether it reaches a login prompt is under test rather than proven. Propagation from base to recipe to a running machine is built and untested. Those three sentences are the current state of the thing, and you can check every one of them against the gate table, which is in the repository and readable without an account.",
   ],
   closing:
-    "That is an odd way to open a sale and it is the reason the recipes are public. A company this size that could not be replaced has no business holding two hundred machines hostage, so we removed the possibility first and built the product second.",
+    "That is an odd way to open a sale, and it is why the wind-down term was written down before the first customer rather than after the first scare. A company this size that could not be replaced has no business holding two hundred machines hostage. We tried to make that true with a permissive licence and took it back a week later, because the code is ours and we want it to stay ours — so it is a term instead: if we stop, you get the files that keep your machines patched. Narrower than what this page said last week, and it is the version we can actually keep.",
 } as const;
 
 /**
  * What this site is standing on. Facts with sources, in mono, in the footer.
  *
- * Copied by hand from `auros-base/base.lock`, `auros-base/.github/workflows/nightly.yml` and
- * `auros-recipes/.github/workflows/replaceable.yml`. Those files are in different repositories
+ * Copied by hand from `auros-base/base.lock` and `auros-recipes/.github/workflows/replaceable.yml`.
+ * Those files are in different repositories
  * from this one, so nothing here is read at build time and nothing here should be trusted over
  * them. If this page and `base.lock` ever disagree, believe `base.lock` — CI writes it, a person
  * wrote this.
  */
 export const provenance = {
   title: "What this site is standing on",
+  /*
+   * Three rows, not four. The nightly time and the pull size both have better homes on the pages
+   * that need them — the build console's own subtitle, and the measurement beside it — and a
+   * footer that restates what the page above already said is the exact defect this pass was for.
+   * What is left here is what no page says: which image we are standing on, and when it was last
+   * checked by something that is not us.
+   *
+   * The third row printed `Wednesdays 05:23 UTC` as a standing cadence. That job has been on
+   * `workflow_dispatch` only since 2026-09-20 — its own header says so, and the cron line under it
+   * is commented out — so the panel whose entire job is to be checkable carried the one row a
+   * reader checking it would have caught. It now prints the state the file is actually in. A
+   * provenance panel listing only the things that are working is a provenance panel nobody should
+   * believe.
+   */
   facts: [
     {
       label: "Upstream base, pinned",
       value: "sha256:911281f2aaa42bfd17532c5cef917aba8d7ac8c0faeb1c1edc6a43dc28d0d2f1",
     },
-    { label: "Resolved", value: "2026-09-20T21:25:07Z · 3,758,096,384 bytes · 3.5 GB · pulled in 58 s" },
-    { label: "Base rebuild", value: "04:17 UTC nightly · auros-base/.github/workflows/nightly.yml" },
+    {
+      label: "Resolved",
+      value: "2026-09-20T21:25:07Z · linux/amd64 · upstream image created 2026-09-15T20:33:50Z",
+    },
     {
       label: "Replaceability test",
-      value: "Wednesdays 05:23 UTC · auros-recipes/.github/workflows/replaceable.yml",
+      value: "paused · workflow_dispatch only · auros-recipes/.github/workflows/replaceable.yml",
     },
   ] satisfies Fact[],
   note:
-    "The cron is at 04:17 rather than 04:00 because GitHub queues an enormous number of on-the-hour jobs and runs them late. An odd minute is the cheapest thing that helps, and it is the sort of detail that only gets written down by somebody who watched a build sit in a queue.",
+    "Copied by hand out of base.lock and a workflow file, both of which live in a different repository from this website. So if this footer and base.lock ever disagree, believe base.lock: CI writes that one, and a person wrote this one. The third row is a job that does not currently run, and it is here rather than removed because the day it starts running is a fact this panel should have to report either way.",
 } as const;
 
 export const footer = {
   /** No customer counts, no logos, no testimonials. Spec §4.4. */
+  /*
+   * This sat about sixty pixels above `licenceNote`, which says "All rights reserved". The old
+   * sentence ended "the recipes are public — if we stop, you rebuild them yourself", and a reader
+   * who noticed the two together had every reason to stop believing the rest of the page. Both
+   * strings were in the built HTML at once. D31 is the claim that is true of both.
+   */
   statement:
-    "Auros builds maintained Linux images for organisations with machines that still work. The recipes are public. If we stop, you rebuild them yourself.",
+    "Auros builds maintained Linux images for organisations with machines that still work. The image is yours and keeps booting whatever happens to us. If we stop operating, you receive the build files for it.",
   columns: [
     {
       title: "Read",
       links: [
         { href: "/what-doesnt-come-across", label: "What doesn't come across" },
         { href: "/how-it-works", label: "How it works" },
-        { href: "/replaceable", label: "Rebuild without us" },
+        { href: "/replaceable", label: "If we stop" },
         { href: "/faq", label: "Questions" },
       ],
     },
@@ -548,7 +589,19 @@ export const footer = {
       ],
     },
   ],
-  licenceNote: "Site and source released under Apache 2.0.",
+  /**
+   * D30 replaced Apache-2.0 with an all-rights-reserved notice across all five repositories. This
+   * string said "Site and source released under Apache 2.0" for as long as that was true and for a
+   * short while after it stopped being true, which is the most checkable false statement a site can
+   * make: the LICENSE file is one click away. Both halves below are facts, not positioning — our own
+   * code is closed, and the GPL and LGPL components inside the image carry rights we cannot withhold
+   * from anyone who receives it. See LICENSING.md.
+   *
+   * What this string must NOT do is answer the much larger question D30 opens, which is what happens
+   * to the replaceability claim now that the licence does not support it. That is §9-reserved and
+   * recorded in CLAIMS.md.
+   */
+  licenceNote: "All rights reserved. The image includes GPL and LGPL components, whose own licences travel with it to whoever receives it.",
   themeToggle: { label: "Theme", light: "Light", dark: "Dark", system: "Match system" },
 } as const;
 

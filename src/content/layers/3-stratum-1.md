@@ -10,9 +10,10 @@ depth: 3
 About ten lines of readable text that describe your fleet: a name, a language, a keyboard, the
 packages to install, the packages to remove, a policy mode, a look, and which hardware it is for.
 
-It is yours, it is in a public repository, and a person who is not an engineer can read it and
-tell whether it is right. That last property is not decoration. A configuration nobody can check
-is a configuration nobody is checking.
+It is yours, it is readable without an account, and a person who is not an engineer can read it
+and tell whether it is right. That last property is not decoration. A configuration nobody can
+check is a configuration nobody is checking. Readable is the word on purpose: you may read this
+file, and nobody is licensed to copy it.
 
 The removal list is the part that matters. It is first-class in the format, not a footnote, and
 the build reports back exactly what it took out with the size of each thing. A machine with

@@ -14,10 +14,14 @@ machine on a school network is a decision somebody has to defend.
 
 So the machines sit in a cupboard. They are not broken. They are orphaned.
 
-We build them an operating system. Not a general-purpose one with a store and a hundred
-services you did not ask for. One that contains the applications your staff actually open, in
-the language you actually teach in, with the lockdown you actually need, and nothing else at
-all.
+So we build them an operating system. Not a general-purpose one with a store and a hundred
+background services nobody asked for — one that holds the applications your staff open, in the
+language the class is taught in, locked down as far as you need and no further, and nothing
+else at all.
+
+The worked example recipe, which anybody can read, names ten. We do not know yet whether ten is
+typical, because we have not built this for anybody — ten is simply what that file says, and it
+is the only list we have.
 
 ## Subtraction is the product
 
@@ -32,7 +36,7 @@ click.
 The build reports back what it removed, by name, with the measured size of each. Not an estimate
 from counting lines in a file. A measurement taken from the image you are about to receive.
 
-The worked example in our public repository puts a floor under it. `must_remove_at_least: 240`
+The worked example puts a floor under it. `must_remove_at_least: 240`
 — if the build cannot take out at least two hundred and forty packages, it fails and nothing
 ships. That is a school writing a minimum for deletion into its own configuration file, which is
 not a field anybody else offers you.
@@ -42,10 +46,16 @@ report is. We will tell you it is the first document we would want if somebody w
 an operating system, and that it is the reason the removal list on your recipe is longer than
 the install list.
 
-## About the column above
+## The list beside this one
 
-That is the short list. The full inventory, including how to test your own programs against the
-compatibility layer before you commit anything, is the page we would read first.
+That is the short version, and two of its answers carry a date for a reason. On `2026-09-20` we
+read the public compatibility database ourselves: Microsoft Office rates `Garbage`, the lowest
+rating it has, and Adobe Photoshop rates `Silver`, which that database defines as problems with
+no workaround. Those are somebody else's measurements. We tell you when we took them so you can
+go and take them again.
+
+The full inventory, including how to test your own programs before you commit anything, is the
+page we would read first.
 
 ## Your data is copied before anything is written
 
@@ -70,13 +80,23 @@ where your data exists in two places and the original disk has not been touched.
 
 That archive stays on your premises. It is never uploaded, and we never receive it.
 
-## We are replaceable on purpose
+## What happens to these machines if we stop
 
-Every recipe is a public git repository, including yours. If we disappear, you clone it and
-rebuild the same operating system with the same command we use.
+The machines are yours and they keep booting. The image is installed on them. It does not check a
+licence server, it does not call home to be allowed to start, and it does not stop on a date. So
+that was never the real question.
 
-That is not generosity and it is not marketing. A company that can hold your operating system
-hostage eventually behaves like one, and a school cannot afford to find out which kind we are
-in four years. So we removed the possibility and then we advertised it.
+The real question is whether they are still safe on your network in four years, and that is about
+the patching. The nightly rebuild is the thing that dies with us, so the answer is written down as
+a term before there is anybody to reassure: **if Auros ceases operating, you receive the build
+files for your own image** — your recipe, the base Containerfile and the build scripts — so you or
+anybody you hire can carry on patching it.
 
-The instructions are written out in full, with the actual commands, on the replaceable page.
+Read what that is not, because the gap is the honest part. It is not a licence to our tooling. It
+is not permission to pass anything on. Our code is ours and we intend to keep it, which is a
+commercial decision rather than a noble one, and it is written down as `DECISIONS.md` D30 instead
+of left for you to work out from a `LICENSE` file.
+
+What you can do today, without asking and without an account, is read every line that goes onto
+your machines. Readable is not the same as licensed, and the page that walks through the whole
+term — including what it does not cover and what has not been tested yet — says so plainly.

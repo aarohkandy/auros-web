@@ -18,8 +18,9 @@ We pin it by digest rather than by name, so a build today and a build next Tuesd
 exactly the same rock. Moving that pin is a deliberate act with a rebuild and a full check matrix
 behind it, not something that happens to us overnight.
 
-This is also the floor under the promise that you can rebuild without us. The project at the
-bottom is still there and still maintained by people who never heard of us.
+This is also the floor under the wind-down term. If we stop operating you are given the build
+files for your image, and they are only worth having because the thing they stand on is still
+there — maintained by thousands of people who never heard of us and who do not stop when we do.
 
 One honest caveat about *the pin*, as opposed to the project. The upstream registry deletes old
 images on a schedule of its own — roughly three months, or sooner once enough newer releases

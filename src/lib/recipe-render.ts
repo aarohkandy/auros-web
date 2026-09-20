@@ -198,7 +198,7 @@ export function renderRecipe(a: Answers, opts: { now?: Date } = {}): RenderResul
   const L: YamlLine[] = [];
 
   L.push(comment("hdr/1", "This is the file. If it is not in here, it is not on the machines."));
-  L.push(comment("hdr/2", "It is committed to a public repository, read by you, and built from as written."));
+  L.push(comment("hdr/2", "It is committed to the recipes repository, readable by you, and built from as written."));
   L.push(blank("hdr/blank"));
 
   L.push(keyValue("schema", "schema", 1, { comment: "the version of this form" }));

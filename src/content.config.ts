@@ -113,6 +113,19 @@ const tiers = defineCollection({
     excludes: z.array(z.string()).default([]),
     /** Set on the school/nonprofit tier only. Renders the replacement-cost arithmetic (spec §6D). */
     showReplacementComparison: z.boolean().default(false),
+    /**
+     * Held back from the site. A blocked tier is still a file, still schema-checked, and still
+     * read by whoever is deciding it — it just does not render.
+     *
+     * This exists because D30 removed the product from the $0 self-serve tier without removing
+     * the tier: the recipes stopped being forkable, so the price stopped buying anything. What
+     * replaces it is a pricing question and SPEC §9 reserves those for a human (BLOCKED.md B9).
+     * Deleting the file would decide it by deletion; publishing it would ship a false offer.
+     * So the tier stays, flagged, and the price table does not render it.
+     *
+     * Clear the flag only when B9 is answered, and by whoever answers it.
+     */
+    blocked: z.boolean().default(false),
     order: z.number(),
   }),
 });
@@ -142,7 +155,13 @@ const layers = defineCollection({
     /** What this layer IS, e.g. "Fedora · Universal Blue". */
     name: z.string(),
     /** Who owns and patches it. One of: upstream, Auros, you. */
-    ownedBy: z.enum(["upstream", "Auros", "you"]),
+    /**
+     * The sky is not owned by anybody, because nothing is built there. It carried `Auros` and
+     * therefore rendered "Ours. Exactly one of it." — the auros-base label — directly above body
+     * copy reading "Nothing is built here... the only layer with no file behind it." One shared
+     * field was collapsing two different meanings. `nobody` is the fourth case.
+     */
+    ownedBy: z.enum(["upstream", "Auros", "you", "nobody"]),
     /** Factual identifier for this layer, rendered IBM Plex Mono. Empty string where none. */
     refMono: z.string(),
     /** Depth order, 0 = sky, 5 = bedrock. Matches the renderer's stratum index. */

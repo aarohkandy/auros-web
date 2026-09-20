@@ -23,3 +23,9 @@ for machines you already own.
 
 The minimum is `25` devices. Below that, the one-machine price is usually the better answer and
 we will say so.
+
+The question a school asks at this size is what happens to a cupboard of machines if a company
+this new stops answering email. The machines keep booting; the image is on them. What would stop
+is the patching, so the term is that you receive the build files for your own image — the recipe,
+the base Containerfile and the build scripts — and you or anybody you hire can carry it on. It is
+on the replaceable page in full, including what it does not cover.

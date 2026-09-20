@@ -33,14 +33,16 @@ const sequence: Fact[] = [
 
 <PageShell
   title={`Ordering — ${site.name}`}
-  description="What happens when you submit a build: the recipe is validated, a pull request opens in a public repository, and the card is billed only after the test build passes."
+  description="What happens when you submit a build: the recipe is validated, a pull request opens in the recipes repository, and the card is billed only after the test build passes."
   layer="stratum-1"
 >
-  <Panel tone="panel" as="header" class="head">
+  <div class="head with-margin-label">
     <StratumLabel layer="stratum-1" />
-    <h1 class="title">Ordering</h1>
-    <p class="standfirst">{configurator.submitNote}</p>
-  </Panel>
+    <Panel tone="panel" as="header">
+      <h1 class="title">Ordering</h1>
+      <p class="standfirst">{configurator.submitNote}</p>
+    </Panel>
+  </div>
 
   <Panel tone="panel" class="sequence">
     <h2 class="section-title">The order, in order</h2>
@@ -63,13 +65,19 @@ const sequence: Fact[] = [
 </PageShell>
 
 <style>
+  /*
+    The stratum label sits in the rail beside the header, not stacked inside it. §7 asks for the
+    strata to be "labelled in the margin as they pass it", and `.with-margin-label` in base.css is
+    the grid that does it — every other page on the site reads this way now, and a label stacked
+    above a heading is a caption on a card rather than a legend for the background.
+  */
   .head {
-    margin-bottom: 1rem;
+    margin-bottom: var(--space-5, 1.5rem);
   }
   .title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: clamp(2rem, 6vw, 3rem);
+    font-size: clamp(2.25rem, 7vw, var(--step-4, 2.75rem));
     line-height: 1.05;
     margin: 0 0 0.6rem;
     color: var(--ink, #24231f);
@@ -85,7 +93,7 @@ const sequence: Fact[] = [
   .section-title {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.6rem;
+    font-size: var(--step-3, 2rem);
     line-height: 1.15;
     margin: 0 0 1rem;
     color: var(--ink, #24231f);
@@ -101,16 +109,23 @@ const sequence: Fact[] = [
   .action {
     margin: 1.25rem 0 0;
   }
+  /*
+    The primary action is the only filled element on the page. Ink on panel: 13.9:1 in light,
+    11.5:1 in dark, so it is legible before it is decorative.
+
+    It used to be marked with a 3px ore left border. An interactive border is governed by WCAG
+    1.4.11 and needs 3:1 in both themes; ore on --panel-2 in dark measures 2.67:1, and
+    src/components/CONVENTIONS.md §2 says as much — ore stays on the layer-boundary marks, the
+    ILLUSTRATION flag and the focus ring, and nothing else. Emphasis here comes from weight.
+  */
   .cta {
     font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
     font-size: 0.95rem;
     padding: 0.55rem 0.9rem;
-    border: 1px solid var(--rule, #8a7358);
-    border-left-width: 3px;
-    border-left-color: var(--ore, #be3a12);
+    border: 1px solid var(--ink, #24231f);
     border-radius: 3px;
-    color: var(--ink, #24231f);
-    background-color: var(--panel-2, #e6e0d2);
+    color: var(--panel, #f4f1ea);
+    background-color: var(--ink, #24231f);
     text-decoration: none;
   }
   .cta:focus-visible {

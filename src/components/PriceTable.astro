@@ -1,12 +1,17 @@
 ---
 /**
- * The five tiers, exactly as spec §9 fixes them and as the content author wrote them:
+ * The tiers, exactly as spec §9 fixes them and as the content author wrote them:
  *
  *   one machine        $79 one-time
  *   school/nonprofit   $15 per device per year, 25 minimum
  *   business fleet     $12 per device per month, 10 minimum
  *   single-purpose     $19 per device per month, 5 minimum
- *   self-serve         $0
+ *   self-serve         $0 — HELD BACK, see below
+ *
+ * Four render. The fifth is `blocked` in its own frontmatter and `tiers()` filters it out, so
+ * nothing here needs to know about it. D30 removed the product from that price and BLOCKED.md B9
+ * is the pricing decision that replaces it, which SPEC §9 reserves for a human. This component
+ * must not special-case it back in.
  *
  * Every number on this page is read out of `src/content/tiers/`. Nothing is computed, rounded,
  * reformatted or re-derived here, because a price is §9-reserved and a component that can
@@ -35,7 +40,7 @@ const allTiers = await tiers();
 
 /**
  * Each tier's own prose, rendered from its document. The tier files carry the reasoning behind the
- * number — why single-purpose costs more, why self-serve is zero and not a trial — and that
+ * number — why single-purpose costs more than a fleet seat — and that
  * reasoning is the part that makes the table honest, so it is on the page rather than summarised.
  */
 const rendered = await Promise.all(
@@ -51,7 +56,11 @@ const rendered = await Promise.all(
   <ul class="list">
     {
       rendered.map(({ tier, Body }) => (
-        <Panel tone="panel" marked={tier.data.showReplacementComparison} as="li" class="tier">
+        <Panel
+          tone={tier.data.showReplacementComparison ? "panel" : "panel-2"}
+          as="li"
+          class:list={["tier", { lead: tier.data.showReplacementComparison }]}
+        >
           <header class="head">
             <H class="name">{tier.data.name}</H>
             <p class="price">
@@ -145,10 +154,24 @@ const rendered = await Promise.all(
   .name {
     font-family: var(--font-display, "Instrument Serif", Georgia, serif);
     font-weight: 400;
-    font-size: 1.6rem;
+    font-size: var(--step-2, 1.5rem);
     line-height: 1.1;
     margin: 0;
     color: var(--ink, #24231f);
+  }
+  /*
+     One tier is larger than the other four because it is the one SPEC §1 names as the first
+     customer, not because `:has()` put it there. Previously this was a two-column grid over five
+     tiers of very unequal length: the school tier was force-promoted to full width by a CSS rule
+     and the remaining four sat in two ragged rows, so the layout said "four peers plus one" for a
+     layout reason rather than an editorial one. Now the difference is weight, and the weight is a
+     decision somebody made.
+  */
+  .lead .name {
+    font-size: var(--step-3, 2rem);
+  }
+  .lead .amount {
+    font-size: var(--step-2, 1.5rem);
   }
   .price {
     margin: 0;
@@ -226,14 +249,9 @@ const rendered = await Promise.all(
   .notes {
     margin-top: 1rem;
   }
-  @media (min-width: 60rem) {
-    .list {
-      grid-template-columns: repeat(2, 1fr);
-      align-items: start;
-    }
-    /* The tier carrying the comparison is the longest one; it gets the full width. */
-    .list :global(li:has(.comparison)) {
-      grid-column: 1 / -1;
-    }
+  /* The four that are not the lead sit in a narrower column, left-aligned. A price list is a
+     list; five equal boxes in two ragged rows is a card grid pretending to be one. */
+  .tier:not(.lead) {
+    max-width: calc(var(--measure, 38rem) + 4rem);
   }
 </style>
