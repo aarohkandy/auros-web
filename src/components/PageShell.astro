@@ -1,0 +1,76 @@
+---
+/**
+ * The single point of coupling between the pages (mine) and the layout (another agent's).
+ *
+ * Every page renders through this. Nothing else in `src/pages/` or `src/components/` imports from
+ * `src/layouts/`. If the layout is renamed or its props change, this file changes and no other.
+ *
+ * The layout did not exist when the pages were written, so the import is a glob rather than a
+ * static import: a missing layout renders a plain, unstyled document instead of failing the build
+ * with a module-not-found. That fallback is deliberately bare — no nav, no terrain, no footer — so
+ * nobody mistakes it for the finished page.
+ */
+const layoutModules = import.meta.glob("../layouts/BaseLayout.astro", { eager: true }) as Record<
+  string,
+  { default?: any }
+>;
+const BaseLayout = Object.values(layoutModules)[0]?.default;
+
+export type Layer = "sky" | "surface" | "topsoil" | "stratum-1" | "stratum-2" | "bedrock";
+
+interface Props {
+  /** The <title>. A name, not a sentence. */
+  title: string;
+  /** One sentence. The meta description. */
+  description: string;
+  /** Which stratum of the terrain this page sits at (spec §7). */
+  layer?: Layer;
+}
+
+const { title, description, layer } = Astro.props;
+
+if (!BaseLayout) {
+  console.warn(
+    `[auros-web] src/layouts/BaseLayout.astro is not present. "${title}" rendered without the terrain, ` +
+      `nav or footer. This is the documented fallback in src/components/CONVENTIONS.md §1, not a finished page.`,
+  );
+}
+---
+
+{
+  BaseLayout ? (
+    <BaseLayout title={title} description={description} layer={layer}>
+      <slot />
+    </BaseLayout>
+  ) : (
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>{title}</title>
+        <meta name="description" content={description} />
+      </head>
+      <body data-layer={layer}>
+        <a href="#main" class="skip">Skip to content</a>
+        <main id="main">
+          <slot />
+        </main>
+      </body>
+    </html>
+  )
+}
+
+<style>
+  .skip {
+    position: absolute;
+    left: -9999px;
+    color: var(--ink, #24231f);
+    background: var(--panel, #f4f1ea);
+    padding: 0.5rem 0.75rem;
+  }
+  .skip:focus {
+    left: 0.5rem;
+    top: 0.5rem;
+    z-index: 100;
+  }
+</style>

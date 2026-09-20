@@ -1,0 +1,53 @@
+---
+/**
+ * An opaque panel. Spec §7: "All body text sits on opaque panels — the background never reduces
+ * text contrast." Every block of reading text on this site is inside one of these.
+ *
+ * No shadow, no gradient, 3px radius ceiling, a 1px hairline for the edge. Those are §7, not taste.
+ */
+interface Props {
+  /** Which panel tone. `deep` is the console's; it is dark in both themes. */
+  tone?: "panel" | "panel-2" | "deep";
+  /** The element to render. A panel is usually a <section>; inside a list it is an <li>. */
+  as?: string;
+  /** An ore mark on the leading edge. Non-text ore only — see CONVENTIONS.md §2. */
+  marked?: boolean;
+  class?: string;
+  id?: string;
+}
+
+const { tone = "panel", as = "section", marked = false, class: className, id } = Astro.props;
+const Tag = as as any;
+---
+
+<Tag id={id} class:list={["panel", `tone-${tone}`, { marked }, className]}>
+  <slot />
+</Tag>
+
+<style>
+  .panel {
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 3px;
+    padding: 1.25rem 1.25rem;
+    color: var(--ink, #24231f);
+  }
+  .tone-panel {
+    background-color: var(--panel, #f4f1ea);
+  }
+  .tone-panel-2 {
+    background-color: var(--panel-2, #e6e0d2);
+  }
+  .tone-deep {
+    background-color: var(--panel-deep, #24231f);
+    color: var(--ink-console, #e2ddd0);
+    border-color: var(--rule-deep, #5a4e40);
+  }
+  .marked {
+    border-left: 3px solid var(--ore, #be3a12);
+  }
+  @media (min-width: 40rem) {
+    .panel {
+      padding: 1.75rem;
+    }
+  }
+</style>

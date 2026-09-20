@@ -1,0 +1,88 @@
+---
+/**
+ * The typographic frame for long-form MDX out of `src/content/`.
+ *
+ * Spec §7 typography, applied and not reinterpreted: Instrument Serif for display, IBM Plex Sans
+ * for UI and prose, IBM Plex Mono for anything factual. The content agent's mono convention is
+ * that a fact is marked as an inline code span, so `code` is the mono hook and it carries no
+ * decoration beyond the face.
+ *
+ * Instrument Serif has 400 normal and 400 italic and no bold (DECISION-SHEET). Headings here are
+ * 400. There is no `font-weight: 700` anywhere in this file and adding one would synthesise a
+ * weight the face does not have.
+ */
+interface Props {
+  class?: string;
+}
+const { class: className } = Astro.props;
+---
+
+<div class:list={["prose", className]}>
+  <slot />
+</div>
+
+<style>
+  .prose {
+    color: var(--ink, #24231f);
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 38rem;
+  }
+  .prose :global(h2),
+  .prose :global(h3) {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    line-height: 1.15;
+    margin: 2rem 0 0.75rem;
+  }
+  .prose :global(h2) {
+    font-size: 1.75rem;
+  }
+  .prose :global(h3) {
+    font-size: 1.3rem;
+  }
+  .prose :global(p) {
+    margin: 0 0 1rem;
+  }
+  .prose :global(ul),
+  .prose :global(ol) {
+    margin: 0 0 1rem;
+    padding-left: 1.25rem;
+  }
+  .prose :global(li) {
+    margin: 0 0 0.4rem;
+  }
+  .prose :global(a) {
+    color: var(--ink, #24231f);
+    text-decoration-line: underline;
+    text-decoration-color: var(--ore, #be3a12);
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+  }
+  .prose :global(strong) {
+    font-weight: 600;
+  }
+  .prose :global(code) {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.92em;
+  }
+  .prose :global(pre) {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    background-color: var(--panel-2, #e6e0d2);
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 3px;
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+  .prose :global(pre code) {
+    font-size: inherit;
+  }
+  .prose :global(hr) {
+    border: 0;
+    border-top: 1px solid var(--rule, #8a7358);
+    margin: 2rem 0;
+  }
+</style>

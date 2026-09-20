@@ -1,0 +1,77 @@
+---
+/**
+ * The margin label that names which layer of the real architecture the reader is passing.
+ *
+ * Spec §7: the terrain background IS the architecture diagram, and each stratum is "labelled in
+ * the margin as they pass it". So this label is not decoration on top of a picture — it is the
+ * legend for it, and it has to match the stack the company actually builds:
+ *
+ *   surface     your machine
+ *   topsoil     your apps, your language, your look
+ *   stratum 1   your recipe
+ *   stratum 2   auros-base:hardened
+ *   bedrock     Fedora · Universal Blue
+ *
+ * It reads those names from the `layers` collection rather than restating them, so the margin and
+ * the /how-it-works page cannot drift apart. If the collection entry is missing, the label renders
+ * nothing at all: an unnamed stratum is better than a guessed one.
+ */
+import { layerById, type LayerEntry } from "./content";
+import { layerStack } from "../content/copy";
+
+interface Props {
+  /** Which stratum. Matches the terrain renderer's stratum index via the collection's `id`. */
+  layer: LayerEntry["data"]["id"];
+  /** Hide from assistive tech where the same words are already in the page text. */
+  decorative?: boolean;
+}
+
+const { layer, decorative = false } = Astro.props;
+const entry = await layerById(layer);
+const data = entry?.data;
+const ownedBy = data ? layerStack.ownedByLabels[data.ownedBy] : undefined;
+---
+
+{
+  data && (
+    <aside
+      class="stratum"
+      data-layer={data.id}
+      data-depth={data.depth}
+      aria-hidden={decorative ? "true" : undefined}
+    >
+      <p class="margin-label">{data.marginLabel}</p>
+      <p class="name">{data.name}</p>
+      {data.refMono && <p class="ref">{data.refMono}</p>}
+      {ownedBy && <p class="owned">{ownedBy}</p>}
+    </aside>
+  )
+}
+
+<style>
+  .stratum {
+    border-left: 3px solid var(--ore, #be3a12);
+    padding: 0.35rem 0 0.35rem 0.75rem;
+    margin: 0 0 1.25rem;
+    max-width: 16rem;
+  }
+  .margin-label,
+  .ref {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .name {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    margin: 0.15rem 0;
+    color: var(--ink, #24231f);
+  }
+  .owned {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.8rem;
+    margin: 0.15rem 0 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>
