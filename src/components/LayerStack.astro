@@ -1,0 +1,122 @@
+---
+/**
+ * The layer stack, read from the `layers` collection: sky, surface, topsoil, stratum 1, stratum 2,
+ * bedrock. Spec §7 makes the terrain background the architecture diagram; this is the same diagram
+ * in words, and both read from the same six documents so they cannot describe different companies.
+ *
+ * The content author says "read from the bottom up", so the deepest layer is rendered first when
+ * `fromBottom` is set — which is how the /how-it-works page uses it.
+ */
+import { layers, renderEntry } from "./content";
+import { layerStack } from "../content/copy";
+import Panel from "./Panel.astro";
+import Prose from "./Prose.astro";
+
+interface Props {
+  /** Bedrock first. The page says to read it that way, so the DOM order says it too. */
+  fromBottom?: boolean;
+  headingLevel?: 2 | 3;
+}
+
+const { fromBottom = true, headingLevel = 2 } = Astro.props;
+const H = `h${headingLevel}` as any;
+
+const all = await layers();
+const ordered = fromBottom ? [...all].reverse() : all;
+const rendered = await Promise.all(
+  ordered.map(async (layer) => ({ layer, Body: (await renderEntry(layer)).Content })),
+);
+---
+
+<section class="stack">
+  <Panel tone="panel" class="stack-head">
+    <H class="title">{layerStack.title}</H>
+    <p class="standfirst">{layerStack.standfirst}</p>
+    <p class="direction">{fromBottom ? layerStack.readFromBottom : ""}</p>
+  </Panel>
+
+  <ol class="layers">
+    {
+      rendered.map(({ layer, Body }) => (
+        <Panel as="li" tone="panel" class="layer" id={`layer-${layer.data.id}`}>
+          <p class="margin-label">{layer.data.marginLabel}</p>
+          <h3 class="name">{layer.data.name}</h3>
+          <p class="meta">
+            <span class="owned">{layerStack.ownedByLabels[layer.data.ownedBy]}</span>
+            {layer.data.refMono && <span class="ref">{layer.data.refMono}</span>}
+          </p>
+          <Prose>
+            <Body />
+          </Prose>
+        </Panel>
+      ))
+    }
+  </ol>
+</section>
+
+<style>
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+    color: var(--ink, #24231f);
+  }
+  .standfirst,
+  .direction {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin: 0 0 0.5rem;
+    max-width: 38rem;
+    color: var(--ink, #24231f);
+  }
+  .direction {
+    font-size: 0.85rem;
+    color: var(--ink-muted, #5a4e40);
+    margin-bottom: 0;
+  }
+  .stack-head {
+    margin-bottom: 0.75rem;
+  }
+  .layers {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .layer {
+    border-left: 3px solid var(--ore, #be3a12);
+  }
+  .margin-label,
+  .ref {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--ink-muted, #5a4e40);
+    margin: 0;
+  }
+  .name {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.35rem;
+    line-height: 1.15;
+    margin: 0.2rem 0 0.3rem;
+    color: var(--ink, #24231f);
+  }
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    align-items: baseline;
+    margin: 0 0 0.75rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+  }
+  .owned {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.82rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>

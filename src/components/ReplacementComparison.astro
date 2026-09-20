@@ -1,0 +1,264 @@
+---
+/**
+ * The replacement-cost comparison that spec §6D requires alongside the school tier.
+ *
+ * "Our real competitor is doing nothing, which is free." So this is not a savings calculator and it
+ * does not have an answer in it. §4.4 forbids a savings figure, and `copy.ts` gives the second
+ * reason: we have no customers, so any figure would be invented.
+ *
+ * What it does instead: hands the reader arithmetic with their own numbers. Two inputs, both theirs,
+ * both empty. One output, which is their machine count multiplied by the §9-fixed price — and that
+ * price is read off the tier document rather than typed here, so the page cannot disagree with the
+ * pricing table.
+ *
+ * With JavaScript off, the formula and the reasoning are still there. The reader does the
+ * multiplication. That is a degraded path and not a broken one, because the argument was never the
+ * arithmetic — it is which numbers belong in it.
+ */
+import { replacementComparison } from "../content/copy";
+import type { TierEntry } from "./content";
+
+interface Props {
+  /** The school tier document. The price comes from here, never from this file. */
+  tier: TierEntry;
+  headingLevel?: 2 | 3 | 4;
+}
+
+const { tier, headingLevel = 3 } = Astro.props;
+const H = `h${headingLevel}` as any;
+
+/**
+ * The per-device-per-year price, taken from the tier document. If it is not a plain currency amount
+ * the calculator is not rendered at all — a calculator that guessed its own price would be worse
+ * than no calculator.
+ */
+const priceMatch = /^([^\d]*)(\d+(?:\.\d+)?)$/.exec(tier.data.priceMono.trim());
+const currencySymbol = priceMatch?.[1] ?? "";
+const pricePerDevice = priceMatch ? Number(priceMatch[2]) : null;
+
+const [inputA, inputB, outputC] = replacementComparison.inputs;
+---
+
+<div class="comparison">
+  <H class="title">{replacementComparison.title}</H>
+  <p class="standfirst">{replacementComparison.standfirst}</p>
+
+  <form
+    class="arithmetic"
+    data-replacement-comparison
+    data-price={pricePerDevice ?? ""}
+    data-currency={currencySymbol}
+    data-unit={tier.data.unitMono}
+    novalidate
+  >
+    <div class="row">
+      <label class="label" for="rc-a">
+        <span class="key">{inputA.keyMono}</span>
+        {inputA.label}
+      </label>
+      <input
+        class="field"
+        id="rc-a"
+        name="a"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        step="1"
+        autocomplete="off"
+        data-rc-a
+      />
+      <p class="hint">{inputA.hint}</p>
+    </div>
+
+    <div class="row">
+      <label class="label" for="rc-b">
+        <span class="key">{inputB.keyMono}</span>
+        {inputB.label}
+      </label>
+      <input
+        class="field"
+        id="rc-b"
+        name="b"
+        type="number"
+        inputmode="decimal"
+        min="0"
+        step="any"
+        autocomplete="off"
+        data-rc-b
+      />
+      <p class="hint">{inputB.hint}</p>
+    </div>
+
+    <div class="row">
+      <p class="label" id="rc-c-label">
+        <span class="key">{outputC.keyMono}</span>
+        {outputC.label}
+      </p>
+      <output class="field output" for="rc-a" aria-labelledby="rc-c-label" data-rc-c></output>
+      <p class="hint">{outputC.hint}</p>
+    </div>
+
+    <p class="formula">{replacementComparison.formulaMono}</p>
+
+    <div class="result" data-rc-result aria-live="polite" hidden></div>
+    <noscript>
+      <p class="hint">
+        The arithmetic below needs JavaScript. Without it, the formula is the whole of it: multiply
+        your machine count by the price, once a year, and compare that against what replacing those
+        machines would cost you.
+      </p>
+    </noscript>
+  </form>
+
+  {replacementComparison.body.map((paragraph) => <p class="body">{paragraph}</p>)}
+
+  <p class="no-figure">{replacementComparison.noFigureNote}</p>
+</div>
+
+<script>
+  /**
+   * Arithmetic only. It multiplies numbers the reader typed and prints both sides. It never fills a
+   * default, never supplies an average, and never prints a saving — if a field is empty, nothing is
+   * shown (spec §4.4).
+   */
+  const forms = document.querySelectorAll<HTMLFormElement>("[data-replacement-comparison]");
+  forms.forEach((form) => {
+    const price = Number(form.dataset.price);
+    const currency = form.dataset.currency ?? "";
+    const unit = form.dataset.unit ?? "";
+    const a = form.querySelector<HTMLInputElement>("[data-rc-a]");
+    const b = form.querySelector<HTMLInputElement>("[data-rc-b]");
+    const c = form.querySelector<HTMLOutputElement>("[data-rc-c]");
+    const result = form.querySelector<HTMLElement>("[data-rc-result]");
+    if (!a || !b || !c || !result || !Number.isFinite(price)) return;
+
+    const money = (n: number) =>
+      currency + n.toLocaleString(undefined, { maximumFractionDigits: 0 });
+
+    function update() {
+      const machines = a!.value === "" ? null : Number(a!.value);
+      const each = b!.value === "" ? null : Number(b!.value);
+      const machinesOk = machines !== null && Number.isFinite(machines) && machines >= 0;
+
+      c!.textContent = machinesOk ? `${money(machines! * price)} ${unit}` : "";
+
+      if (!machinesOk || each === null || !Number.isFinite(each)) {
+        result!.hidden = true;
+        result!.textContent = "";
+        return;
+      }
+      const replacement = machines! * each;
+      const auros = machines! * price;
+      result!.hidden = false;
+      result!.textContent =
+        `Replacing ${machines} machines at ${money(each)} each is ${money(replacement)}. ` +
+        `The same ${machines} machines on this tier is ${money(auros)} ${unit}. ` +
+        `Both numbers are yours; the comparison is the one you have to make, and doing nothing is the third column.`;
+    }
+
+    a.addEventListener("input", update);
+    b.addEventListener("input", update);
+    form.addEventListener("submit", (event) => event.preventDefault());
+  });
+</script>
+
+<style>
+  .comparison {
+    border-top: 1px solid var(--rule, #8a7358);
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.4rem;
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+    color: var(--ink, #24231f);
+  }
+  .standfirst,
+  .body,
+  .no-figure {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin: 0 0 0.85rem;
+    color: var(--ink, #24231f);
+  }
+  .no-figure {
+    border-left: 3px solid var(--ore, #be3a12);
+    padding-left: 0.85rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .arithmetic {
+    display: grid;
+    gap: 1rem;
+    margin: 1rem 0 1.25rem;
+    padding: 1rem;
+    background-color: var(--panel-2, #e6e0d2);
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 3px;
+  }
+  .row {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+  .key {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-weight: 400;
+    font-size: 0.78rem;
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 2px;
+    padding: 0 0.3rem;
+    margin-right: 0.45rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .field {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.95rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 3px;
+    background-color: var(--panel, #f4f1ea);
+    color: var(--ink, #24231f);
+    max-width: 16rem;
+  }
+  .output {
+    display: block;
+    min-height: 1.35rem;
+    border-style: dashed;
+  }
+  .field:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--focus, #be3a12);
+    outline-offset: 1px;
+  }
+  .hint {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .formula {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.85rem;
+    margin: 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule, #8a7358);
+    color: var(--ink, #24231f);
+  }
+  .result {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+</style>

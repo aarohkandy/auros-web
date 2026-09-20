@@ -1,0 +1,64 @@
+{
+  // Cloudflare WORKERS, not Pages (DECISIONS.md D25 / DECISION-SHEET.md: @astrojs/cloudflare v13+
+  // removed Pages support entirely). Astro 7.3.3 · @astrojs/cloudflare 14.3.2 · wrangler 4.135.0.
+  //
+  // One Worker, four routes, in front of the static build. See worker/index.js for why four routes is
+  // still "one serverless function" in the sense spec §6D means.
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "auros-web",
+  "main": "worker/index.js",
+
+  // Pinned, not floating. A compatibility date that moves on its own is the same class of mistake as
+  // `ubuntu-latest` (D23) and `:stable` without a digest (D21): infrastructure changing underneath a
+  // build nobody touched. Move it deliberately, read the changelog, redeploy.
+  "compatibility_date": "2026-09-20",
+
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+
+    // Without this, Cloudflare serves a matching static asset before the Worker ever runs. There is no
+    // page at /order today, but a future `src/pages/order.astro` would silently shadow the POST
+    // endpoint and the failure would look like a routing bug rather than a file collision. These four
+    // must stay identical to ROUTES in worker/index.js.
+    "run_worker_first": ["/order", "/build-result", "/stripe-webhook", "/build-console"]
+  },
+
+  // Order records, the GitHub installation-token cache, the once-only claims that stop /build-result
+  // billing twice, and the last-known build log the console degrades to.
+  //
+  // Create it with:  wrangler kv namespace create AUROS_KV
+  // then paste the id below. The placeholder is deliberately not a valid id, so a deploy that has not
+  // been configured fails at deploy time rather than at the first order.
+  "kv_namespaces": [
+    { "binding": "AUROS_KV", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+  ],
+
+  // Non-secret configuration. Every secret is set with `wrangler secret put` and appears nowhere in
+  // this repository — see worker/README.md for the full list and for what happens when each is absent.
+  "vars": {
+    "ENVIRONMENT": "production",
+    "SITE_ORIGIN": "https://auros.dev",
+
+    "RECIPES_OWNER": "aarohkandy",
+    "RECIPES_REPO": "auros-recipes",
+    "RECIPES_BASE_BRANCH": "main",
+
+    // Spec §9 reserves anything touching a real card for the human, and §4.6 reserves sending mail to
+    // a real person. Both are therefore OFF, in configuration, not in a comment. Turning either on is
+    // a deliberate act by a person, recorded in a deploy.
+    //
+    // With STRIPE_LIVE_ENABLED off the whole order flow still runs end to end: the Worker builds the
+    // exact Checkout parameters and returns them as `planned` instead of sending them, so the
+    // mechanism can be reviewed without a card existing anywhere.
+    "STRIPE_LIVE_ENABLED": "false",
+    "OPERATOR_EMAIL_ENABLED": "false"
+  },
+
+  "observability": { "enabled": true },
+
+  // Logs from this Worker name the GitHub App path and the Stripe call sites, so they are operator
+  // data. Keep the retention short and the access narrow.
+  "placement": { "mode": "smart" }
+}

@@ -1,0 +1,157 @@
+---
+/**
+ * The `<noscript>` path required by spec §6D: the site "works with JS disabled down to a mailto
+ * fallback."
+ *
+ * The copy here is explicit that this is a **degraded path, not an equivalent one**, because the
+ * arrangement is forced and the reader deserves to know why (PLAN.md §3.10, CONFIGURATOR.md):
+ *
+ *   - Turnstile is a JavaScript widget and has no `<noscript>` fallback.
+ *   - The Worker never accepts a POST without a valid Turnstile token. No exceptions, because the
+ *     endpoint opens a pull request in a public repository and an unprotected one is an abuse vector.
+ *   - Therefore a visitor with JavaScript off can email us and cannot submit. Saying "works without
+ *     JavaScript" without that sentence would be the same class of claim as saying .exe files work.
+ *
+ * The address itself is a placeholder until a human sets it (spec §9 reserves anything touching a
+ * real person's inbox). While it is, this component says so on the page rather than rendering a
+ * dead link that looks live.
+ */
+import { site, configurator } from "../content/copy";
+
+interface Props {
+  /** What the reader was trying to do, so the email has a subject worth reading. */
+  subject?: string;
+  /** The lines the reader is asked to include. Defaults to what the configurator would have asked. */
+  body?: string[];
+  /** Also render the block to JavaScript-enabled readers, e.g. on the order page. */
+  alwaysVisible?: boolean;
+  headingLevel?: 2 | 3;
+}
+
+const {
+  subject = "A build for our machines",
+  body = [
+    "The language the machines should be in:",
+    "How many machines, and roughly what age:",
+    "The machine models, if you have them:",
+    "The applications your staff actually open:",
+    "How locked down they should be (open, managed, locked, single-purpose):",
+    "Windows programs you need us to look at, with exact versions:",
+  ],
+  alwaysVisible = false,
+  headingLevel = 3,
+} = Astro.props;
+
+const H = `h${headingLevel}` as any;
+
+const mailto =
+  `mailto:${site.contactEmail}` +
+  `?subject=${encodeURIComponent(subject)}` +
+  `&body=${encodeURIComponent(body.join("\n\n") + "\n")}`;
+
+if (site.contactEmailIsPlaceholder) {
+  console.warn(
+    `[auros-web] NoScriptFallback is rendering the placeholder address ${site.contactEmail}. ` +
+      `A human sets the real one (spec §9). Until then the no-JS path goes nowhere, and the page says so.`,
+  );
+}
+
+const Wrapper = alwaysVisible ? "div" : "noscript";
+---
+
+<Wrapper>
+  <div class="fallback">
+    <H class="title">Without JavaScript</H>
+    <p class="degraded">
+      This is a degraded path, not an equivalent one. You can email us; you cannot submit a build
+      from here.
+    </p>
+    <p class="why">
+      The order form is protected by a challenge widget that is itself JavaScript, and the server
+      that opens the pull request refuses any submission without a valid token from it. There is no
+      version of that check we can switch off for one visitor, so rather than pretend the form
+      degrades, we are telling you what the fallback actually is.
+    </p>
+    <p class="what-to-send">{configurator.noJsFallback}</p>
+
+    <ul class="lines">
+      {body.map((line) => <li>{line}</li>)}
+    </ul>
+
+    <p class="action">
+      <a class="mail" href={mailto}>{site.contactEmail}</a>
+    </p>
+
+    {
+      site.contactEmailIsPlaceholder && (
+        <p class="placeholder">
+          That address is a placeholder and does not receive mail yet. Setting a real inbox is a
+          decision a person here has to make rather than something this site should invent, so
+          until they have, the honest state of this link is: not live. It is written here rather
+          than hidden so that nobody sends mail into a hole.
+        </p>
+      )
+    }
+  </div>
+</Wrapper>
+
+<style>
+  .fallback {
+    border: 1px solid var(--rule, #8a7358);
+    border-left: 3px solid var(--ore, #be3a12);
+    border-radius: 3px;
+    background-color: var(--panel-2, #e6e0d2);
+    padding: 1rem 1.1rem;
+    color: var(--ink, #24231f);
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.3rem;
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+  }
+  .degraded,
+  .why,
+  .what-to-send,
+  .action,
+  .placeholder {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0 0 0.75rem;
+  }
+  .degraded {
+    font-weight: 600;
+  }
+  .why,
+  .placeholder {
+    color: var(--ink-muted, #5a4e40);
+  }
+  .lines {
+    list-style: none;
+    margin: 0 0 0.85rem;
+    padding: 0;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .mail {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.9rem;
+    color: var(--ink, #24231f);
+    text-decoration-line: underline;
+    text-decoration-color: var(--ore, #be3a12);
+    text-underline-offset: 2px;
+  }
+  .mail:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--focus, #be3a12);
+    outline-offset: 2px;
+  }
+  .placeholder {
+    margin-bottom: 0;
+    border-top: 1px solid var(--rule, #8a7358);
+    padding-top: 0.75rem;
+  }
+</style>

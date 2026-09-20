@@ -1,0 +1,244 @@
+{
+  "example-kiosk": {
+    "schema": 1,
+    "name": "example-kiosk",
+    "for": "Forty counter kiosks across six walk-in service centres. A visitor sits down, uses the benefits and job-search sites, prints what they need, and walks away. Nobody signs in and the session is wiped behind them.\n",
+    "organisation": {
+      "display_name": "Example Community Services",
+      "helpdesk": {
+        "label": "Front desk",
+        "phone": "+1 425 555 0178"
+      }
+    },
+    "hardware": {
+      "machines": 40,
+      "models": [
+        "dell-optiplex-7010",
+        "hp-elitedesk-800-g1",
+        "lenovo-thinkcentre-m92p"
+      ],
+      "also_test": [
+        "bios-legacy",
+        "small-disk"
+      ]
+    },
+    "language": "English (United States)",
+    "keyboard": "English (US)",
+    "timezone": "America/Los_Angeles",
+    "apps": [
+      "Firefox"
+    ],
+    "prune": {
+      "keep_only_the_apps_above": true,
+      "also_keep": [
+        "printing"
+      ],
+      "also_remove": [
+        "bluetooth",
+        "developer tools",
+        "games",
+        "media players",
+        "office suite",
+        "remote desktop",
+        "sample wallpapers and media",
+        "usb storage",
+        "virtualisation",
+        "webcam"
+      ],
+      "must_remove_at_least": 1100
+    },
+    "policy": "kiosk",
+    "kiosk": {
+      "opens": "https://start.example.org/kiosk",
+      "allowed_sites": [
+        "accounts.example.org",
+        "benefits.example.org",
+        "jobs.example.org",
+        "start.example.org"
+      ],
+      "printing": true,
+      "usb_storage": false,
+      "forget_session_after_minutes": 8,
+      "restart_daily_at": "03:30"
+    },
+    "theme": {
+      "preset": "high contrast",
+      "accent": "#be3a12",
+      "text_scale": 1.4,
+      "cursor_size": "large"
+    },
+    "updates": {
+      "install_between": "03:00-05:00"
+    },
+    "first_boot_message": "Touch the screen or move the mouse to begin.",
+    "size_budget_gb": 4,
+    "approved_by": {
+      "enrolment": "pending",
+      "name": "M. Bell",
+      "role": "Facilities IT",
+      "date": "2026-09-17"
+    }
+  },
+  "example-school": {
+    "schema": 1,
+    "name": "example-school",
+    "for": "The 180 shared classroom laptops at a Marathi-medium secondary school. Pupils sign in to Google Workspace in the browser and do all their work there. Teachers use the same laptops. Nobody installs anything by hand on these machines.\n",
+    "organisation": {
+      "display_name": "Example Vidyalaya",
+      "helpdesk": {
+        "label": "School IT helpdesk",
+        "phone": "+91 20 2555 0143"
+      }
+    },
+    "hardware": {
+      "machines": 180,
+      "models": [
+        "dell-latitude-e6440",
+        "hp-probook-650-g1",
+        "lenovo-thinkpad-t440"
+      ],
+      "also_test": [
+        "bios-legacy"
+      ]
+    },
+    "language": "Marathi",
+    "other_languages": [
+      "English (India)",
+      "Hindi"
+    ],
+    "keyboard": "English (US)",
+    "second_script": "Marathi (InScript)",
+    "switch_scripts_with": "Windows key + Spacebar",
+    "timezone": "Asia/Kolkata",
+    "apps": [
+      "Calculator",
+      "Document Viewer",
+      "Files",
+      "Firefox",
+      "GCompris",
+      "Google Chrome",
+      "Image Viewer",
+      "Scratch",
+      "Text Editor",
+      "VLC Media Player"
+    ],
+    "prune": {
+      "keep_only_the_apps_above": true,
+      "also_keep": [
+        "printing"
+      ],
+      "also_remove": [
+        "developer tools",
+        "games",
+        "remote desktop",
+        "sample wallpapers and media",
+        "virtualisation"
+      ],
+      "must_remove_at_least": 240
+    },
+    "policy": "managed",
+    "windows_apps": {
+      "enabled": true,
+      "we_promise_nothing_else": true,
+      "tested": [
+        {
+          "app": "Vidyalaya School ERP desktop client",
+          "date": "2026-09-11",
+          "result": "works with caveats",
+          "note": "Prints report cards. The fingerprint attendance module cannot see the reader."
+        },
+        {
+          "app": "Tally.ERP",
+          "date": "2026-09-11",
+          "result": "fails",
+          "note": "Crashes during licence activation. The office PC stays on Windows for Tally."
+        }
+      ]
+    },
+    "theme": {
+      "preset": "light",
+      "accent": "#1f5c3d",
+      "text_scale": 1.1
+    },
+    "updates": {
+      "install_between": "21:00-05:00"
+    },
+    "first_boot_message": "नमस्कार! काही अडचण असल्यास शिक्षकांना सांगा.",
+    "size_budget_gb": 9,
+    "approved_by": {
+      "enrolment": "pending",
+      "name": "A. Deshmukh",
+      "role": "IT Coordinator",
+      "date": "2026-09-18"
+    }
+  },
+  "example-workstation": {
+    "schema": 1,
+    "name": "example-workstation",
+    "for": "One developer desktop belonging to the person who maintains these recipes. It keeps the ordinary desktop and adds a working set on top rather than being stripped to a handful of applications, and it is the only machine in this repository with a command line.\n",
+    "organisation": {
+      "display_name": "Example Studio",
+      "helpdesk": {
+        "label": "It is my own machine",
+        "phone": "+44 20 7946 0000"
+      }
+    },
+    "hardware": {
+      "machines": 1,
+      "models": [
+        "framework-laptop-thirteen-amd"
+      ],
+      "also_test": [
+        "uefi-secureboot"
+      ]
+    },
+    "language": "English (United Kingdom)",
+    "keyboard": "English (UK)",
+    "timezone": "Europe/London",
+    "apps": [
+      "Files",
+      "Firefox",
+      "GIMP",
+      "Image Viewer",
+      "Inkscape",
+      "Kate",
+      "Konsole",
+      "Podman Desktop",
+      "Text Editor",
+      "Thunderbird",
+      "Visual Studio Code"
+    ],
+    "prune": {
+      "keep_only_the_apps_above": false,
+      "also_remove": [
+        "games",
+        "sample wallpapers and media"
+      ],
+      "must_remove_at_least": 40
+    },
+    "policy": "open",
+    "desktop": {
+      "guided_first_boot": false,
+      "can_install_apps": true,
+      "can_reach_a_terminal": true
+    },
+    "windows_apps": {
+      "enabled": false
+    },
+    "theme": {
+      "preset": "dark",
+      "accent": "#d9682e",
+      "text_scale": 1.0
+    },
+    "updates": {
+      "install_between": "04:00-06:00"
+    },
+    "size_budget_gb": 24,
+    "approved_by": {
+      "enrolment": "pending",
+      "name": "A. Kandy",
+      "role": "Maintainer",
+      "date": "2026-09-20"
+    }
+  }
+}

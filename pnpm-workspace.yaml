@@ -1,0 +1,14 @@
+# pnpm 11 no longer reads the "pnpm" field from package.json; this file is its new home.
+#
+# Install scripts are an ALLOWLIST, not a default. A dependency that can run arbitrary code at install
+# time is a supply-chain surface, and this repo publishes a site whose whole argument is that we delete
+# what you did not ask for. Approving one build script by name is consistent with that; approving all of
+# them because it was easier is not.
+#
+# esbuild is here because Astro's bundler needs it, and its install script does one thing: fetch the
+# prebuilt binary for this platform. It cannot be vendored per-platform without shipping every target.
+allowBuilds:
+  esbuild: true
+
+onlyBuiltDependencies:
+  - esbuild

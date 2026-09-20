@@ -1,0 +1,239 @@
+---
+/**
+ * The five tiers, exactly as spec §9 fixes them and as the content author wrote them:
+ *
+ *   one machine        $79 one-time
+ *   school/nonprofit   $15 per device per year, 25 minimum
+ *   business fleet     $12 per device per month, 10 minimum
+ *   single-purpose     $19 per device per month, 5 minimum
+ *   self-serve         $0
+ *
+ * Every number on this page is read out of `src/content/tiers/`. Nothing is computed, rounded,
+ * reformatted or re-derived here, because a price is §9-reserved and a component that can
+ * manipulate one is a component that can change one by accident.
+ *
+ * The tier whose document sets `showReplacementComparison` carries the replacement-cost comparison
+ * alongside it, per spec §6D. Which tier that is comes from the document too.
+ */
+import { tiers, renderEntry } from "./content";
+import { pricing } from "../content/copy";
+import Panel from "./Panel.astro";
+import ReplacementComparison from "./ReplacementComparison.astro";
+import Prose from "./Prose.astro";
+
+interface Props {
+  headingLevel?: 2 | 3;
+  /** Show the payment-ordering and pull-request notes under the table. */
+  showNotes?: boolean;
+}
+
+const { headingLevel = 2, showNotes = true } = Astro.props;
+const H = `h${headingLevel}` as any;
+const Hsub = `h${headingLevel + 1}` as any;
+
+const allTiers = await tiers();
+
+/**
+ * Each tier's own prose, rendered from its document. The tier files carry the reasoning behind the
+ * number — why single-purpose costs more, why self-serve is zero and not a trial — and that
+ * reasoning is the part that makes the table honest, so it is on the page rather than summarised.
+ */
+const rendered = await Promise.all(
+  allTiers.map(async (tier) => ({ tier, Body: (await renderEntry(tier)).Content })),
+);
+---
+
+<div class="tiers">
+  <Panel tone="panel-2" class="intro">
+    <p class="per-device-note">{pricing.perDeviceNote}</p>
+  </Panel>
+
+  <ul class="list">
+    {
+      rendered.map(({ tier, Body }) => (
+        <Panel tone="panel" marked={tier.data.showReplacementComparison} as="li" class="tier">
+          <header class="head">
+            <H class="name">{tier.data.name}</H>
+            <p class="price">
+              <span class="amount">{tier.data.priceMono}</span>
+              <span class="unit">{tier.data.unitMono}</span>
+            </p>
+          </header>
+
+          <p class="for-whom">{tier.data.forWhom}</p>
+
+          <p class="minimum">
+            <span class="minimum-label">{pricing.minimumLabel}: </span>
+            <span class="minimum-value">
+              {tier.data.minimumMono ?? pricing.noMinimumLabel}
+            </span>
+          </p>
+
+          <Hsub class="list-title">{pricing.includesLabel}</Hsub>
+          <ul class="includes">
+            {tier.data.includes.map((item) => (
+              <li>{item}</li>
+            ))}
+          </ul>
+
+          {tier.data.excludes.length > 0 && (
+            <>
+              <Hsub class="list-title">{pricing.excludesLabel}</Hsub>
+              <ul class="excludes">
+                {tier.data.excludes.map((item) => (
+                  <li>{item}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          <Prose class="body">
+            <Body />
+          </Prose>
+
+          {tier.data.showReplacementComparison && (
+            <ReplacementComparison tier={tier} headingLevel={(headingLevel + 1) as 3 | 4} />
+          )}
+        </Panel>
+      ))
+    }
+  </ul>
+
+  {
+    showNotes && (
+      <Panel tone="panel-2" class="notes">
+        <p>{pricing.chargeNote}</p>
+        <p>{pricing.orderNote}</p>
+      </Panel>
+    )
+  }
+</div>
+
+<style>
+  .list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 1rem;
+  }
+  .intro {
+    margin-bottom: 1rem;
+  }
+  .per-device-note:last-child,
+  .notes p:last-child {
+    margin-bottom: 0;
+  }
+  .per-device-note,
+  .notes p {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    color: var(--ink, #24231f);
+    margin: 0 0 1rem;
+    max-width: 38rem;
+  }
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+    padding-bottom: 0.6rem;
+  }
+  .name {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.6rem;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+  .price {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+  }
+  .amount {
+    font-size: 1.35rem;
+    color: var(--ink, #24231f);
+  }
+  .unit {
+    font-size: 0.78rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .for-whom {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin: 0.75rem 0 0.5rem;
+    color: var(--ink, #24231f);
+  }
+  .minimum {
+    margin: 0 0 1rem;
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.88rem;
+    color: var(--ink, #24231f);
+  }
+  .minimum-value {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    color: var(--ink-muted, #5a4e40);
+  }
+  .list-title {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 1rem 0 0.4rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .includes,
+  .excludes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--ink, #24231f);
+  }
+  .includes li,
+  .excludes li {
+    padding-left: 1rem;
+    position: relative;
+    margin-bottom: 0.3rem;
+  }
+  .includes li::before,
+  .excludes li::before {
+    position: absolute;
+    left: 0;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    color: var(--ink-muted, #5a4e40);
+  }
+  .includes li::before {
+    content: "+";
+  }
+  .excludes li::before {
+    content: "−";
+  }
+  .body {
+    margin-top: 0.5rem;
+  }
+  .notes {
+    margin-top: 1rem;
+  }
+  @media (min-width: 60rem) {
+    .list {
+      grid-template-columns: repeat(2, 1fr);
+      align-items: start;
+    }
+    /* The tier carrying the comparison is the longest one; it gets the full width. */
+    .list :global(li:has(.comparison)) {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "navLabel": {
+      "type": "string"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "layer": {
+      "type": "string",
+      "enum": [
+        "sky",
+        "surface",
+        "topsoil",
+        "stratum-1",
+        "stratum-2",
+        "bedrock"
+      ]
+    },
+    "order": {
+      "type": "number"
+    },
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "navLabel",
+    "summary",
+    "order"
+  ]
+}

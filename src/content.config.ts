@@ -1,4 +1,11 @@
+/*
+ * Astro 7 moved this file from src/content/config.ts to src/content.config.ts and made the
+ * loader explicit — `type: "content"` no longer exists. Migrated rather than pinned back,
+ * because the pinned versions in docs/DECISION-SHEET.md are Astro 7.3.3 and that is what the
+ * site is built and tested against.
+ */
 import { defineCollection, z } from "astro:content";
+import { glob } from "astro/loaders";
 
 /**
  * AUROS — content collection schemas.
@@ -40,7 +47,7 @@ const fact = z.object({
  * Long-form pages. Body is MDX. One file per route.
  */
 const pages = defineCollection({
-  type: "content",
+  loader: glob({ base: "./src/content/pages", pattern: "**/*.{md,mdx}" }),
   schema: z.object({
     title: z.string(),
     /** Used as the <title> and in nav. Shorter than `title`. */
@@ -66,7 +73,7 @@ const pages = defineCollection({
  * Never soften a `does-not` into a `conditional` to make the page read better (spec §4.2).
  */
 const migration = defineCollection({
-  type: "content",
+  loader: glob({ base: "./src/content/migration", pattern: "**/*.{md,mdx}" }),
   schema: z.object({
     title: z.string(),
     verdict: z.enum(["comes", "does-not", "conditional"]),
@@ -91,7 +98,7 @@ const migration = defineCollection({
  * A price change is a human decision (spec §9).
  */
 const tiers = defineCollection({
-  type: "content",
+  loader: glob({ base: "./src/content/tiers", pattern: "**/*.{md,mdx}" }),
   schema: z.object({
     name: z.string(),
     /** e.g. "$15" — renders IBM Plex Mono. */
@@ -111,7 +118,7 @@ const tiers = defineCollection({
 });
 
 const faq = defineCollection({
-  type: "content",
+  loader: glob({ base: "./src/content/faq", pattern: "**/*.{md,mdx}" }),
   schema: z.object({
     question: z.string(),
     /** The honest answer in one sentence, before the body expands it. */
@@ -127,7 +134,7 @@ const faq = defineCollection({
  * owned by another agent; the words are owned here. `id` is the contract between them.
  */
 const layers = defineCollection({
-  type: "content",
+  loader: glob({ base: "./src/content/layers", pattern: "**/*.{md,mdx}" }),
   schema: z.object({
     id: z.enum(["sky", "surface", "topsoil", "stratum-1", "stratum-2", "bedrock"]),
     /** The margin label, e.g. "── bedrock ──". Lowercase. */

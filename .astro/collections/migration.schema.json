@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "comes",
+        "does-not",
+        "conditional"
+      ]
+    },
+    "oneLine": {
+      "type": "string"
+    },
+    "examples": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "howToCheck": {
+      "type": "string"
+    },
+    "onLanding": {
+      "default": false,
+      "type": "boolean"
+    },
+    "order": {
+      "type": "number"
+    },
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "title",
+    "verdict",
+    "oneLine",
+    "order"
+  ]
+}

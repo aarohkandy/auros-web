@@ -62,6 +62,7 @@ const APPLIED = new Set([
   "maxItems",
   "uniqueItems",
   "allOf",
+  "anyOf",
   "oneOf",
   "not",
   "if",
@@ -131,6 +132,7 @@ export function assertSupported(root: Json, schema: Json = root, path = "#", see
         break;
       }
       case "allOf":
+      case "anyOf":
       case "oneOf": {
         (value as Json[]).forEach((sub, i) => assertSupported(root, sub, `${path}/${key}/${i}`, seen));
         break;
@@ -232,7 +234,7 @@ function evaluateBody(s: SchemaObject, instance: Json, instancePath: string, sch
 
   if (typeof s.$ref === "string") {
     const target = resolveRef(ctx.root, s.$ref);
-    if (!evaluate(target, instance, instancePath, `${schemaPath}/$ref`, ctx)) ok = false;
+    if (!evaluate(target, instance, instancePath, s.$ref, ctx)) ok = false;
   }
 
   if (s.type !== undefined) {
@@ -335,6 +337,14 @@ function evaluateBody(s: SchemaObject, instance: Json, instancePath: string, sch
     });
   }
 
+  if (Array.isArray(s.anyOf)) {
+    const branches = s.anyOf as Json[];
+    const any = branches.some((sub, i) => probe(sub, instance, instancePath, `${schemaPath}/anyOf/${i}`, ctx));
+    if (!any) {
+      ok = fail(ctx, instancePath, `${schemaPath}/anyOf`, "anyOf", "does not match any of the allowed forms");
+    }
+  }
+
   if (Array.isArray(s.oneOf)) {
     const branches = s.oneOf as Json[];
     const passing = branches.filter((sub, i) => probe(sub, instance, instancePath, `${schemaPath}/oneOf/${i}`, ctx));
@@ -350,7 +360,7 @@ function evaluateBody(s: SchemaObject, instance: Json, instancePath: string, sch
   }
 
   if (s.not !== undefined && probe(s.not, instance, instancePath, `${schemaPath}/not`, ctx)) {
-    ok = fail(ctx, instancePath, `${schemaPath}/not`, "not", describeNot(s.not));
+    ok = fail(ctx, instancePath, `${schemaPath}/not`, "not", describeNot(s.not, instance));
   }
 
   if (s.if !== undefined && s.then !== undefined) {
@@ -375,17 +385,41 @@ function probe(schema: Json, instance: Json, instancePath: string, schemaPath: s
   }
 }
 
-/** The refusals are written as `not: { required: [...] }`, so the field name is right there. */
-function describeNot(notSchema: Json): string {
+/**
+ * Name what tripped a refusal.
+ *
+ * The refusals are written as `not: { anyOf: [ { required: ["kernel"] }, ... ] }` — a list of
+ * field names that may not appear. The instance is at hand, so say which one the reader
+ * actually wrote rather than reciting the whole list back at them.
+ */
+function describeNot(notSchema: Json, instance: Json): string {
+  const present = presentRefusedKeys(notSchema, instance);
+  if (present.length === 1) return `\`${present[0]}\` is refused by name`;
+  if (present.length > 1) return `${present.map((k) => `\`${k}\``).join(", ")} are refused by name`;
   if (notSchema && typeof notSchema === "object" && !Array.isArray(notSchema)) {
-    const req = (notSchema as SchemaObject).required;
-    if (Array.isArray(req) && req.length === 1 && typeof req[0] === "string") {
-      return `\`${req[0]}\` is refused by name`;
-    }
-    const en = (notSchema as SchemaObject).enum;
-    if (Array.isArray(en)) return "this value is refused by name";
+    if (Array.isArray((notSchema as SchemaObject).enum)) return "this value is refused by name";
   }
   return "this is refused";
+}
+
+function presentRefusedKeys(notSchema: Json, instance: Json): string[] {
+  if (!notSchema || typeof notSchema !== "object" || Array.isArray(notSchema)) return [];
+  const isObject = instance !== null && typeof instance === "object" && !Array.isArray(instance);
+  const node = notSchema as SchemaObject;
+  const out: string[] = [];
+  const req = node.required;
+  if (Array.isArray(req) && isObject) {
+    for (const k of req as string[]) {
+      if (typeof k === "string" && k in (instance as SchemaObject)) out.push(k);
+    }
+  }
+  for (const key of ["anyOf", "oneOf", "allOf"] as const) {
+    const branches = node[key];
+    if (Array.isArray(branches)) {
+      for (const b of branches as Json[]) out.push(...presentRefusedKeys(b, instance));
+    }
+  }
+  return [...new Set(out)];
 }
 
 export type ValidateResult = { valid: boolean; errors: SchemaError[] };

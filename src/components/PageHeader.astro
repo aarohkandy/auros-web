@@ -1,0 +1,47 @@
+---
+/**
+ * The head of a long-form page: the stratum label in the margin, the title, the one-sentence
+ * summary the content author wrote. All three come from the page document.
+ *
+ * It sits on an opaque panel like everything else that is meant to be read. §7 says the background
+ * never reduces text contrast; the way to make that true rather than probable is for no reading
+ * text anywhere on this site to be drawn over the terrain at all. `tools/contrast.mjs` can measure
+ * a panel. It cannot measure a canvas, and a rule that cannot be measured is a rule nobody keeps.
+ */
+import StratumLabel from "./StratumLabel.astro";
+import Panel from "./Panel.astro";
+import type { PageEntry } from "./content";
+
+interface Props {
+  page: PageEntry;
+}
+const { page } = Astro.props;
+---
+
+<Panel tone="panel" as="header" class="page-head">
+  {page.data.layer && <StratumLabel layer={page.data.layer} />}
+  <h1 class="title">{page.data.title}</h1>
+  <p class="summary">{page.data.summary}</p>
+</Panel>
+
+<style>
+  .page-head {
+    margin: 0 0 1.75rem;
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.05;
+    margin: 0 0 0.6rem;
+    color: var(--ink, #24231f);
+  }
+  .summary {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    max-width: 40rem;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+</style>

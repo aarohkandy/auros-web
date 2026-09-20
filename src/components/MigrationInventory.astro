@@ -1,0 +1,205 @@
+---
+/**
+ * The full migration inventory for /what-doesnt-come-across.
+ *
+ * Grouped by the content author's closed set of verdicts, in the order that serves the reader
+ * rather than the order that flatters us: what does not come across, then what depends on their
+ * copy, then what does. Every `conditional` entry carries its `howToCheck`, because the schema
+ * refuses a conditional without one and the page would be a vague disclaimer without it.
+ *
+ * The grouping is done with plain anchors and headings, not a JavaScript filter, so the page works
+ * keyboard-only and with scripting off — which is the state the honest version of this page is in
+ * anyway, since it is the page an IT person reads before they trust anything else here.
+ */
+import { migrationByVerdict, renderEntry, entryAnchor, type MigrationEntry } from "./content";
+import { migrationPage, doesNotComeAcrossColumn } from "../content/copy";
+import Panel from "./Panel.astro";
+import Prose from "./Prose.astro";
+
+const groups: Array<{ verdict: MigrationEntry["data"]["verdict"]; title: string; id: string; note?: string }> = [
+  { verdict: "does-not", title: migrationPage.filterDoesNot, id: "does-not-come-across" },
+  {
+    verdict: "conditional",
+    title: migrationPage.filterConditional,
+    id: "depends-on-your-copy",
+    note: migrationPage.conditionalNote,
+  },
+  { verdict: "comes", title: migrationPage.filterComes, id: "comes-across" },
+];
+
+const sections = await Promise.all(
+  groups.map(async (group) => {
+    const entries = await migrationByVerdict(group.verdict);
+    const rendered = await Promise.all(
+      entries.map(async (entry) => ({ entry, Body: (await renderEntry(entry)).Content })),
+    );
+    return { ...group, rendered };
+  }),
+);
+---
+
+<Panel tone="panel-2" as="nav" class="jump" aria-label="Inventory sections">
+  <ul>
+    {sections.map((section) => (
+      <li><a href={`#${section.id}`}>{section.title}</a> <span class="count">{section.rendered.length}</span></li>
+    ))}
+  </ul>
+</Panel>
+
+{
+  sections.map((section) => (
+    <section class="group" id={section.id}>
+      <Panel tone="panel" class="group-head">
+        <h2 class="group-title">{section.title}</h2>
+        {section.note && <p class="group-note">{section.note}</p>}
+      </Panel>
+
+      <ul class="entries">
+        {section.rendered.map(({ entry, Body }) => (
+          <Panel as="li" tone="panel" marked={entry.data.verdict === "does-not"} class="entry" id={entryAnchor(entry)}>
+            <h3 class="entry-title">{entry.data.title}</h3>
+            <p class="verdict">{doesNotComeAcrossColumn.verdictLabels[entry.data.verdict]}</p>
+            <p class="one-line">{entry.data.oneLine}</p>
+
+            {entry.data.examples.length > 0 && (
+              <div class="examples">
+                <p class="examples-label">{migrationPage.examplesLabel}</p>
+                <ul>
+                  {entry.data.examples.map((example) => (
+                    <li>{example}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {entry.data.howToCheck && (
+              <div class="how-to-check">
+                <p class="how-to-check-label">{migrationPage.howToCheckLabel}</p>
+                <p class="how-to-check-body">{entry.data.howToCheck}</p>
+              </div>
+            )}
+
+            <Prose class="entry-body">
+              <Body />
+            </Prose>
+          </Panel>
+        ))}
+      </ul>
+    </section>
+  ))
+}
+
+<style>
+  .jump {
+    margin: 1.5rem 0;
+  }
+  .jump ul {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.25rem;
+    margin: 0;
+    padding: 0;
+  }
+  .jump a {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    color: var(--ink, #24231f);
+    text-decoration-line: underline;
+    text-decoration-color: var(--ore, #be3a12);
+    text-underline-offset: 2px;
+  }
+  .count {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .group {
+    margin: 2.5rem 0;
+  }
+  .group-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+    color: var(--ink, #24231f);
+  }
+  .group-head {
+    margin-bottom: 0.75rem;
+  }
+  .group-note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .entry-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.35rem;
+    line-height: 1.15;
+    margin: 0 0 0.25rem;
+    color: var(--ink, #24231f);
+  }
+  .verdict {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.72rem;
+    margin: 0 0 0.6rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .one-line {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1rem;
+    line-height: 1.55;
+    margin: 0 0 0.85rem;
+    max-width: 38rem;
+    color: var(--ink, #24231f);
+  }
+  .examples,
+  .how-to-check {
+    border-top: 1px solid var(--rule, #8a7358);
+    padding-top: 0.75rem;
+    margin-bottom: 0.85rem;
+  }
+  .examples-label,
+  .how-to-check-label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    margin: 0 0 0.4rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .examples ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.78rem;
+    line-height: 1.7;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .how-to-check-body {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    margin: 0;
+    max-width: 38rem;
+    color: var(--ink, #24231f);
+  }
+  .entry-body {
+    border-top: 1px solid var(--rule, #8a7358);
+    padding-top: 0.85rem;
+  }
+</style>

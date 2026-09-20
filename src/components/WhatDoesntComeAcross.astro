@@ -1,0 +1,195 @@
+---
+/**
+ * The above-the-fold column required by spec §6D: "a column titled *what doesn't come across*,
+ * naming Windows programs explicitly. This converts organisations; hiding it loses them at month two."
+ *
+ * Two rules govern this component:
+ *
+ * 1. **The programs are named.** Not "some applications may not be compatible" — the actual
+ *    product names, taken from the content author's `examples` array. DECISIONS.md D16 puts Office
+ *    and Adobe on this list rather than in a footnote, because Office rates Garbage and every
+ *    Photoshop CC release rates Silver on the public compatibility database. A name the reader
+ *    recognises is the only version of this column that does its job.
+ *
+ * 2. **It is never the smaller half.** The does-not column comes first in the DOM, so a phone
+ *    reads it first, and it is never truncated to make the layout balance.
+ *
+ * All prose comes from `src/content/migration/` and `copy.ts`. Nothing here is paraphrased.
+ */
+import { landingMigrationEntries, migrationByVerdict } from "./content";
+import { doesNotComeAcrossColumn, comesAcrossColumn } from "../content/copy";
+import Panel from "./Panel.astro";
+
+interface Props {
+  /** Render the "what does come across" column beside it. */
+  showComesAcross?: boolean;
+  /** Heading level, so the column can sit under a page h1 or a section h2. */
+  headingLevel?: 2 | 3;
+}
+
+const { showComesAcross = true, headingLevel = 2 } = Astro.props;
+const H = `h${headingLevel}` as any;
+const Hsub = `h${headingLevel + 1}` as any;
+
+const doesNot = await landingMigrationEntries();
+const comes = await migrationByVerdict("comes");
+---
+
+<div class:list={["columns", { paired: showComesAcross }]}>
+  <Panel tone="panel" marked class="column">
+    <H class="title">{doesNotComeAcrossColumn.title}</H>
+    <p class="standfirst">{doesNotComeAcrossColumn.standfirst}</p>
+
+    <ul class="entries">
+      {
+        doesNot.map((entry) => (
+          <li class="entry">
+            <Hsub class="entry-title">{entry.data.title}</Hsub>
+            <p class="verdict">{doesNotComeAcrossColumn.verdictLabels[entry.data.verdict]}</p>
+            <p class="one-line">{entry.data.oneLine}</p>
+            {entry.data.examples.length > 0 && (
+              <ul class="examples">
+                {entry.data.examples.map((example) => (
+                  <li>{example}</li>
+                ))}
+              </ul>
+            )}
+            {entry.data.howToCheck && (
+              <p class="how-to-check">
+                <span class="how-to-check-label">How to check yours. </span>
+                {entry.data.howToCheck}
+              </p>
+            )}
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="footnote">{doesNotComeAcrossColumn.footnote}</p>
+    <p class="more">
+      <a href={doesNotComeAcrossColumn.moreLink.href}>{doesNotComeAcrossColumn.moreLink.label}</a>
+    </p>
+  </Panel>
+
+  {
+    showComesAcross && (
+      <Panel tone="panel-2" class="column">
+        <H class="title">{comesAcrossColumn.title}</H>
+        <p class="standfirst">{comesAcrossColumn.standfirst}</p>
+        <ul class="entries">
+          {comes.map((entry) => (
+            <li class="entry">
+              <Hsub class="entry-title">{entry.data.title}</Hsub>
+              <p class="one-line">{entry.data.oneLine}</p>
+            </li>
+          ))}
+        </ul>
+        <p class="more">
+          <a href={comesAcrossColumn.moreLink.href}>{comesAcrossColumn.moreLink.label}</a>
+        </p>
+      </Panel>
+    )
+  }
+</div>
+
+<style>
+  .columns {
+    display: grid;
+    gap: 1rem;
+  }
+  /* The does-not column is never the smaller one. On a wide screen it takes the larger track. */
+  @media (min-width: 52rem) {
+    .paired {
+      grid-template-columns: 1.35fr 1fr;
+      align-items: start;
+    }
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.6rem;
+    line-height: 1.1;
+    margin: 0 0 0.5rem;
+    color: var(--ink, #24231f);
+  }
+  .standfirst {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    margin: 0 0 1.25rem;
+    color: var(--ink, #24231f);
+  }
+  .entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .entry + .entry {
+    border-top: 1px solid var(--rule, #8a7358);
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+  .entry-title {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem;
+    color: var(--ink, #24231f);
+  }
+  .verdict {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    text-transform: lowercase;
+    margin: 0 0 0.4rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .one-line,
+  .how-to-check {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    margin: 0 0 0.4rem;
+    color: var(--ink, #24231f);
+  }
+  .how-to-check {
+    border-left: 1px solid var(--rule, #8a7358);
+    padding-left: 0.7rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .how-to-check-label {
+    font-weight: 600;
+    color: var(--ink, #24231f);
+  }
+  .examples {
+    list-style: none;
+    margin: 0 0 0.5rem;
+    padding: 0;
+  }
+  .examples li {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .footnote {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    margin: 1.25rem 0 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--rule, #8a7358);
+    color: var(--ink, #24231f);
+  }
+  .more {
+    margin: 0.5rem 0 0;
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.92rem;
+  }
+  .more a {
+    color: var(--ink, #24231f);
+    text-decoration-line: underline;
+    text-decoration-color: var(--ore, #be3a12);
+    text-underline-offset: 2px;
+  }
+</style>

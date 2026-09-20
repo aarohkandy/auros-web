@@ -1,0 +1,89 @@
+---
+/**
+ * The questions, grouped the way the content author grouped them: what happens if something goes
+ * wrong with us first, then running it, then data, then the machines. Ordered by how much each
+ * should affect a decision, not by how well it makes us look.
+ *
+ * Every entry shows its one-sentence answer before its body, and the body is the document. Nothing
+ * is collapsed behind a disclosure widget: an answer a reader has to click to see is an answer
+ * somebody decided they would rather not be read.
+ */
+import { faqEntries, renderEntry, entryAnchor, type FaqEntry } from "./content";
+import { faqPage } from "../content/copy";
+import Panel from "./Panel.astro";
+import Prose from "./Prose.astro";
+
+const order: Array<FaqEntry["data"]["group"]> = ["trust", "operations", "data", "hardware"];
+const all = await faqEntries();
+
+const sections = await Promise.all(
+  order.map(async (group) => {
+    const entries = all.filter((e) => e.data.group === group);
+    const rendered = await Promise.all(
+      entries.map(async (entry) => ({ entry, Body: (await renderEntry(entry)).Content })),
+    );
+    return { group, title: faqPage.groupLabels[group], rendered };
+  }),
+);
+---
+
+{
+  sections
+    .filter((section) => section.rendered.length > 0)
+    .map((section) => (
+      <section class="group" id={`questions-${section.group}`}>
+        <h2 class="group-title">{section.title}</h2>
+        <ul class="entries">
+          {section.rendered.map(({ entry, Body }) => (
+            <Panel as="li" tone="panel" class="entry" id={entryAnchor(entry)}>
+              <h3 class="question">{entry.data.question}</h3>
+              <p class="short-answer">{entry.data.shortAnswer}</p>
+              <Prose class="answer">
+                <Body />
+              </Prose>
+            </Panel>
+          ))}
+        </ul>
+      </section>
+    ))
+}
+
+<style>
+  .group {
+    margin: 2.25rem 0;
+  }
+  .group-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.6rem;
+    line-height: 1.15;
+    margin: 0 0 0.75rem;
+    color: var(--ink, #24231f);
+  }
+  .entries {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .question {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.3rem;
+    line-height: 1.2;
+    margin: 0 0 0.5rem;
+    color: var(--ink, #24231f);
+  }
+  .short-answer {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1rem;
+    line-height: 1.55;
+    font-weight: 600;
+    margin: 0 0 0.85rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+    max-width: 38rem;
+    color: var(--ink, #24231f);
+  }
+</style>

@@ -1,0 +1,61 @@
+---
+/**
+ * Replaceable on purpose. Routed at /replaceable because that is the href `copy.nav` uses; the
+ * document itself is `src/content/pages/5-replaceable-on-purpose.mdx` and is rendered whole,
+ * commands included. It is the only page on the site with a command line on it, and the document
+ * says why.
+ */
+import PageShell from "../components/PageShell.astro";
+import PageHeader from "../components/PageHeader.astro";
+import Panel from "../components/Panel.astro";
+import Prose from "../components/Prose.astro";
+import FactList from "../components/FactList.astro";
+import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
+import { site, replaceable } from "../content/copy";
+
+const page = await pageByOrder(PAGE_ORDER.replaceable);
+const { Content } = await renderEntry(page);
+---
+
+<PageShell
+  title={`${page.data.navLabel} — ${site.name}`}
+  description={page.data.summary}
+  layer={page.data.layer}
+>
+  <PageHeader page={page} />
+
+  <Panel tone="panel-2" class="requirements">
+    <h2 class="requirements-title">{replaceable.requirementsLabel}</h2>
+    <FactList facts={replaceable.requirements} />
+    <p class="note">{replaceable.terminalNote}</p>
+    <p class="note">{replaceable.verifyNote}</p>
+  </Panel>
+
+  <Panel tone="panel">
+    <Prose>
+      <Content />
+    </Prose>
+  </Panel>
+</PageShell>
+
+<style>
+  .requirements {
+    margin-bottom: 1rem;
+  }
+  .requirements-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.4rem;
+    line-height: 1.15;
+    margin: 0 0 0.75rem;
+    color: var(--ink, #24231f);
+  }
+  .note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.88rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 0.85rem 0 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>

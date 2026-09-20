@@ -1,0 +1,51 @@
+---
+/**
+ * Pricing. The five tiers are §9-reserved and fixed; every figure on this page is read from
+ * `src/content/tiers/` and none is computed here. The school tier carries the replacement-cost
+ * comparison beside it, which is arithmetic with the reader's own numbers and never a saving
+ * (spec §4.4, §6D).
+ */
+import PageShell from "../components/PageShell.astro";
+import PageHeader from "../components/PageHeader.astro";
+import Panel from "../components/Panel.astro";
+import Prose from "../components/Prose.astro";
+import PriceTable from "../components/PriceTable.astro";
+import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
+import { site, pricing } from "../content/copy";
+
+const page = await pageByOrder(PAGE_ORDER.pricing);
+const { Content } = await renderEntry(page);
+---
+
+<PageShell
+  title={`${page.data.navLabel} — ${site.name}`}
+  description={page.data.summary}
+  layer={page.data.layer}
+>
+  <PageHeader page={page} />
+
+  <Panel tone="panel">
+    <Prose>
+      <Content />
+    </Prose>
+  </Panel>
+
+  <Panel tone="panel" class="table-head">
+    <h2 class="table-title">{pricing.title}</h2>
+  </Panel>
+  <PriceTable headingLevel={3} />
+</PageShell>
+
+<style>
+  .table-head {
+    margin: 2rem 0 1rem;
+  }
+  .table-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+</style>

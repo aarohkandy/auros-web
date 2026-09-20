@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "priceMono": {
+      "type": "string"
+    },
+    "unitMono": {
+      "type": "string"
+    },
+    "minimumMono": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "forWhom": {
+      "type": "string"
+    },
+    "includes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "excludes": {
+      "default": [],
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "showReplacementComparison": {
+      "default": false,
+      "type": "boolean"
+    },
+    "order": {
+      "type": "number"
+    },
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "priceMono",
+    "unitMono",
+    "minimumMono",
+    "forWhom",
+    "includes",
+    "order"
+  ]
+}

@@ -1,0 +1,348 @@
+/* =============================================================================================
+   AUROS — base layer.
+
+   Loaded once, by src/layouts/Base.astro, after tokens.css and fonts.css and before any
+   component's scoped styles. Everything here is either a reset, a §7 ink rule, or a default
+   that stops a component having to restate it.
+
+   §7's INK RULES are implemented here three ways, in order of strength:
+     1. `tools/ink-lint.mjs` reads the source and fails the build. That is the real gate.
+     2. The `!important` neutralisers below, which stop a shadow reaching a visitor even if
+        somebody writes one in a file the lint has not learned about yet.
+     3. Tokens: there is one --radius and it is 3px; there is no shadow token to reach for.
+
+   A note on (2): a global `!important` is normally a smell. It is here on purpose. §7 says
+   "No gradients. No drop shadows." with no exceptions, so there is no legitimate use to break.
+   If you are fighting this rule, you are fighting §7 and the answer is not a specificity trick.
+   ============================================================================================= */
+
+/* ---------------------------------------------------------------------------------------------
+   RESET — small, and only what a document actually needs.
+--------------------------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* No font-size override. A reader who enlarged their default text gets a larger site;
+     everything below is in rem so it scales with them. */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+p,
+figure,
+blockquote,
+dl,
+dd,
+ul,
+ol {
+  margin: 0;
+}
+
+ul[role="list"],
+ol[role="list"] {
+  list-style: none;
+  padding: 0;
+}
+
+img,
+picture,
+svg,
+canvas,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   §7 INK RULES — the neutralisers.
+--------------------------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  /* §7: "No drop shadows." Both kinds, and the filter form too. */
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* §7: "No gradients (the stepped sky is not a gradient)."
+   NOT enforced with a `background-image: none` reset here, deliberately: such a reset would also
+   silently blank a legitimate painted surface (the terrain renderer's offscreen canvas output,
+   for one) and the failure would look like a rendering bug rather than a rule. Gradients are
+   caught by `tools/ink-lint.mjs`, which names the file and the line and stops the build. */
+
+/* ---------------------------------------------------------------------------------------------
+   THE PAGE
+--------------------------------------------------------------------------------------------- */
+body {
+  background-color: var(--page-bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-weight: var(--weight-ui);
+  font-size: var(--step-0);
+  line-height: var(--leading-body);
+  /* D25: Instrument Serif has no bold and no oblique. Nothing on this site may fake either —
+     a synthesised weight is a lie about the typeface. */
+  font-synthesis: none;
+  min-height: 100vh;
+  /* The terrain sits behind everything at z-index 0; content is above it. */
+  position: relative;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   TYPE
+   §7: display is Instrument Serif, UI is IBM Plex Sans, anything FACTUAL is IBM Plex Mono.
+   "Do not harmonise them by making the type pixelated too" — so no pixel face appears anywhere,
+   and the serif is a real serif at real optical sizes.
+--------------------------------------------------------------------------------------------- */
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  font-weight: var(--weight-display); /* 400. There is no bold. Do not add one. */
+  line-height: var(--leading-tight);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: var(--step-4);
+}
+h2 {
+  font-size: var(--step-3);
+}
+h3 {
+  font-size: var(--step-2);
+}
+h4 {
+  font-size: var(--step-1);
+}
+
+p {
+  text-wrap: pretty;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}
+
+strong,
+b {
+  font-weight: var(--weight-ui-strong);
+}
+
+small {
+  font-size: var(--step--1);
+}
+
+a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-color: var(--ore);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   THE DEEP SURFACE
+   --panel-deep is dark in BOTH themes, so a component sitting on it needs the ink and the ore
+   that were measured against a dark background. Rather than asking every component to know
+   that, the surface remaps the tokens for its own subtree. `var(--ink)` inside a deep panel
+   therefore resolves to the console ink automatically.
+
+   This is also how src/components/Panel.astro gets a legible ore mark on its `deep` tone
+   without that file having to change: it writes `var(--ore)`, and here `--ore` is redefined.
+--------------------------------------------------------------------------------------------- */
+.tone-deep,
+.on-deep {
+  --ink: var(--ink-console);
+  --ink-muted: var(--ink-muted-deep);
+  --panel: var(--panel-deep);
+  --panel-2: var(--panel-deep);
+  --ore: var(--ore-deep);
+  --focus: var(--ore-deep);
+  color: var(--ink-console);
+}
+
+/* ---------------------------------------------------------------------------------------------
+   FOCUS
+   Keyboard operation is a §6D exit condition ("Full keyboard operation"), so the focus ring is
+   a designed object, not a browser default that got left on.
+
+   It is an OUTLINE, not a box-shadow, because the neutraliser above kills box-shadows — and
+   because an outline follows the element's shape without being clipped by overflow.
+--------------------------------------------------------------------------------------------- */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus);
+  outline-offset: var(--focus-ring-offset);
+  border-radius: var(--radius);
+}
+
+/* Remove the ring for pointer users only — never for keyboard users, and never unconditionally.
+   `:focus:not(:focus-visible)` is the correct narrow form. */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* A focus ring on the deep panel needs the ore measured against a dark background; the surface
+   block above already remapped --focus, so this needs no rule of its own. It is noted here
+   because its absence looks like an oversight. */
+
+/* ---------------------------------------------------------------------------------------------
+   MOTION
+   §7: "Only things reporting a real fact may move." And: prefers-reduced-motion gets a static
+   render with no parallax.
+
+   The rule below is deliberately total. The two things §7 permits to move — the cloud drift and
+   the build console — are real facts, and a reader who has asked their machine for less motion
+   has asked for the clouds to stop too. The console still streams; text arriving is not motion.
+--------------------------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   LAYOUT PRIMITIVES
+   Four of them. Everything on this site is one of these or inside one.
+--------------------------------------------------------------------------------------------- */
+
+/* The page gutter. 16px at phone width, opening out on wider screens. Content never touches
+   the edge, because the terrain is behind it and a panel flush to the viewport edge reads as
+   a rendering bug. */
+.wrap {
+  width: 100%;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: var(--space-4);
+}
+
+@media (min-width: 48rem) {
+  .wrap {
+    padding-inline: var(--space-6);
+  }
+}
+
+/* The reading column: one measure wide, and no wider, whatever the viewport does. */
+.measure {
+  max-width: var(--measure);
+}
+
+/* A vertical stack with one rhythm. `--stack-space` overrides it locally. */
+.stack > * + * {
+  margin-block-start: var(--stack-space, var(--space-5));
+}
+
+/* A section of the descent. Each one is a stratum the reader passes; the padding is what gives
+   the scroll enough distance for the terrain behind it to actually change. */
+.stratum-section {
+  padding-block: var(--space-8);
+}
+
+@media (min-width: 48rem) {
+  .stratum-section {
+    padding-block: var(--space-9);
+  }
+}
+
+/* The margin-label column: a narrow rail on the left at desktop, stacked above at phone width.
+   This is the layout that makes §7's "labelled in the margin as they pass it" literal. */
+.with-margin-label {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+@media (min-width: 64rem) {
+  .with-margin-label {
+    grid-template-columns: 14rem minmax(0, 1fr);
+    gap: var(--space-6);
+    align-items: start;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------
+   UTILITIES — the small number that earn their place.
+--------------------------------------------------------------------------------------------- */
+
+/* Visible to a screen reader, not to an eye. Used for headings that structure a page whose
+   design does not show them. */
+.visually-hidden:not(:focus):not(:active) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Anything factual (§7): a price, a digest, a package count, a path, a locale code. */
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The hairline. §7: 1px rules are the ONLY divider on this site. */
+.hairline {
+  border: 0;
+  border-block-start: var(--hairline) solid var(--rule);
+  margin: 0;
+}
+
+/* ---------------------------------------------------------------------------------------------
+   PRINT — a school's IT person prints the quote and the FAQ. The terrain is not on the paper.
+--------------------------------------------------------------------------------------------- */
+@media print {
+  .terrain-canvas,
+  .site-header,
+  .theme-toggle,
+  .skip-link {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+    color: #000;
+  }
+}

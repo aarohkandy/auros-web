@@ -1,0 +1,28 @@
+{
+  "name": "auros-web",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "description": "auros.org \u2014 static site. Astro, static output, no client framework for content pages (spec \u00a76D).",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro check --minimumseverity error && astro build",
+    "build:nocheck": "astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "fonts": "node tools/fetch-fonts.mjs",
+    "contrast": "node tools/contrast.mjs",
+    "audit:a11y": "node tools/contrast.mjs --write"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "8.0.1",
+    "astro": "7.3.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "typescript": "^5.9.2"
+  }
+}

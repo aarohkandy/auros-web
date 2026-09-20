@@ -1,0 +1,69 @@
+---
+/**
+ * A list of label/value pairs where the value is a fact, and therefore mono (spec §7, and the
+ * content author's mono convention: `Fact.value` renders mono, `Fact.label` does not).
+ */
+import type { Fact } from "../content/copy";
+
+interface Props {
+  facts: readonly Fact[];
+  /** Number the rows. Used where the order is the point, as in the migration ordering. */
+  ordered?: boolean;
+  class?: string;
+}
+
+const { facts, ordered = false, class: className } = Astro.props;
+---
+
+<dl class:list={["facts", { ordered }, className]}>
+  {
+    facts.map((fact, index) => (
+      <div class="row">
+        <dt class="label">
+          {ordered && <span class="index">{String(index + 1).padStart(2, "0")}</span>}
+          {fact.label}
+        </dt>
+        <dd class="value">{fact.value}</dd>
+      </div>
+    ))
+  }
+</dl>
+
+<style>
+  .facts {
+    margin: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .row {
+    display: grid;
+    gap: 0.15rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+  }
+  .label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    color: var(--ink, #24231f);
+  }
+  .index {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--ink-muted, #5a4e40);
+    margin-right: 0.5rem;
+  }
+  .value {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  @media (min-width: 40rem) {
+    .row {
+      grid-template-columns: 16rem 1fr;
+      gap: 1rem;
+      align-items: baseline;
+    }
+  }
+</style>

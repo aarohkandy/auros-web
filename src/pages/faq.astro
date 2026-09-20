@@ -1,0 +1,47 @@
+---
+/**
+ * The questions. Ordered by how much each should affect a decision, which is the content author's
+ * ordering and not a marketing one — the first group is what happens to the customer's machines if
+ * this company stops existing.
+ */
+import PageShell from "../components/PageShell.astro";
+import PageHeader from "../components/PageHeader.astro";
+import Panel from "../components/Panel.astro";
+import Prose from "../components/Prose.astro";
+import FaqList from "../components/FaqList.astro";
+import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
+import { site, faqPage } from "../content/copy";
+
+const page = await pageByOrder(PAGE_ORDER.faq);
+const { Content } = await renderEntry(page);
+---
+
+<PageShell
+  title={`${page.data.navLabel} — ${site.name}`}
+  description={page.data.summary}
+  layer={page.data.layer}
+>
+  <PageHeader page={page} />
+
+  <Panel tone="panel">
+    <Prose>
+      <Content />
+    </Prose>
+    <p class="unfinished">{faqPage.unfinishedNote}</p>
+  </Panel>
+
+  <FaqList />
+</PageShell>
+
+<style>
+  .unfinished {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 1rem 0 0;
+    padding-left: 0.85rem;
+    border-left: 3px solid var(--ore, #be3a12);
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>

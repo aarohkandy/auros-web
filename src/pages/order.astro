@@ -1,0 +1,123 @@
+---
+/**
+ * The order page: what happens after you press the button, in the order it happens.
+ *
+ * There is no document for this route in `src/content/`, so the words here are the ones already
+ * written in `copy.ts` plus a sequence taken straight from `docs/CONFIGURATOR.md` §"Submit → a pull
+ * request". Nothing about price, charging or ordering is invented on this page: the charge note and
+ * the pull-request note are the content author's, and the sequence is the Worker's documented
+ * behaviour rather than a description of it.
+ *
+ * The build console is here because this is the page where watching a real build is the point. If
+ * no build is running it says so, which is its normal state.
+ */
+import PageShell from "../components/PageShell.astro";
+import Panel from "../components/Panel.astro";
+import FactList from "../components/FactList.astro";
+import BuildConsole from "../components/BuildConsole.astro";
+import NoScriptFallback from "../components/NoScriptFallback.astro";
+import StratumLabel from "../components/StratumLabel.astro";
+import { configurator, pricing, site, type Fact } from "../content/copy";
+
+/** The Worker's documented sequence. Each value is a fact, so each value is mono. */
+const sequence: Fact[] = [
+  { label: "The challenge is checked", value: "no token · no submission · no exceptions" },
+  { label: "Your recipe is validated again, on the server", value: "the same validator CI runs" },
+  { label: "A branch is created in the public recipes repository", value: "customers/<name>/recipe.yaml" },
+  { label: "A pull request opens", value: "its body is the plain-English account of what is in the build and what it deletes" },
+  { label: "A person here is emailed", value: "a human reads it before anything is built" },
+  { label: "The test build runs", value: "boot in a vm · prune assertions · keep assertions · signature" },
+  { label: "Only then is the card billed", value: "a failing build was never charged, so there is nothing to refund" },
+];
+---
+
+<PageShell
+  title={`Ordering — ${site.name}`}
+  description="What happens when you submit a build: the recipe is validated, a pull request opens in a public repository, and the card is billed only after the test build passes."
+  layer="stratum-1"
+>
+  <Panel tone="panel" as="header" class="head">
+    <StratumLabel layer="stratum-1" />
+    <h1 class="title">Ordering</h1>
+    <p class="standfirst">{configurator.submitNote}</p>
+  </Panel>
+
+  <Panel tone="panel" class="sequence">
+    <h2 class="section-title">The order, in order</h2>
+    <FactList facts={sequence} ordered />
+    <p class="note">{pricing.chargeNote}</p>
+    <p class="note">{pricing.orderNote}</p>
+    <p class="note">{configurator.privacyWarning}</p>
+    <p class="action">
+      <a class="cta" href="/configure">Configure a build</a>
+    </p>
+  </Panel>
+
+  <div class="console-section">
+    <BuildConsole headingLevel={2} />
+  </div>
+
+  <div class="fallback">
+    <NoScriptFallback alwaysVisible subject="A build for our machines" headingLevel={2} />
+  </div>
+</PageShell>
+
+<style>
+  .head {
+    margin-bottom: 1rem;
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.05;
+    margin: 0 0 0.6rem;
+    color: var(--ink, #24231f);
+  }
+  .standfirst {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    max-width: 40rem;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+  .section-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.6rem;
+    line-height: 1.15;
+    margin: 0 0 1rem;
+    color: var(--ink, #24231f);
+  }
+  .note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 1rem 0 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .action {
+    margin: 1.25rem 0 0;
+  }
+  .cta {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--ore, #be3a12);
+    border-left-width: 3px;
+    border-radius: 3px;
+    color: var(--ink, #24231f);
+    background-color: var(--panel-2, #e6e0d2);
+    text-decoration: none;
+  }
+  .cta:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--focus, #be3a12);
+    outline-offset: 2px;
+  }
+  .console-section,
+  .fallback {
+    margin-top: 2rem;
+  }
+</style>

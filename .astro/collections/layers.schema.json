@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "enum": [
+        "sky",
+        "surface",
+        "topsoil",
+        "stratum-1",
+        "stratum-2",
+        "bedrock"
+      ]
+    },
+    "marginLabel": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "ownedBy": {
+      "type": "string",
+      "enum": [
+        "upstream",
+        "Auros",
+        "you"
+      ]
+    },
+    "refMono": {
+      "type": "string"
+    },
+    "depth": {
+      "type": "number"
+    },
+    "$schema": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "id",
+    "marginLabel",
+    "name",
+    "ownedBy",
+    "refMono",
+    "depth"
+  ]
+}

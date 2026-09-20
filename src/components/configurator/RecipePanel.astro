@@ -1,0 +1,318 @@
+---
+/**
+ * The output panel.
+ *
+ * Spec section 6D: "This panel is the single most persuasive object on the site. Nobody else
+ * selling a computer shows you what they took out."
+ *
+ * THE ONE RULE THIS FILE EXISTS TO ENFORCE
+ * The prune block is never collapsed, never truncated behind a "show more", and never rendered
+ * smaller than the apps list. There is no max-height on the code block, no overflow clip, no
+ * disclosure widget, and the only line group the stylesheet is permitted to shrink at a narrow
+ * width is `apps`. If the layout has to give something up, it gives up the list of what stays.
+ *
+ * It is server-rendered with the starting answers so the file is readable on first paint and
+ * the live region is never empty. That starting state is labelled as an illustration until the
+ * visitor answers something, because until then it is what a build looks like rather than
+ * theirs (spec 4.4).
+ */
+import { defaultAnswers } from "../../lib/answers";
+import { renderRecipe } from "../../lib/recipe-render";
+import { validateRecipe, statusLine } from "../../lib/recipe-validate";
+import { linesToHtml } from "./panel";
+import { configurator, ILLUSTRATION_LABEL } from "../../content/copy";
+
+const initial = renderRecipe(defaultAnswers());
+const verdict = validateRecipe(initial.recipe);
+const linesHtml = linesToHtml(initial.lines);
+---
+
+<section
+  class="cfg-panel"
+  data-panel
+  data-status={verdict.status}
+  aria-live="polite"
+  aria-labelledby="cfg-panel-title"
+>
+  <header class="cfg-panel__head">
+    <h2 class="cfg-panel__title" id="cfg-panel-title">{configurator.outputPanelTitle}</h2>
+    <p class="cfg-panel__path" data-path>customers/your-build/recipe.yaml</p>
+  </header>
+
+  <p class="cfg-panel__illustration" data-illustration>{ILLUSTRATION_LABEL}</p>
+
+  <p class="cfg-panel__status" data-status-text>{statusLine(verdict)}</p>
+  <p class="cfg-panel__summary" data-summary role="status">
+    {initial.derived.apps.length} applications kept, {initial.derived.alsoRemove.length} groups named for removal.
+  </p>
+
+  <div class="cfg-panel__findings" data-findings></div>
+
+  <pre
+    class="cfg-panel__code"
+    data-code
+    tabindex="0"
+    aria-live="off"
+    aria-label="The recipe file, as it would be committed"
+    set:html={linesHtml}
+  ></pre>
+
+  <p class="cfg-panel__note">{configurator.removeBlockNote}</p>
+  <p class="cfg-panel__note cfg-panel__note--count">
+    There is no count of removed packages here. A count is a measurement, the measurement comes
+    from a build, and we have not run yours. The build writes the real number into
+    <code>REMOVED.md</code> beside this file, and that number is what raises
+    <code>must_remove_at_least</code>.
+  </p>
+
+  <div class="cfg-panel__actions">
+    <button type="button" class="cfg-button" data-copy>Copy this file</button>
+    <button type="button" class="cfg-button" data-download>Download recipe.yaml</button>
+  </div>
+</section>
+
+<style>
+  .cfg-panel {
+    /* Opaque. The terrain behind this page never reduces the contrast of text. */
+    background: var(--cfg-panel, #f4f1ea);
+    color: var(--cfg-ink, #24231f);
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-radius: 3px;
+    padding: 1.25rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cfg-panel__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    border-bottom: 1px solid var(--cfg-rule, #8a7358);
+    padding-bottom: 0.6rem;
+  }
+
+  .cfg-panel__title {
+    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    /* Instrument Serif ships 400 normal and 400 italic only. There is no bold to ask for. */
+    font-weight: 400;
+    font-size: clamp(1.4rem, 1.1rem + 1.4vw, 2rem);
+    line-height: 1.1;
+    margin: 0;
+  }
+
+  .cfg-panel__path {
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.8125rem;
+    color: var(--cfg-ink-soft, #5a4e40);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .cfg-panel__illustration,
+  .cfg-panel__status,
+  .cfg-panel__summary,
+  .cfg-panel__note {
+    margin: 0;
+    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+
+  .cfg-panel__illustration {
+    border-left: 2px solid var(--cfg-ore, #be3a12);
+    padding-left: 0.6rem;
+  }
+  .cfg-panel__illustration[hidden] {
+    display: none;
+  }
+
+  .cfg-panel__status {
+    color: var(--cfg-ink, #24231f);
+  }
+
+  /* The summary is what the polite live region actually announces. It is available to a screen
+     reader and redundant on screen next to the status line, so it is hidden visually and never
+     from assistive technology. */
+  .cfg-panel__summary {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .cfg-panel__code {
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    /* No max-height, no overflow-y, no collapse. The whole file is on the page. */
+    font-size: 0.8125rem;
+    line-height: 1.55;
+    margin: 0;
+    padding: 0.75rem;
+    background: var(--cfg-panel-deep, #e6e0d2);
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-radius: 3px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    tab-size: 2;
+  }
+
+  .cfg-panel__code:focus-visible {
+    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline-offset: 2px;
+  }
+
+  .cfg-line {
+    display: block;
+    min-height: 1.55em;
+  }
+
+  .cfg-line[data-kind="comment"] {
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+
+  .cfg-line[data-pending="true"] {
+    color: var(--cfg-ink-soft, #5a4e40);
+    font-style: italic;
+  }
+
+  /* THE PRUNE BLOCK. Marked, never hidden, never smaller. */
+  .cfg-line[data-section="prune"] {
+    border-left: 2px solid var(--cfg-ore, #be3a12);
+    padding-left: 0.5rem;
+    margin-left: -0.5rem;
+  }
+
+  .cfg-line[data-section="refused"] {
+    color: var(--cfg-ore, #be3a12);
+    text-decoration: line-through;
+    text-decoration-color: var(--cfg-ore, #be3a12);
+  }
+
+  /* A changed value is a real fact, so it is marked and then settles. It does not pulse, it
+     does not type itself out, and it does not loop. */
+  .cfg-line[data-changed] {
+    background: var(--cfg-mark, rgba(190, 58, 18, 0.14));
+  }
+  .cfg-line[data-changed="settling"] {
+    transition: background 700ms ease-out 300ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cfg-line[data-changed] {
+      transition: none;
+    }
+  }
+
+  .cfg-panel__note--count code {
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.95em;
+  }
+
+  .cfg-panel__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .cfg-button {
+    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.875rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-radius: 3px;
+    background: var(--cfg-panel, #f4f1ea);
+    color: var(--cfg-ink, #24231f);
+    cursor: pointer;
+  }
+  .cfg-button:hover {
+    background: var(--cfg-panel-deep, #e6e0d2);
+  }
+  .cfg-button:focus-visible {
+    outline: 2px solid var(--cfg-ore, #be3a12);
+    outline-offset: 2px;
+  }
+
+  /* ── findings ─────────────────────────────────────────────────────────────────────────
+     A refusal is printed in full. It is not truncated, not collapsed and not softened: it is
+     the most persuasive state this panel has. */
+  .cfg-finding {
+    border: 1px solid var(--cfg-rule, #8a7358);
+    border-radius: 3px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    background: var(--cfg-panel, #f4f1ea);
+  }
+  .cfg-finding--refusal {
+    border-left: 3px solid var(--cfg-ore, #be3a12);
+  }
+  .cfg-finding__flag {
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+    text-transform: lowercase;
+    margin: 0 0 0.4rem;
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 3px;
+    background: var(--cfg-ore, #be3a12);
+    color: #ffffff;
+  }
+  .cfg-finding--conflict .cfg-finding__flag,
+  .cfg-finding--invalid .cfg-finding__flag,
+  .cfg-finding--incomplete .cfg-finding__flag {
+    background: var(--cfg-ink-soft, #5a4e40);
+  }
+  .cfg-finding__title {
+    font-family: var(--cfg-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.15rem;
+    line-height: 1.25;
+    margin: 0 0 0.4rem;
+    color: var(--cfg-ink, #24231f);
+  }
+  .cfg-finding__detail,
+  .cfg-finding__where {
+    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    margin: 0 0 0.4rem;
+    color: var(--cfg-ink, #24231f);
+  }
+  .cfg-finding__where {
+    font-size: 0.8125rem;
+    color: var(--cfg-ink-soft, #5a4e40);
+  }
+  .cfg-finding__list {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-family: var(--cfg-sans, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.875rem;
+    line-height: 1.6;
+  }
+  .cfg-finding code {
+    font-family: var(--cfg-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.95em;
+  }
+
+  /* ── the narrow-screen concession ─────────────────────────────────────────────────────
+     On a phone something has to give. It is the apps list. The prune block keeps the base
+     size at every width, on every device, in every state. */
+  @media (max-width: 26rem) {
+    .cfg-panel__code {
+      font-size: 0.75rem;
+    }
+    .cfg-line[data-section="apps"] {
+      font-size: 0.6875rem;
+    }
+    .cfg-line[data-section="prune"] {
+      font-size: 0.8125rem;
+    }
+  }
+</style>

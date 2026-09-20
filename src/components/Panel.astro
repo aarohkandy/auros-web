@@ -14,13 +14,22 @@ interface Props {
   marked?: boolean;
   class?: string;
   id?: string;
+  /** Anything else — aria-label, data attributes — is passed through to the element. */
+  [key: string]: unknown;
 }
 
-const { tone = "panel", as = "section", marked = false, class: className, id } = Astro.props;
+const {
+  tone = "panel",
+  as = "section",
+  marked = false,
+  class: className,
+  id,
+  ...rest
+} = Astro.props;
 const Tag = as as any;
 ---
 
-<Tag id={id} class:list={["panel", `tone-${tone}`, { marked }, className]}>
+<Tag id={id} class:list={["panel", `tone-${tone}`, { marked }, className]} {...rest}>
   <slot />
 </Tag>
 
@@ -40,7 +49,7 @@ const Tag = as as any;
   .tone-deep {
     background-color: var(--panel-deep, #24231f);
     color: var(--ink-console, #e2ddd0);
-    border-color: var(--rule-deep, #5a4e40);
+    border-color: var(--rule, #8a7358);
   }
   .marked {
     border-left: 3px solid var(--ore, #be3a12);

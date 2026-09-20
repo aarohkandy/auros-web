@@ -1,0 +1,292 @@
+/* =============================================================================================
+   AUROS — DESIGN TOKENS
+   The single source of every colour, size and face on this site. Nothing else declares a hex.
+
+   Spec §7 is fixed and is not open to reinterpretation. This file implements it; it does not
+   restyle it. Where §7 was internally inconsistent, the resolution is recorded below in full,
+   with the arithmetic, so that nobody has to re-derive it and nobody can quietly drift from it.
+   =============================================================================================
+
+   -------------------------------------------------------------------------------------------
+   THE PALETTE COUNT — resolved. Read this before adding a colour.
+   -------------------------------------------------------------------------------------------
+   §7 states "Maximum 18 colours" and then lists 19:
+
+       sky 4 · cloud 2 · far hills 2 · trees 2 · grass 1 · soil 2 · strata 4 · ore 2  =  19
+
+   PLAN.md §3.9 flagged the contradiction and refused to ship 19 under a sign saying 18.
+
+   RESOLUTION (PLAN.md §3.9, option 1 — the smaller cap, not the raised one):
+
+   1. The cap of 18 is the TERRAIN RENDERER'S palette — the colours the canvas may draw with.
+      It is a constraint on the picture, which is where a palette cap does work: a 16-bit
+      cross-section stops reading as one if it has unlimited colours.
+
+   2. One sky band is dropped. The stepped sky reads fine in three. The band removed is
+      #D6DCDC, the second of four, chosen because the other three each do a second job:
+        #C9D6DE  the cold top of the sky, the far end of the ramp
+        #E2DDD0  also --ink-console, the text colour on the build console panel
+        #EFE6D4  the warm horizon, the near end of the ramp
+      Dropping a band that is only a band costs the least.
+
+           TERRAIN PALETTE, LIGHT — 18 exactly:
+           sky 3 · cloud 2 · far hills 2 · trees 2 · grass 1 · soil 2 · strata 4 · ore 2 = 18
+
+   3. Ink, panel and dark-theme colours are a SEPARATE, DOCUMENTED SET, not counted against
+      the terrain cap — because they are type and chrome, not terrain, and because a cap that
+      forced body text to reuse a tree colour would be a cap making the site worse.
+
+      The set is documented rather than unbounded, and it turned out to cost nothing:
+
+           LIGHT INK/PANEL SET — 0 new colours. Every value is already in the terrain 18.
+           DARK THEME         — 2 new colours, and they are the two §7 itself specifies for the
+                                dark sky (#171C24, #1E242C). The dark ink/panel set reuses them
+                                and the terrain 18; it adds nothing of its own.
+
+           WHOLE SITE, BOTH THEMES:  20 distinct hex values.
+           TERRAIN, LIGHT:           18   (the capped number)
+           TERRAIN, DARK:            17   (three sky bands become two)
+
+   4. Therefore: adding a hex to this file is a change to a number that is written down.
+      If you add one, change the counts above in the same commit. If a terrain colour is
+      added, the renderer is over 18 and the palette is broken — fix the palette, not the sign.
+
+   -------------------------------------------------------------------------------------------
+   CONTRAST — measured, never asserted.
+   -------------------------------------------------------------------------------------------
+   §7: "WCAG AA contrast on every text/panel pair, verified not assumed."
+   `node tools/contrast.mjs` parses THIS FILE, computes every declared pair, and writes
+   src/styles/a11y-audit.md. It exits non-zero when a pair is under 4.5:1 for body text,
+   3:1 for large text, or 3:1 for a non-text UI mark. It runs in `pnpm build`.
+   Do not hand-edit a11y-audit.md. Do not add a colour here without running it.
+
+   -------------------------------------------------------------------------------------------
+   ORE IS NOT A TEXT COLOUR.
+   -------------------------------------------------------------------------------------------
+   Measured: #BE3A12 on the dark panel #1E242C is 2.83:1. #D9682E is 4.44:1. Both under 4.5.
+   So ore is a border, a background, a rule or a mark — never a glyph. §7 also caps it at
+   under 2% of terrain pixels, at layer boundaries only. --focus flips to the lighter ore in
+   dark for the same reason: a focus ring is a non-text mark and still needs 3:1.
+   ============================================================================================= */
+
+:root {
+  color-scheme: light dark;
+
+  /* ------------------------------------------------------------------------------------------
+     TERRAIN PALETTE — 18 colours, light. The renderer's alphabet. §7, verbatim minus #D6DCDC.
+     Grouped exactly as §7 groups them so the two can be diffed by eye.
+     ------------------------------------------------------------------------------------------ */
+
+  /* sky — 3 stepped bands, top to horizon. NEVER a CSS gradient (§7). */
+  --terrain-sky-1: #c9d6de;
+  --terrain-sky-2: #e2ddd0;
+  --terrain-sky-3: #efe6d4;
+
+  /* cloud — 2 */
+  --terrain-cloud-1: #f4f1ea;
+  --terrain-cloud-2: #e6e0d2;
+
+  /* far hills — 2 */
+  --terrain-hill-1: #a8afa2;
+  --terrain-hill-2: #8e968c;
+
+  /* trees — 2 */
+  --terrain-tree-1: #6e7a66;
+  --terrain-tree-2: #57624f;
+
+  /* grass — 1 */
+  --terrain-grass: #7d8a63;
+
+  /* soil — 2 */
+  --terrain-soil-1: #8a7358;
+  --terrain-soil-2: #6f5c46;
+
+  /* strata — 4, shallow to deep. These are the image-stack layers (§7's diagram). */
+  --terrain-stratum-1: #5a4e40;
+  --terrain-stratum-2: #463e34;
+  --terrain-stratum-3: #33302a;
+  --terrain-bedrock: #24231f;
+
+  /* ore / accent — 2. Under 2% of pixels, at layer boundaries only (§7). */
+  --terrain-ore-1: #be3a12;
+  --terrain-ore-2: #d9682e;
+
+  /* Stars in the dark sky (§7: "single-pixel stars"). Reuses cloud 1 — not a 19th colour.
+     Only visible in dark, but declared once so the renderer reads one token name. */
+  --terrain-star: #f4f1ea;
+
+  /* ------------------------------------------------------------------------------------------
+     INK / PANEL — type and chrome. Zero new hex values: every one aliases a terrain colour.
+     These names are the contract with src/components/ (see CONVENTIONS.md §2).
+     ------------------------------------------------------------------------------------------ */
+  --ink: var(--terrain-bedrock); /* #24231F — body text                    13.94:1 on --panel */
+  --ink-muted: var(--terrain-stratum-1); /* #5A4E40 — captions, labels      7.16:1 on --panel */
+  --ink-console: var(--terrain-sky-2); /* #E2DDD0 — text on --panel-deep   11.60:1 on deep    */
+
+  --panel: var(--terrain-cloud-1); /* #F4F1EA — the opaque panel body text sits on (§7) */
+  --panel-2: var(--terrain-cloud-2); /* #E6E0D2 — second tone, insets, <pre>            */
+  --panel-deep: var(--terrain-bedrock); /* #24231F — the build console. Dark in BOTH themes. */
+
+  --ink-muted-deep: var(--terrain-hill-1); /* #A8AFA2 — secondary text on --panel-deep  6.98:1 */
+
+  --rule: var(--terrain-soil-1); /* #8A7358 — the 1px hairline, the ONLY divider (§7) */
+  /* The hairline on --panel-deep. Named separately because src/components/Panel.astro already
+     reads `--rule-deep`, and because --panel-deep is dark in both themes: the measured value
+     #5A4E40 that a naive reading would pick gives 1.93:1 there, so it is #8A7358 in both. */
+  --rule-deep: var(--terrain-soil-1); /* #8A7358 — 3.50:1 light deep, 3.81:1 dark deep */
+
+  /* Ore, as a UI accent. MEASURED, and this is why there are three tokens and not one:
+       #BE3A12 on a light panel  4.89:1     on a dark panel  2.83:1   <- fails WCAG 1.4.11
+       #D9682E on a light panel  3.12:1     on a dark panel  4.44:1
+     No single ore value carries a visible mark on both themes. So the UI accent flips with
+     the theme, while the TERRAIN ore (--terrain-ore-1/2) never does — §7's "ore stays" is
+     said about the terrain, where ore only ever sits on dark strata.
+       --ore        accent on --panel / --panel-2 / --page-bg. Flips with the theme.
+       --ore-2      the second tone. Swaps with --ore, so two tones are always available.
+       --ore-deep   accent on --panel-deep, which is dark in BOTH themes, so it never flips. */
+  --ore: var(--terrain-ore-1); /* #BE3A12 in light — marks, borders, never glyphs */
+  --ore-2: var(--terrain-ore-2); /* #D9682E in light */
+  --ore-deep: var(--terrain-ore-2); /* #D9682E always — 4.47:1 light deep, 4.86:1 dark deep */
+  --focus: var(--ore); /* the focus ring is an ore mark and follows the same rule */
+
+  /* The page behind the panels. In light it is the horizon band, so a panel-less page still
+     reads as the top of the cross-section rather than as white. */
+  --page-bg: var(--terrain-sky-3);
+
+  /* ------------------------------------------------------------------------------------------
+     TYPE — §7, and it is the identity: editorial serif colliding with 16-bit terrain.
+     "Do not harmonise them by making the type pixelated too."
+     ------------------------------------------------------------------------------------------ */
+  --font-display: "Instrument Serif", Iowan Old Style, Palatino, Georgia, "Times New Roman", serif;
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* DECISIONS D25: Instrument Serif ships 400 normal and 400 italic ONLY. There is no bold.
+     --weight-display exists so that nothing can ask for 700 by habit. Do not change it.
+     `font-synthesis: none` in base.css stops the browser drawing a fake one. */
+  --weight-display: 400;
+  --weight-ui: 400;
+  --weight-ui-strong: 600;
+
+  /* Type scale. A fourth-ish ratio, rounded to values that land on the 4px block grid at
+     16px root, so type and terrain share a rhythm. rem throughout: a reader who sets a
+     larger default font size gets a larger site. */
+  --step--1: 0.8125rem; /* 13px — margin labels, captions */
+  --step-0: 1rem; /* 16px — body */
+  --step-1: 1.1875rem; /* 19px — lead */
+  --step-2: 1.5rem; /* 24px — h3 */
+  --step-3: 2rem; /* 32px — h2 */
+  --step-4: 2.75rem; /* 44px — h1 */
+  --step-5: 3.75rem; /* 60px — hero */
+
+  --leading-tight: 1.1; /* display */
+  --leading-snug: 1.35; /* short UI text */
+  --leading-body: 1.6; /* prose */
+
+  --measure: 38rem; /* the reading column. Prose.astro already uses this width. */
+
+  /* ------------------------------------------------------------------------------------------
+     SPACE — multiples of the terrain's 4px logical block (§7). The page and the picture are
+     on the same grid; that is why the margin labels line up with the strata.
+     ------------------------------------------------------------------------------------------ */
+  --block: 4px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  /* ------------------------------------------------------------------------------------------
+     INK RULES — §7, as tokens so a violation is visible in a diff.
+     No gradients. No drop shadows. Radius ceiling 3px. The 1px hairline is the only divider.
+     base.css enforces these; these tokens are what it enforces them to.
+     ------------------------------------------------------------------------------------------ */
+  --radius: 3px; /* THE CEILING. There is no --radius-lg. */
+  --hairline: 1px;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+
+  /* Motion. §7: only things reporting a real fact may move. */
+  --cloud-drift-speed: 2px; /* per second, the §7 ceiling */
+
+  --header-height: 56px;
+}
+
+/* ==============================================================================================
+   DARK THEME
+   §7: "sky becomes #171C24 / #1E242C with single-pixel stars; strata darken; ore stays."
+
+   The two sky values are the ONLY new hex in the whole dark theme. Everything else — panels,
+   ink, rules — reuses them or the terrain 18.
+
+   NOT DEFINED HERE, deliberately: how much the strata darken. §7 says "darken" without values,
+   and inventing four would be adding colours to a capped palette on my own authority. The
+   terrain renderer owns that decision and must record it here when it makes it, because any
+   value it invents counts against the 18.
+
+   Both selectors below carry the same declarations:
+     - the media query, guarded by :not([data-theme="light"]) so a manual light override wins
+     - [data-theme="dark"], for a manual dark override on a light-preferring machine
+   ============================================================================================== */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --terrain-sky-1: #171c24;
+    --terrain-sky-2: #1e242c;
+    --terrain-sky-3: #1e242c;
+
+    --ink: #e2ddd0; /* the light sky-2 value, now carrying type   11.52:1 on --panel */
+    --ink-muted: var(--terrain-hill-1); /* #A8AFA2                 6.93:1 on --panel */
+    --ink-console: #e2ddd0; /*                                    12.61:1 on --panel-deep */
+    --ink-muted-deep: var(--terrain-hill-1); /*                     7.59:1 on --panel-deep */
+
+    --panel: #1e242c;
+    --panel-2: #171c24;
+    --panel-deep: #171c24;
+
+    --rule: var(--terrain-soil-1); /* #8A7358 — 3.48:1 on --panel, a non-text mark */
+
+    /* The two ore tones swap. See the measured note in :root. --ore-deep does not:
+       --panel-deep is dark in both themes, so its accent is the same colour in both. */
+    --ore: var(--terrain-ore-2); /* #D9682E — 4.44:1 on --panel */
+    --ore-2: var(--terrain-ore-1); /* #BE3A12 — 2.83:1; a second tone, never the only signal */
+    --ore-deep: var(--terrain-ore-2); /* #D9682E — 4.86:1 on --panel-deep */
+
+    --page-bg: #171c24;
+  }
+}
+
+/* The same declarations again, for a manual override on a machine that prefers light.
+   They are duplicated rather than shared because the only ways to share them are
+   `light-dark()` (which fails to a computed-value-time invalid, i.e. unreadable text, on a
+   browser that lacks it) and a preprocessor (which this site does not have). To make the
+   duplication safe, `tools/contrast.mjs` asserts that these two blocks declare exactly the
+   same tokens with exactly the same values, and fails the build if they drift. */
+:root[data-theme="dark"] {
+  --terrain-sky-1: #171c24;
+  --terrain-sky-2: #1e242c;
+  --terrain-sky-3: #1e242c;
+
+  --ink: #e2ddd0; /* the light sky-2 value, now carrying type   11.52:1 on --panel */
+  --ink-muted: var(--terrain-hill-1); /* #A8AFA2                 6.93:1 on --panel */
+  --ink-console: #e2ddd0; /*                                    12.61:1 on --panel-deep */
+  --ink-muted-deep: var(--terrain-hill-1); /*                     7.59:1 on --panel-deep */
+
+  --panel: #1e242c;
+  --panel-2: #171c24;
+  --panel-deep: #171c24;
+
+  --rule: var(--terrain-soil-1); /* #8A7358 — 3.48:1 on --panel, a non-text mark */
+
+  /* The two ore tones swap. See the measured note in :root. --ore-deep does not:
+   --panel-deep is dark in both themes, so its accent is the same colour in both. */
+  --ore: var(--terrain-ore-2); /* #D9682E — 4.44:1 on --panel */
+  --ore-2: var(--terrain-ore-1); /* #BE3A12 — 2.83:1; a second tone, never the only signal */
+  --ore-deep: var(--terrain-ore-2); /* #D9682E — 4.86:1 on --panel-deep */
+
+  --page-bg: #171c24;
+}

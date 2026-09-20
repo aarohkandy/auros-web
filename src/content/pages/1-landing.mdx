@@ -55,9 +55,18 @@ before you commit anything, is on its own page and it is the page we would read 
 The migration has an order to it and the order is not negotiable.
 
 Your files are inventoried, copied to a disk that is not the system disk, and then verified
-twice over: the file count has to match, and every file's hash has to match. If one file
-disagrees, the migration stops and changes nothing. Windows still boots. You try again tomorrow
-or you walk away.
+twice over: the file count has to match, and every file's hash has to match. Anything that
+does not verify is re-copied once, and if it still does not, it is put on a list and shown to
+you by name. **Nothing is written to your old disk until that list is empty.** If you would
+rather stop, the migration stops and changes nothing. Windows still boots. You try again
+tomorrow or you walk away.
+
+We are specific about this because the simpler promise — *any single mismatch aborts the whole
+thing* — is the one that sounds safer and is the one that fails. Files legitimately change
+while they are being copied: OneDrive fetches something, antivirus touches a file, somebody
+left a document open. A tool that gives up on all of it gets worked around, and a tool that
+gets worked around is more dangerous than one that tells you precisely which four files it
+could not read.
 
 Only after that passes does anything get written to the machine. There is a moment, by design,
 where your data exists in two places and the original disk has not been touched.

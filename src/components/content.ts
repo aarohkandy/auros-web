@@ -9,7 +9,7 @@
  * I do not own `src/content/`. If a lookup here returns nothing, that is a real absence and the
  * caller says so on the page rather than rendering a plausible-looking blank.
  */
-import { getCollection, type CollectionEntry } from "astro:content";
+import { getCollection, render, type CollectionEntry } from "astro:content";
 
 export type PageEntry = CollectionEntry<"pages">;
 export type MigrationEntry = CollectionEntry<"migration">;
@@ -80,4 +80,22 @@ export async function layers(): Promise<LayerEntry[]> {
 
 export async function layerById(id: LayerEntry["data"]["id"]): Promise<LayerEntry | undefined> {
   return (await layers()).find((l) => l.data.id === id);
+}
+
+/**
+ * Render one collection entry's body.
+ *
+ * Wrapped in one place so that the pages call one render API and not two scattered through the
+ * templates. Astro 7 removed the legacy `entry.render()` form along with legacy collections.
+ */
+export async function renderEntry(entry: Parameters<typeof render>[0]) {
+  return await render(entry);
+}
+
+/**
+ * A stable HTML anchor for a collection entry. Ids from the content-layer loader carry no file
+ * extension, but strip one if a loader ever supplies it, so an anchor never depends on that.
+ */
+export function entryAnchor(entry: { id: string }): string {
+  return entry.id.replace(/\.(md|mdx)$/i, "");
 }

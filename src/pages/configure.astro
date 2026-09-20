@@ -1,0 +1,142 @@
+---
+/**
+ * The configurator's page.
+ *
+ * The panel itself is another agent's work and lives in `src/components/configurator/`. This page
+ * is its host: the frame, the disclosure that has to be on screen before anyone submits, and the
+ * no-JS path. It imports the configurator through a glob rather than a static import, so that a
+ * page owned by one agent does not fail to build because a component owned by another has not
+ * landed yet. If it is absent, the mount point and the documented contract are still here.
+ *
+ * CONFIGURATOR.md: "The fifth thing is not a question, it is a disclosure: the Windows programs
+ * that will not come across. It appears before the submit button, not after, and it is not
+ * dismissible." So it is rendered by the page, above the form, where no form state can hide it.
+ */
+import PageShell from "../components/PageShell.astro";
+import Panel from "../components/Panel.astro";
+import WhatDoesntComeAcross from "../components/WhatDoesntComeAcross.astro";
+import NoScriptFallback from "../components/NoScriptFallback.astro";
+import StratumLabel from "../components/StratumLabel.astro";
+import { configurator, site } from "../content/copy";
+
+const configuratorModules = import.meta.glob("../components/configurator/Configurator.astro", {
+  eager: true,
+}) as Record<string, { default?: any }>;
+const Configurator = Object.values(configuratorModules)[0]?.default;
+---
+
+<PageShell
+  title={`${configurator.title} — ${site.name}`}
+  description={configurator.standfirst}
+  layer="stratum-1"
+>
+  <Panel tone="panel" as="header" class="head">
+    <StratumLabel layer="stratum-1" />
+    <h1 class="title">{configurator.title}</h1>
+    <p class="standfirst">{configurator.standfirst}</p>
+    <p class="privacy">{configurator.privacyWarning}</p>
+  </Panel>
+
+  <div class="panel-area">
+    {
+      Configurator ? (
+        <Configurator />
+      ) : (
+        <Panel tone="panel-2">
+          <h2 class="pending-title">The configurator is not on this page yet</h2>
+          <p class="pending">
+            {configurator.emptyState} The live panel is built separately and mounts into the element
+            below. Until it does, this page is the frame around a component that is not here, and
+            saying that plainly is better than a form that looks live and posts nowhere.
+          </p>
+          <div id="configurator-root" data-configurator-mount></div>
+        </Panel>
+      )
+    }
+  </div>
+
+  <section class="disclosure" aria-labelledby="disclosure-title">
+    <Panel tone="panel" class="disclosure-head">
+      <h2 class="disclosure-title" id="disclosure-title">Before you submit</h2>
+      <p class="disclosure-note">
+        This is the disclosure, not a question, and there is no control on this page that hides it.
+      </p>
+    </Panel>
+    <WhatDoesntComeAcross showComesAcross={false} headingLevel={3} />
+  </section>
+
+  <div class="fallback">
+    <NoScriptFallback subject="A build for our machines" />
+  </div>
+</PageShell>
+
+<style>
+  .head {
+    margin-bottom: 1rem;
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 6vw, 3rem);
+    line-height: 1.05;
+    margin: 0 0 0.6rem;
+    color: var(--ink, #24231f);
+  }
+  .standfirst {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1.05rem;
+    line-height: 1.5;
+    max-width: 40rem;
+    margin: 0 0 0.85rem;
+    color: var(--ink, #24231f);
+  }
+  .privacy {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    max-width: 40rem;
+    margin: 0;
+    padding-left: 0.85rem;
+    border-left: 3px solid var(--ore, #be3a12);
+    color: var(--ink-muted, #5a4e40);
+  }
+  .pending-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.4rem;
+    line-height: 1.15;
+    margin: 0 0 0.5rem;
+    color: var(--ink, #24231f);
+  }
+  .pending {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 0;
+    color: var(--ink, #24231f);
+  }
+  .disclosure {
+    margin: 2rem 0;
+  }
+  .disclosure-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    margin: 0 0 0.35rem;
+    color: var(--ink, #24231f);
+  }
+  .disclosure-head {
+    margin-bottom: 0.75rem;
+  }
+  .disclosure-note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .fallback {
+    margin: 2rem 0;
+  }
+</style>

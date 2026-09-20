@@ -1,0 +1,232 @@
+---
+/**
+ * BuildConsole — spec §7's replacement for every decorative animation impulse.
+ *
+ * It streams genuine pipeline output from the Worker's SSE endpoint: `pruning 214 packages`,
+ * `booting test vm`, `✓ wifi associates`, `signed · cosign keyless`. Those lines come off the wire
+ * or they do not appear.
+ *
+ * **If there is no real build to show, it says so.** The server-rendered state of this component is
+ * "No build running", and the client can only move it off that state by receiving real events.
+ * Nothing in this component or in `build-console.ts` can synthesise a line.
+ *
+ * The sample block underneath is a different thing on purpose. It is the content author's
+ * ILLUSTRATION from `copy.ts` — what a build looks like — and it carries `ILLUSTRATION_LABEL`
+ * visibly, in the panel, never in a footnote (spec §4.4, CONFIGURATOR.md constraint 3). It is
+ * static, it is outside the live log's DOM, and it is marked in the markup as well as in the words,
+ * so a reader and a screen reader both learn what it is before they read a line of it.
+ */
+import { buildConsole, ILLUSTRATION_LABEL } from "../content/copy";
+import Panel from "./Panel.astro";
+
+interface Props {
+  /**
+   * The Worker's SSE route. A prop because the Worker is another agent's file and this is the
+   * contract between us: `text/event-stream`, events named `line` / `idle` / `done`, `id:` on every
+   * line so an interrupted stream resumes (see CONVENTIONS.md §5).
+   */
+  endpoint?: string;
+  /** Show the labelled illustration of what a build looks like. */
+  showIllustration?: boolean;
+  headingLevel?: 2 | 3;
+}
+
+const { endpoint = "/api/build/stream", showIllustration = true, headingLevel = 2 } = Astro.props;
+const H = `h${headingLevel}` as any;
+
+/**
+ * UI strings for states the content file does not cover. Written in the voice of `copy.ts` and kept
+ * here rather than added to it, because `src/content/` belongs to another agent. Each one describes
+ * an absence accurately: none of them implies a build we cannot show.
+ */
+const strings = {
+  connecting: "connecting",
+  ended: "build finished",
+  unreachable: "no build to show",
+  noteUnreachable:
+    "We cannot reach the build stream from here, so there is nothing to show. There is no stored copy of a build to fall back on, and we would rather show you an empty console than a convincing one.",
+  noteIdle:
+    "Nothing is building at this moment. Builds run nightly and whenever a recipe changes, so this console is empty most of the time, which is the honest state of it.",
+};
+---
+
+<Panel tone="deep" class="console" as="section">
+  <header class="head">
+    <H class="title">{buildConsole.title}</H>
+    <p class="status" data-console-status aria-live="polite">{buildConsole.idleLabel}</p>
+  </header>
+  <p class="subtitle">{buildConsole.subtitle}</p>
+
+  <div
+    class="stream"
+    data-build-console
+    data-state="idle"
+    data-endpoint={endpoint}
+    data-string-idle={buildConsole.idleLabel}
+    data-string-live={buildConsole.liveLabel}
+    data-string-connecting={strings.connecting}
+    data-string-ended={strings.ended}
+    data-string-unreachable={strings.unreachable}
+    data-note-unreachable={strings.noteUnreachable}
+    data-note-idle={strings.noteIdle}
+  >
+    <p class="status stream-status" data-console-status aria-live="polite">{buildConsole.idleLabel}</p>
+    <ol class="log" data-console-log aria-label={buildConsole.title}></ol>
+    <p class="note" data-console-note>{strings.noteIdle}</p>
+    <noscript>
+      <p class="note">
+        The live console streams over an event stream, which needs JavaScript. Without it this panel
+        stays empty. The build output it would carry is public: every run and every log is in the
+        repositories linked in the footer.
+      </p>
+    </noscript>
+  </div>
+
+  {
+    showIllustration && (
+      <div class="illustration">
+        <p class="illustration-label">
+          <span class="flag">ILLUSTRATION</span>
+          {ILLUSTRATION_LABEL}
+        </p>
+        <ol class="log sample" aria-label="Illustration of build output">
+          {buildConsole.sampleLinesMono.map((line) => (
+            <li class="line">{line}</li>
+          ))}
+        </ol>
+        <dl class="legend">
+          {buildConsole.legend.map((item) => (
+            <div class="legend-row">
+              <dt>{item.label}</dt>
+              <dd>{item.meaning}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    )
+  }
+</Panel>
+
+<script>
+  import { mountBuildConsoles } from "./build-console";
+  mountBuildConsoles();
+</script>
+
+<style>
+  .console {
+    color: var(--ink-console, #e2ddd0);
+  }
+  .head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid var(--rule, #8a7358);
+    padding-bottom: 0.5rem;
+  }
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.5rem;
+    line-height: 1.1;
+    margin: 0;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .status {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    margin: 0;
+    color: var(--ink-console, #e2ddd0);
+  }
+  /* One status element is enough for a screen reader; the one inside the stream is the live one. */
+  .stream-status {
+    display: none;
+  }
+  .subtitle {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0.75rem 0 1rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .log {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 18rem;
+    overflow-y: auto;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.78rem;
+    line-height: 1.7;
+  }
+  .line {
+    white-space: pre-wrap;
+    word-break: break-word;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0.75rem 0 0;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .illustration {
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--rule, #8a7358);
+    padding-top: 1rem;
+    border-left: 3px solid var(--ore, #be3a12);
+    padding-left: 0.85rem;
+  }
+  .illustration-label {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.82rem;
+    line-height: 1.5;
+    margin: 0 0 0.75rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .flag {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.7rem;
+    letter-spacing: 0.08em;
+    border: 1px solid var(--ore, #be3a12);
+    border-radius: 2px;
+    padding: 0.1rem 0.35rem;
+    margin-right: 0.5rem;
+    white-space: nowrap;
+  }
+  .sample {
+    max-height: none;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .sample .line {
+    color: var(--ink-console, #e2ddd0);
+  }
+  .legend {
+    margin: 1rem 0 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .legend-row {
+    display: grid;
+    gap: 0.15rem;
+  }
+  .legend dt {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.75rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .legend dd {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin: 0;
+    color: var(--ink-console, #e2ddd0);
+  }
+  @media (min-width: 40rem) {
+    .legend {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

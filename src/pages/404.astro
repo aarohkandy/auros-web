@@ -1,0 +1,54 @@
+---
+/**
+ * Not found. The words are `copy.errors.notFound`.
+ */
+import PageShell from "../components/PageShell.astro";
+import Panel from "../components/Panel.astro";
+import { errors, site, nav } from "../content/copy";
+---
+
+<PageShell title={`${errors.notFound.title} — ${site.name}`} description={errors.notFound.body}>
+  <Panel tone="panel">
+    <h1 class="title">{errors.notFound.title}</h1>
+    <p class="body">{errors.notFound.body}</p>
+    <ul class="links">
+      {nav.items.map((item) => (
+        <li><a href={item.href}>{item.label}</a></li>
+      ))}
+    </ul>
+  </Panel>
+</PageShell>
+
+<style>
+  .title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: clamp(2rem, 6vw, 2.75rem);
+    line-height: 1.05;
+    margin: 0 0 0.6rem;
+    color: var(--ink, #24231f);
+  }
+  .body {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 0 0 1rem;
+    color: var(--ink, #24231f);
+  }
+  .links {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+  }
+  .links a {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    color: var(--ink, #24231f);
+    text-decoration-line: underline;
+    text-decoration-color: var(--ore, #be3a12);
+    text-underline-offset: 2px;
+  }
+</style>

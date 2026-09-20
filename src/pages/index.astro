@@ -1,0 +1,157 @@
+---
+/**
+ * The landing page.
+ *
+ * Assembled from documents, not written here: the hero strings are `copy.hero`, the column is the
+ * `migration` entries the content author marked `onLanding`, and the long-form argument is
+ * `src/content/pages/1-landing.mdx` rendered whole. No sentence on this page was written by the
+ * agent that built this template.
+ *
+ * Order is the spec's, not a layout preference. §6D: "Above the fold: a column titled *what
+ * doesn't come across*, naming Windows programs explicitly. This converts organisations; hiding it
+ * loses them at month two." So it is beside the hero, before the argument, and on a phone it is the
+ * second thing on the page rather than the ninth.
+ *
+ * The hero carries no stratum label. The sky layer's name in the collection IS the headline, so a
+ * margin label there would print the same sentence twice; the labels start at the surface, which is
+ * where the stack starts having files in it.
+ */
+import PageShell from "../components/PageShell.astro";
+import Panel from "../components/Panel.astro";
+import Prose from "../components/Prose.astro";
+import WhatDoesntComeAcross from "../components/WhatDoesntComeAcross.astro";
+import BuildConsole from "../components/BuildConsole.astro";
+import StratumLabel from "../components/StratumLabel.astro";
+import FactList from "../components/FactList.astro";
+import { hero, site, migrationSafety } from "../content/copy";
+import { pageByOrder, renderEntry, PAGE_ORDER } from "../components/content";
+
+const page = await pageByOrder(PAGE_ORDER.landing);
+const { Content } = await renderEntry(page);
+---
+
+<PageShell title={`${site.name} — ${hero.headline}`} description={page.data.summary} layer="sky">
+  <div class="above-the-fold">
+    <Panel tone="panel" class="hero">
+      <h1 class="headline">{hero.headline}</h1>
+      <p class="standfirst">{hero.standfirst}</p>
+      <p class="ctas">
+        <a class="cta primary" href={hero.primaryCta.href}>{hero.primaryCta.label}</a>
+        <a class="cta" href={hero.secondaryCta.href}>{hero.secondaryCta.label}</a>
+      </p>
+      <p class="price-note">{hero.priceNoteMono}</p>
+    </Panel>
+
+    <WhatDoesntComeAcross headingLevel={2} />
+  </div>
+
+  <div class="body">
+    <StratumLabel layer="surface" />
+    <Panel tone="panel">
+      <Prose>
+        <Content />
+      </Prose>
+    </Panel>
+  </div>
+
+  <div class="console-section">
+    <StratumLabel layer="stratum-2" />
+    <BuildConsole />
+  </div>
+
+  <div class="safety">
+    <Panel tone="panel">
+      <h2 class="section-title">{migrationSafety.title}</h2>
+      <FactList facts={migrationSafety.steps} ordered />
+      <p class="safety-body">{migrationSafety.body}</p>
+      <p class="safety-note">{migrationSafety.archiveNote}</p>
+      <p class="safety-note">{migrationSafety.noBootMediaNote}</p>
+    </Panel>
+  </div>
+</PageShell>
+
+<style>
+  .above-the-fold {
+    display: grid;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  @media (min-width: 64rem) {
+    .above-the-fold {
+      grid-template-columns: 1fr 1fr;
+      align-items: start;
+    }
+  }
+  .headline {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: clamp(2.25rem, 7vw, 3.5rem);
+    line-height: 1.02;
+    margin: 0 0 0.75rem;
+    color: var(--ink, #24231f);
+  }
+  .standfirst {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 1.05rem;
+    line-height: 1.55;
+    margin: 0 0 1.25rem;
+    color: var(--ink, #24231f);
+  }
+  .ctas {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin: 0 0 1rem;
+  }
+  .cta {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid var(--rule, #8a7358);
+    border-radius: 3px;
+    color: var(--ink, #24231f);
+    background-color: var(--panel-2, #e6e0d2);
+    text-decoration: none;
+  }
+  .cta.primary {
+    border-color: var(--ore, #be3a12);
+    border-left-width: 3px;
+  }
+  .cta:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--focus, #be3a12);
+    outline-offset: 2px;
+  }
+  .price-note {
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    margin: 0;
+    color: var(--ink-muted, #5a4e40);
+  }
+  .body,
+  .console-section,
+  .safety {
+    margin: 2rem 0;
+  }
+  .section-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: 1.75rem;
+    line-height: 1.15;
+    margin: 0 0 1rem;
+    color: var(--ink, #24231f);
+  }
+  .safety-body,
+  .safety-note {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: 0.95rem;
+    line-height: 1.55;
+    max-width: 38rem;
+    margin: 1rem 0 0;
+    color: var(--ink, #24231f);
+  }
+  .safety-note {
+    font-size: 0.88rem;
+    color: var(--ink-muted, #5a4e40);
+  }
+</style>
