@@ -8,7 +8,7 @@ whose evidence column says **UNEVIDENCED** must not be published until a human h
 
 Maintained by the agent that owns content.
 
-**Reviewed against DECISIONS.md: D35 (re-read 2026-09-20: D35 moves the INSTALLER to Go 1.25.14 after its vulnerability scan was found never to have run; every "vulnerability" sentence on the site is about the OS image's CVE rebuild path, not the installer toolchain, so no published sentence changes)** — 2026-09-20.
+**Reviewed against DECISIONS.md: D37 (re-read 2026-09-20. `D36` makes a private repo for what has no CI to pay for and keeps the product repositories public for free Actions minutes — which is exactly what section 7's CI-cost row already records, and the site publishes no claim about repository visibility, so nothing moves. `D37` is about `./verify` reporting PASS on two suites it was not actually reading; it changes what an AGENT may trust, not what a reader is told, and no row here cites `verify` as its evidence. Both read, neither moves a published sentence. The earlier D35 read stands: D35 moves the INSTALLER to Go 1.25.14 after its vulnerability scan was found never to have run, and every "vulnerability" sentence on the site is about the OS image's CVE rebuild path, not the installer toolchain)** — 2026-09-20.
 
 Of those, `D30` and `D31` rewrote what this file says about trust and replaceability (section 7).
 Two were read and change nothing published. `D33` exempts one named script endpoint on the
@@ -196,6 +196,31 @@ SPEC §4.2 and §11.3 bound this absolutely: never imply blanket compatibility.
 | Machines pull and stage in the background, apply on restart, and are not synchronised | `faq/7-updates-one-uplink.md`, `layers/1-surface.md` | **SPEC** §6A for pull-on-boot and staging. **DESIGN.** The "not synchronised" half is **UNEVIDENCED as written** until the agent's schedule is implemented. **BUILD-REQ** on workstream A: either implement jitter or remove that bullet. | `2026-09-20` |
 | `bootc status` tells a machine's operator what it is running | `layers/1-surface.md` | **UPSTREAM.** Standard bootc command. Verify before publish. | `2026-09-20` |
 | Fedora and Universal Blue are maintained by others and do not depend on us | `layers/5-bedrock.md` | **SPEC** §2, **DECISION** D3. | `2026-09-20` |
+
+### 6.1 The build console, and the runs it puts on the record
+
+Spec §7 makes the build console the site's one living element, on the grounds that it "is more
+interesting than any animation and it is true." That sentence is a claim, so it gets rows. The
+console renders three things a reader can check: the LATEST completed run of `auros-base`'s build
+workflow, a PINNED set of five real runs under it, and a stated absence when there is nothing.
+
+Everything in both files is fetched from the GitHub Actions API by
+`tools/snapshot-build-log.mjs`, which exits 2 without a token rather than writing a line it did not
+fetch. The only text a person wrote is the one-sentence `why` under each pinned run, which is what
+the rows below are mostly about.
+
+| Claim | Where | Evidence | verified_on |
+|---|---|---|---|
+| Every line the console shows was printed by a GitHub Actions runner | `components/BuildConsole.astro`, `lib/console/last-build.json`, `lib/console/notable-runs.json` | **MEASURED.** Both files are generated only by `tools/snapshot-build-log.mjs`, which has no code path that writes text it did not fetch; the manifest's `keep`/`drop` patterns can only select from lines already in a log. `tools/build-console.test.mjs` asserts every stamped line in the latest snapshot falls inside its own run's window, and breaks that on purpose to watch the check fire. | `2026-09-20` |
+| Each run shown links to itself, so the reader can open it and find the same line | same | **MEASURED.** Every `run.url` is asserted to be a `github.com/<owner>/<repo>/actions/runs/<id>` address whose id matches the run it is attached to; a pinned run that fails this does not render at all. | `2026-09-20` |
+| The record is not all successes | same | **MEASURED, AND REFUSED IN TWO PLACES.** The generator will not write a pinned set without at least one success and at least one failure, and `lib/console/notable.ts` will not render one. Both refusals are driven into failure by `tools/build-console.test.mjs`. As committed the set is three that passed and two that did not, and the latest run on top of it is a failure. | `2026-09-20` |
+| A runner measured 110 GB free after reclamation, and pulled the 8.44 GB upstream base | `lib/console/notable-runs.json` (run `35538612202`) | **MEASURED**, and the lines are quoted from the run: `root free: 86G -> 110G (reclaimed 24G)` and `ghcr.io/ublue-os/aurora:stable 8.44 GB`. **DECISION D24** records this measurement overriding the research figure of 25-29 GB. | `2026-09-20` |
+| A derived image became a 4.4 GB qcow2 and booted under KVM to a login prompt | `lib/console/notable-runs.json` (run `35539867513`) | **MEASURED.** The run's own lines: `-rw-r--r-- 1 root root 4.4G … output/qcow2/disk.qcow2`, `acceleration: kvm`, and `aurora login:`. The serial log is an artifact on the run. No duration is published for it — the elapsed gutter is the runner's clock and the reader can read it there. | `2026-09-20` |
+| greenboot 0.16.4 ships three systemd units and no boot-counter unit | `lib/console/notable-runs.json` (run `35542125710`) | **MEASURED** by installing the package in CI and printing `rpm -ql`. Supports **DECISION D9**'s position that greenboot is installed by us, and is the run that ended a sequence of builds lost to unit names taken from memory. | `2026-09-20` |
+| Two named builds failed, for the reasons stated under them | `lib/console/notable-runs.json` (runs `35543147750`, `35544563774`) | **MEASURED.** Each `why` was written after reading that run's log, and the line naming the cause is shown: `bootc-fetch-apply-updates.timer is installed but declares no WantedBy or RequiredBy` for the first, `40-windows-feel.sh: line 46: t: unbound variable` for the second. The commit subject of the second mentions a different fix; the `why` says what the run actually did, not what its commit intended. | `2026-09-20` |
+| The console works with JavaScript off | `components/BuildConsole.astro` | **MEASURED** against the built output on 2026-09-20: `dist/index.html` contains all five pinned runs as native `<details>` elements, every log line in the DOM, and the latest run labelled `last build · 2026-09-20 23:32 UTC`. The live SSE stream is the only part that needs script, and the `<noscript>` says so. | `2026-09-20` |
+| The snapshot stays current | `auros-web/.github/workflows/build-log-snapshot.yml` | **DESIGN, PARTLY UNEVIDENCED.** A scheduled job re-cuts both files daily and commits when the run they point at has moved. **It has not yet run on a schedule** — it was wired up on 2026-09-20 and its first scheduled execution has not happened. Until it has, "current" is a property of the last manual re-cut. | `2026-09-20` |
+| The pinned runs stay readable | `lib/console/notable-runs.json` | **KNOWN EXPIRY, DISCLOSED HERE RATHER THAN DISCOVERED LATER.** GitHub retains Actions logs for 90 days. When a pinned run's log goes, the generator exits 1 saying so rather than dropping the run, so the failure is a red CI asking a human to pin a newer run — not a `why` sentence left standing over nothing. The run URLs themselves outlive the logs. | `2026-09-20` |
 
 ## 7. The wind-down term, and the commands under it
 

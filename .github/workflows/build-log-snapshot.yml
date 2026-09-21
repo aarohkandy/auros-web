@@ -14,6 +14,16 @@
 #
 # It runs after `auros-base`'s build workflow finishes, and on a schedule as a backstop, because a
 # console labelled "last build, four months ago" is honest and useless, which is only half the job.
+#
+# TWO FILES, AND THE SECOND IS THE ONE THAT KEEPS THIS HONEST.
+#   · `last-build.json` is the latest completed run, whatever it is that day.
+#   · `notable-runs.json` is the PINNED set from `tools/notable-runs.manifest.json` — runs chosen by
+#     id, re-cut so that a reducer change cannot silently alter a published line without a diff. The
+#     generator refuses a pinned set that is all successes or all failures, so this job cannot
+#     gradually turn the console into an advertisement. It also refuses a pinned run whose log has
+#     expired, which is the failure this schedule will eventually hit: GitHub retains logs for 90
+#     days, and when one goes, this job goes red and asks a human to pin a newer run rather than
+#     quietly dropping a sentence that no longer has evidence under it.
 # ─────────────────────────────────────────────────────────────────────────────────────────────────
 name: build-log-snapshot
 
@@ -24,6 +34,8 @@ on:
   pull_request:
     paths:
       - 'src/lib/console/last-build.json'
+      - 'src/lib/console/notable-runs.json'
+      - 'tools/notable-runs.manifest.json'
       - 'tools/snapshot-build-log.mjs'
 
 permissions:
@@ -50,11 +62,27 @@ jobs:
 
       # On a pull request this only VERIFIES: it fails if the committed snapshot no longer points at
       # the latest completed run, rather than rewriting a contributor's branch under them.
+      # Needs no network and no token: it reads what is committed and then breaks each property on
+      # purpose to watch the refusal fire. It runs FIRST so that a record which no longer renders
+      # fails in seconds, before any API call, with the reason named.
+      - name: What the committed snapshots claim, and what they refuse
+        run: node --test tools/build-console.test.mjs
+
       - name: Check the committed snapshot
         if: github.event_name == 'pull_request'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node tools/snapshot-build-log.mjs --repo aarohkandy/auros-base --check
+
+      # On a pull request the pinned set is VERIFIED, not rewritten: the runs are pinned by id, so
+      # the only thing that can legitimately change it is an edit to the manifest or the reducer —
+      # and both of those should show up as a reviewable diff, not as a bot commit on someone's
+      # branch.
+      - name: Check the committed record
+        if: github.event_name == 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/snapshot-build-log.mjs --notable --check
 
       - name: Re-cut the snapshot
         if: github.event_name != 'pull_request'
@@ -62,22 +90,35 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node tools/snapshot-build-log.mjs --repo aarohkandy/auros-base
 
+      - name: Re-cut the pinned record
+        if: github.event_name != 'pull_request'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/snapshot-build-log.mjs --notable
+
       # The tool exits 2 rather than writing anything it could not fetch, so reaching this step at
       # all means the file on disk came from the API. An unchanged file is the normal case between
       # runs and is not a failure.
       - name: Commit it if the run it points at has moved
         if: github.event_name != 'pull_request'
         run: |
-          if git diff --quiet -- src/lib/console/last-build.json; then
-            echo "snapshot already points at the latest completed run"
+          FILES='src/lib/console/last-build.json src/lib/console/notable-runs.json'
+          if git diff --quiet -- $FILES; then
+            echo "snapshot and record already match the runs they point at"
             exit 0
           fi
+          # Re-run the suite against what is about to be committed. The generator's own refusals
+          # (all-green record, expired log, a pinned run that reduced to nothing) have already
+          # fired above; this is the second reader — the one that decides whether the PAGE will
+          # render it — and a file that would not render must never reach main.
+          node --test tools/build-console.test.mjs
           RUN_URL=$(node -e 'process.stdout.write(require("./src/lib/console/last-build.json").run.url)')
           git config user.name  'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add src/lib/console/last-build.json
-          git commit -m "Build console: snapshot the latest real run
+          git add $FILES
+          git commit -m "Build console: re-cut the snapshot and the pinned record
 
-          Re-cut by tools/snapshot-build-log.mjs from ${RUN_URL}. Every line in the
-          file was printed by a runner; the reducer only chooses which of them to show."
+          Latest run: ${RUN_URL}. The pinned set is re-cut from
+          tools/notable-runs.manifest.json. Every line in both files was printed by a
+          runner; the reducer only chooses which of them to show."
           git push

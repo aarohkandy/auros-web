@@ -15,14 +15,23 @@
  *      author's ILLUSTRATION of what build output looks like, carrying `ILLUSTRATION_LABEL`
  *      visibly in the panel (§4.4, CONFIGURATOR.md constraint 3) rather than in a footnote.
  *
+ * And under all three, THE RECORD: a pinned set of real runs from `src/lib/console/notable-runs.json`
+ * — the runs that measured the runner, that booted a 4.4 GB disk image to a login prompt, and that
+ * broke for reasons worth reading. Pinned by run id, so they stay after the latest build has moved
+ * on, each with the sentence saying why it is worth a stranger's attention and a link to itself.
+ *
  * There is no fourth state and no filler. Nothing in this component or in `lib/console/` can
  * synthesise a line of output — no sample array reachable from the live path, no scripted pacing,
  * no typewriter, no fake latency. A console that could invent output, on a page whose argument is
  * that we tell you exactly what we removed, would be the worst defect on this site.
  *
- * FAILURES ARE SHOWN. The run below this comment, as committed, failed: greenboot's package layout
- * moved and the build stopped on it. That is left in deliberately. An all-green console is the less
- * believable one, and the ✗ is the strongest evidence on the page that the gate is real.
+ * FAILURES ARE SHOWN, AND THE SET IS MECHANICALLY MIXED. The latest run is whatever it is on the
+ * day — on the day this was written every completed `build.yml` run on main had failed, so the
+ * console showed a ✗, and that is left in. A console that has only ever been green reads as staged;
+ * so does one that has only ever been red. So the pinned set must contain at least one success AND
+ * at least one failure, refused in two places: `--notable` will not write such a file, and
+ * `notable.ts` will not render one. `tools/build-console.test.mjs` breaks both on purpose and
+ * watches them go red, because D34's rule is that a check nobody has seen fail is not a check.
  *
  * MOTION. It is a log, not an animation. It may move because it is reporting a fact (§7), so live
  * lines appear as they arrive and the view follows the tail — but only if the reader was already at
@@ -39,6 +48,7 @@ import {
   utcStamp,
   type BuildLine,
 } from "../lib/console/snapshot";
+import { notableRuns } from "../lib/console/notable";
 
 interface Props {
   /**
@@ -105,6 +115,20 @@ const logLabel = snap
   : buildConsole.title;
 
 const lines: BuildLine[] = snap?.lines ?? [];
+
+/**
+ * The pinned set. `notableRuns` is `[]` unless the committed file parses AND contains at least one
+ * success and at least one failure, so this section either shows both outcomes or does not exist.
+ * There is no arrangement of the data that produces an all-green record here.
+ */
+const notable = notableRuns;
+const SubH = `h${headingLevel + 1}` as any;
+const greens = notable.filter((r) => r.run.conclusion === "success").length;
+const reds = notable.length - greens;
+const recordNote =
+  `${notable.length} runs kept on the record: ${greens} that passed, ${reds} that did not. ` +
+  "They are pinned by run id, so they stay here after the latest build has moved on. " +
+  "Every line under each one came off that run's own log and the link goes to it.";
 ---
 
 <Panel
@@ -158,7 +182,15 @@ const lines: BuildLine[] = snap?.lines ?? [];
 
   <p class="wire-note" data-console-note hidden></p>
 
-  <ol class="log" data-console-log role="log" aria-live="off" tabindex="0" aria-label={logLabel}>
+  {/*
+     `role="log"` lives on this DIV and not on the <ol> inside it. Measured, not preferred: axe's
+     `aria-allowed-role` refuses `log` on an <ol> — the element's implicit role is `list` and `log`
+     is not one of the roles HTML-ARIA permits it to take — and overriding it ALSO orphaned every
+     <li>, which then failed `listitem` ("List item parent element has a role that is not
+     role=list"). Two accessibility audits red on three pages, for one attribute in the wrong place.
+     Splitting them keeps both meanings: the region is a log, and the lines are still a list. */}
+  <div class="log-region" data-console-region role="log" aria-live="off" tabindex="0" aria-label={logLabel}>
+    <ol class="log" data-console-log role="list">
     {
       lines.map((line) => (
         <li class="line" data-level={line.level}>
@@ -169,7 +201,8 @@ const lines: BuildLine[] = snap?.lines ?? [];
         </li>
       ))
     }
-  </ol>
+    </ol>
+  </div>
 
   {
     snap ? (
@@ -184,6 +217,69 @@ const lines: BuildLine[] = snap?.lines ?? [];
   <noscript>
     <p class="note">{snap ? strings.noscript : strings.nothingNote}</p>
   </noscript>
+
+  {
+    /*
+      The record. Server-rendered, so it is identical with JavaScript off — `<details>` is the
+      browser's own disclosure, not a widget, and the whole log of every pinned run is in the DOM
+      whether it is open or not. Deliberately asymmetric: the sentence about why the run matters
+      gets the width of a sentence, the machine facts sit under it in mono, and the runs are not a
+      grid of equal cards.
+    */
+    notable.length > 0 && (
+      <section class="record" aria-label="Runs kept on the record">
+        <SubH class="record-title">On the record</SubH>
+        <p class="note record-note">{recordNote}</p>
+        {notable.map((item, i) => (
+          <details class="pin" open={i === 0}>
+            <summary class="pin-summary">
+              <span class="pin-mark" data-outcome={item.run.conclusion} aria-hidden="true" />
+              <span class="pin-what">
+                {item.run.workflow} #{item.run.runNumber}
+              </span>
+              <span class="pin-when">
+                <time datetime={item.run.startedAt}>{utcStamp(item.run.startedAt)}</time>
+              </span>
+              <span class="pin-outcome">
+                {item.run.conclusion === "success" ? "passed" : "failed"}
+              </span>
+            </summary>
+            <p class="pin-why">{item.why}</p>
+            <p class="run-facts">
+              <a class="run-link" href={item.run.url} rel="noopener">
+                {item.run.repo} · run {item.run.runId}
+              </a>
+              <span aria-hidden="true">·</span>
+              <span>{shortSha(item.run.headSha)}</span>
+              <span aria-hidden="true">·</span>
+              <span>{formatDuration(item.run.durationSeconds)}</span>
+            </p>
+            {/* Same split as the main log above, for the same measured reason: axe's
+                `aria-allowed-role` refuses `log` on an <ol>, and forcing it there orphans every
+                <li>. The region is the log; the lines are still a list. */}
+            <div
+              class="log-region pin-log"
+              role="log"
+              aria-live="off"
+              tabindex="0"
+              aria-label={`Output from ${item.run.repo} run ${item.run.runId}`}
+            >
+              <ol class="log" role="list">
+                {item.lines.map((line) => (
+                  <li class="line" data-level={line.level}>
+                    <span class="at" aria-hidden="true">
+                      {elapsed(line.at, item.run.startedAt)}
+                    </span>
+                    <span class="text">{line.text}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </details>
+        ))}
+      </section>
+    )
+  }
 
   {
     !snap && (
@@ -303,22 +399,24 @@ const lines: BuildLine[] = snap?.lines ?? [];
      A scroll region, not a truncation: every line is in the DOM, reachable by keyboard and by a
      screen reader. `role="log"` with `aria-live="off"` is the combination that lets someone READ
      the log without being read every new line as it lands. */
+  .log-region {
+    max-height: 20rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-top: 1px solid var(--rule-deep, #8a7358);
+    border-bottom: 1px solid var(--rule-deep, #8a7358);
+  }
+  .log-region:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--ore-deep, #d9682e);
+    outline-offset: var(--focus-ring-offset, 2px);
+  }
   .log {
     list-style: none;
     margin: 0;
     padding: 0.35rem 0;
-    max-height: 20rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
     font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
     font-size: var(--step--1, 0.72rem);
     line-height: 1.65;
-    border-top: 1px solid var(--rule-deep, #8a7358);
-    border-bottom: 1px solid var(--rule-deep, #8a7358);
-  }
-  .log:focus-visible {
-    outline: var(--focus-ring-width, 2px) solid var(--ore-deep, #d9682e);
-    outline-offset: var(--focus-ring-offset, 2px);
   }
   .line {
     display: flex;
@@ -458,7 +556,7 @@ const lines: BuildLine[] = snap?.lines ?? [];
     /* The log is the page's living element (§7, D29), so on a screen with room it gets room: about
        twenty lines, enough that the shape of a build — sections, checks, the ✗ — is visible at once
        rather than through a slot. */
-    .log {
+    .log-region {
       max-height: 32rem;
     }
   }
@@ -475,8 +573,94 @@ const lines: BuildLine[] = snap?.lines ?? [];
   @media (prefers-reduced-motion: reduce) {
     /* No auto-scroll (the client checks the same query) and no smooth scrolling anywhere in here.
        The log stays complete in the DOM and fully readable; what is removed is the movement. */
-    .log {
+    .log-region {
       scroll-behavior: auto;
     }
+  }
+
+  /* ── the record ──────────────────────────────────────────────────────────────────────────────
+     A stack of disclosures, not a card grid (D29 bans the symmetric three-up). `<details>` is the
+     browser's own control, so this section behaves the same with JavaScript off — which matters
+     here more than anywhere else on the page, because the thing it degrades to is the evidence. */
+  .record {
+    margin-top: 1.4rem;
+    border-top: 1px solid var(--rule-deep, #8a7358);
+    padding-top: 1rem;
+  }
+  .record-title {
+    font-family: var(--font-display, "Instrument Serif", Georgia, serif);
+    font-weight: 400;
+    font-size: var(--step-1, 1.15rem);
+    line-height: var(--leading-snug, 1.25);
+    margin: 0 0 0.4rem;
+    color: var(--ink-console, #e2ddd0);
+  }
+  .record-note {
+    margin-top: 0;
+  }
+  .pin {
+    margin-top: 0.9rem;
+    border-top: 1px solid var(--rule-deep, #8a7358);
+    padding-top: 0.7rem;
+  }
+  .pin-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 0.6rem;
+    cursor: pointer;
+    font-family: var(--font-mono, "IBM Plex Mono", ui-monospace, monospace);
+    font-size: var(--step--1, 0.74rem);
+    color: var(--ink-console, #e2ddd0);
+  }
+  .pin-summary:focus-visible {
+    outline: var(--focus-ring-width, 2px) solid var(--ore-deep, #d9682e);
+    outline-offset: var(--focus-ring-offset, 2px);
+  }
+  /* The outcome mark is a rule, not a glyph and not a colour: ore never carries a glyph
+     (CONVENTIONS.md §2), and colour alone would fail on a monochrome screen. The word next to it
+     says the same thing in text, which is the part a screen reader reads.
+
+     A passing run's mark is a 1px hairline in --rule, because §7 allows exactly one neutral
+     divider and that is it; a failure is 3px of ore, the same weight the failed LINES carry in
+     the log above. ink-lint caught the first version of this drawing a 3px neutral rule, which is
+     the one thing §7 names. Left as a note rather than an exemption: the rule was right. */
+  .pin-mark {
+    flex: 0 0 auto;
+    width: 0.75rem;
+    height: 0;
+    border-top: 1px solid var(--rule-deep, #8a7358);
+    transform: translateY(-0.2em);
+  }
+  .pin-mark[data-outcome="failure"] {
+    border-top: 3px solid var(--ore-deep, #d9682e);
+  }
+  .pin-what {
+    font-weight: 600;
+  }
+  .pin-when,
+  .pin-outcome {
+    color: var(--ink-muted-deep, #a8afa2);
+  }
+  .pin-why {
+    font-family: var(--font-ui, "IBM Plex Sans", system-ui, sans-serif);
+    font-size: var(--step-0, 0.85rem);
+    line-height: var(--leading-body, 1.5);
+    margin: 0.55rem 0 0.45rem;
+    max-width: var(--measure, 62ch);
+    color: var(--ink-console, #e2ddd0);
+  }
+  .pin .run-facts {
+    margin-bottom: 0.5rem;
+  }
+  /* Shorter than the main log: this is a quotation from a run, not the run. Written as a compound
+     selector because `.log-region` is raised to 32rem inside a `min-width: 48rem` media query, and
+     a single-class rule would lose to it on specificity at exactly the widths where five open
+     quotations would take over the page. Caught by looking at the built page rather than by
+     reading the file: the first version had the pinned log overflowing its own box and painting
+     over the next four summaries. */
+  .log-region.pin-log,
+  .pin .log-region.pin-log {
+    max-height: 16rem;
   }
 </style>

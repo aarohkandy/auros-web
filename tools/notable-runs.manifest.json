@@ -1,0 +1,125 @@
+{
+  "$comment": "The runs the build console puts on the record alongside the latest one. Each entry names a REAL run id in a real repository; `tools/snapshot-build-log.mjs --notable` fetches each one from the GitHub Actions API, refuses any whose workflow or outcome does not match what is declared here, and writes src/lib/console/notable-runs.json. Nothing here can create a line of output: `keep` only WIDENS which of the lines a runner actually printed are shown, and a run that reduces to zero lines fails the tool rather than being quietly dropped. `why` is the one sentence a human wrote about why the run is worth a stranger's attention; everything else on the page comes from the API.",
+  "schema": 1,
+  "maxLinesPerRun": 14,
+  "runs": [
+    {
+      "repo": "aarohkandy/auros-base",
+      "runId": 35538612202,
+      "expect": {
+        "workflow": "probe",
+        "conclusion": "success"
+      },
+      "why": "Before writing a line of the base, we measured the machine that would build it. Research said a hosted runner has 25-29 GB free; this one reported 110 GB after reclamation, and pulled the 8.44 GB upstream base in a single step. D24 exists because of this run: when a document and a measurement disagree about our own infrastructure, the measurement wins, and we write down that it did.",
+      "keep": [
+        "^root free:",
+        "^ghcr\\.io/ublue-os/aurora:stable ",
+        "^kvm-ok:",
+        "^WRITABLE",
+        "^(podman|skopeo|qemu-system-x86_64|cosign)\\s{2,}",
+        "^build wall time:",
+        "^Checks (passed|skipped):"
+      ],
+      "drop": [
+        "^\\s*(Command being timed|User time|System time|Percent of CPU|Elapsed \\(wall clock\\)|Average |Maximum resident|Major |Minor |Voluntary|Involuntary|Swaps|File system|Socket|Signals|Page size|Exit status)",
+        "^(deleted|untagged): ",
+        "^Total reclaimed space:"
+      ]
+    },
+    {
+      "repo": "aarohkandy/auros-base",
+      "runId": 35539867513,
+      "expect": {
+        "workflow": "probe-boot",
+        "conclusion": "success"
+      },
+      "why": "The whole Gate 1 path on a free runner, end to end: a derived image, bootc-image-builder turning it into a 4.4 GB qcow2, and QEMU booting that disk under KVM until a login prompt appeared on the serial console. The elapsed column is the runner's own clock and the linked run holds the full serial log. This is the run that proved we did not need to buy a machine to test on.",
+      "keep": [
+        "disk\\.qcow2$",
+        "^booting /",
+        "^acceleration:",
+        "^polls=",
+        "^Aurora \\(Version:",
+        "^Kernel 7\\.",
+        "^aurora login:",
+        "^bootc container lint"
+      ],
+      "drop": [
+        "^⏱",
+        "^(deleted|untagged): ",
+        "^Total reclaimed space:"
+      ]
+    },
+    {
+      "repo": "aarohkandy/auros-base",
+      "runId": 35542125710,
+      "expect": {
+        "workflow": "probe-greenboot",
+        "conclusion": "success"
+      },
+      "why": "A build had just failed on a systemd unit name somebody remembered rather than read. So this run installed greenboot 0.16.4 and printed what the package actually contains: three units, and no boot-counter unit at all. Four build cycles were lost to guessed paths before we started doing this.",
+      "keep": [
+        "^=== ",
+        "^greenboot-0\\.16",
+        "^/usr/lib/systemd/system/greenboot",
+        "^/usr/libexec/greenboot/greenboot$",
+        "^\\(none\\)$",
+        "^greenboot-default-health-checks-"
+      ],
+      "drop": [
+        "^/etc/greenboot",
+        "^/usr/lib/greenboot",
+        "^/usr/share/(doc|licenses)/greenboot",
+        "^=== (rpm -ql greenboot|executables|grub fragments|anything named)"
+      ]
+    },
+    {
+      "repo": "aarohkandy/auros-base",
+      "runId": 35543147750,
+      "expect": {
+        "workflow": "build",
+        "conclusion": "failure"
+      },
+      "why": "Enabling a systemd unit is not the same as that unit running. The guard this commit added caught bootc-fetch-apply-updates.timer declaring no WantedBy and no RequiredBy - so `systemctl enable` had reported success while wiring up nothing at all. Three builds had already been lost to unit names taken from memory instead of read off the image, and this is the one where the guard went red on the build that introduced it.",
+      "keep": [
+        "^auros",
+        "^##\\[error\\]",
+        "^Error:",
+        "unbound variable"
+      ],
+      "drop": [
+        "^(nightly\\.yml is enabled|profiles to boot|publishable:|base_ref=)",
+        "^S\\d+[ :]",
+        "^gate, harness and Containerfile all present",
+        "^mirror-upstream:",
+        "^\\s+(source|destination|already mirrored|verified:|using explicit)",
+        "^warning: (FROM still resolves|could not reach the upstream|could not list versions)",
+        "^auros\\[(00-common|10-hardening|20-policy)\\]"
+      ]
+    },
+    {
+      "repo": "aarohkandy/auros-base",
+      "runId": 35544563774,
+      "expect": {
+        "workflow": "build",
+        "conclusion": "failure"
+      },
+      "why": "Two checks in the image build used `grep -c ... || echo 0`, which puts grep's own exit status out of reach - so both would have reported a failure on a perfect image. This is the build that fixed them, and it still went red, one line further on: `set -u` caught an unbound variable the fix had left behind. Both halves are the point.",
+      "keep": [
+        "^auros",
+        "^##\\[error\\]",
+        "^Error:",
+        "unbound variable"
+      ],
+      "drop": [
+        "^(nightly\\.yml is enabled|profiles to boot|publishable:|base_ref=)",
+        "^S\\d+[ :]",
+        "^gate, harness and Containerfile all present",
+        "^mirror-upstream:",
+        "^\\s+(source|destination|already mirrored|verified:|using explicit)",
+        "^warning: (FROM still resolves|could not reach the upstream|could not list versions)",
+        "^auros\\[(00-common|10-hardening|20-policy)\\]"
+      ]
+    }
+  ]
+}

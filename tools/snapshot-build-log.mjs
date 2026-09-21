@@ -17,8 +17,10 @@
 //                                     [--out src/lib/console/last-build.json] [--max-lines 160]
 //                                     [--run <id>] [--check]
 //
-//   --run    snapshot one specific run instead of the latest completed one.
-//   --check  exit 1 if the committed snapshot is not what this tool would write (for CI).
+//   --run       snapshot one specific run instead of the latest completed one.
+//   --check     exit 1 if the committed snapshot is not what this tool would write (for CI).
+//   --notable   snapshot the PINNED set in tools/notable-runs.manifest.json instead, into
+//               src/lib/console/notable-runs.json. Combines with --check.
 //
 // Auth: GITHUB_TOKEN or GH_TOKEN with `actions: read`. Job logs are not public even for a public
 // repository, so without a token this exits 2 — and exiting 2 is the point. There is no code path
@@ -44,6 +46,12 @@ const OPT = {
   maxLines: Number(arg('max-lines', '160')),
   run: arg('run', null),
   check: argv.includes('--check'),
+  // --notable snapshots the PINNED set in tools/notable-runs.manifest.json instead of the latest
+  // run. Both modes share every line of the reducer below; the only difference is which real runs
+  // they read and that the pinned set may widen `KEEP` per run, visibly, in a committed file.
+  notable: argv.includes('--notable'),
+  manifest: arg('manifest', 'tools/notable-runs.manifest.json'),
+  notableOut: arg('notable-out', 'src/lib/console/notable-runs.json'),
 }
 
 const TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
@@ -159,7 +167,9 @@ function classify (text) {
 }
 
 /** One job's raw log → the lines worth showing, in order, with the time each was printed. */
-function reduceJobLog (raw, jobName) {
+function reduceJobLog (raw, jobName, extraKeep = [], extraDrop = []) {
+  const keep = extraKeep.length ? [...KEEP, ...extraKeep] : KEEP
+  const drop = extraDrop.length ? [...DROP, ...extraDrop] : DROP
   const out = []
   let inGroup = false
   let last = null
@@ -184,8 +194,8 @@ function reduceJobLog (raw, jobName) {
     if (text.startsWith('##[endgroup]')) { inGroup = false; continue }
     if (inGroup) continue
     if (!text.trim()) continue
-    if (DROP.some(re => re.test(text))) continue
-    if (!KEEP.some(re => re.test(text))) continue
+    if (drop.some(re => re.test(text))) continue
+    if (!keep.some(re => re.test(text))) continue
     // Classify BEFORE rewriting the runner's `##[error]` prefix into something readable — the
     // prefix is the only thing marking a workflow-level failure, and stripping it first silently
     // turned every one of them into an ordinary grey line.
@@ -197,6 +207,187 @@ function reduceJobLog (raw, jobName) {
   }
   return out
 }
+
+// ── the pinned set ──────────────────────────────────────────────────────────────────────────────
+// The latest run is one run, and on any given day it is whatever it is. Today every completed
+// `build.yml` run on main had failed, so a console showing only the latest one had only ever been
+// red — which is exactly as unrepresentative as a console that has only ever been green, and a
+// reader has no way to tell either apart from a staged one.
+//
+// So a small set of runs is PINNED, in `tools/notable-runs.manifest.json`, by run id. The manifest
+// carries a human sentence about why each run is worth reading and, where the run is not a
+// `build.yml` run, extra `keep` patterns — because the reducer's default KEEP list is tuned to our
+// own `auros[…]` build lines and would silently drop `aurora login:` and `4.4G disk.qcow2`, which
+// are the most interesting true lines we have.
+//
+// Three properties make this safe to widen:
+//   · `keep` can only SELECT from lines a runner printed. There is no path here that writes text.
+//   · Every entry declares the workflow and outcome it expects, and a run that does not match makes
+//     the tool exit 1 PRINTING WHAT THE API ACTUALLY SAYS. A mistyped id cannot become a silent gap.
+//   · The set must contain at least one success AND at least one failure, or the tool refuses. An
+//     all-green console is not a thing this file can be edited into without the tool objecting.
+async function buildNotable () {
+  const manifestPath = resolve(process.cwd(), OPT.manifest)
+  if (!existsSync(manifestPath)) {
+    console.error(`snapshot-build-log: manifest ${manifestPath} is missing.`)
+    process.exit(2)
+  }
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'))
+  const entries = Array.isArray(manifest.runs) ? manifest.runs : []
+  if (entries.length === 0) {
+    console.error('snapshot-build-log: the manifest names no runs. Refusing to write an empty set.')
+    process.exit(2)
+  }
+  const perRun = Number(manifest.maxLinesPerRun ?? 14)
+
+  const out = []
+  for (const entry of entries) {
+    const repo = entry.repo ?? OPT.repo
+    // A pinned id that does not resolve is the single most likely way this file goes wrong — a
+    // typo, a run deleted, the wrong repository. The stack trace `fetch` would otherwise print
+    // names the URL and not the entry, so it is caught here and the refusal names both.
+    let run
+    try { run = await api(`/repos/${repo}/actions/runs/${entry.runId}`) }
+    catch (e) {
+      console.error(`snapshot-build-log: cannot read run ${entry.runId} in ${repo}: ${e.message}`)
+      console.error(`  the manifest pins it as ${entry.expect?.workflow ?? 'an unnamed workflow'} (${entry.expect?.conclusion ?? 'unknown outcome'})`)
+      console.error('Refusing to write a record with a run nobody can open.')
+      process.exit(1)
+    }
+
+    // Assert against the API, and when it disagrees say what the API said. Four build cycles were
+    // lost today to remembered layouts; the rule that came out of it is that a failed assertion
+    // must print what IS there, not only what was expected.
+    const want = entry.expect ?? {}
+    const gotWorkflow = run.name ?? ''
+    const gotConclusion = run.conclusion ?? run.status ?? ''
+    if (want.workflow && gotWorkflow !== want.workflow) {
+      console.error(`snapshot-build-log: run ${entry.runId} is workflow "${gotWorkflow}", manifest expects "${want.workflow}".`)
+      console.error(`  ${run.html_url}`)
+      process.exit(1)
+    }
+    if (want.conclusion && gotConclusion !== want.conclusion) {
+      console.error(`snapshot-build-log: run ${entry.runId} concluded "${gotConclusion}", manifest expects "${want.conclusion}".`)
+      console.error(`  ${run.html_url}`)
+      process.exit(1)
+    }
+
+    const extraKeep = (entry.keep ?? []).map(src => new RegExp(src))
+    // `drop` is strictly reductive: it can only remove lines the runner printed, never add one.
+    // It exists because a pinned probe run carries its own furniture — osbuild's per-stage
+    // durations, a directory listing — that is real and says nothing.
+    const extraDrop = (entry.drop ?? []).map(src => new RegExp(src))
+    const { jobs = [] } = await api(`/repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`)
+    let lines = []
+    let inLog = 0
+    for (const job of jobs) {
+      if (job.conclusion === 'skipped') continue
+      if (!(job.steps ?? []).some(st => !PLUMBING_STEP.test(st.name))) continue
+      let raw
+      try { raw = await api(`/repos/${repo}/actions/jobs/${job.id}/logs`, { raw: true }) }
+      catch (e) { console.error(`  ! log for "${job.name}" unavailable: ${e.message}`); continue }
+      if (raw == null) { console.error(`  ! log for "${job.name}" has expired`); continue }
+      inLog += raw.split('\n').length
+      lines.push(...reduceJobLog(raw, job.name, extraKeep, extraDrop))
+    }
+    lines = lines
+      .map((l, i) => ({ l, i, t: l.at ? Date.parse(l.at) : Number.NaN }))
+      .sort((a, b) => (Number.isNaN(a.t) || Number.isNaN(b.t) ? a.i - b.i : a.t - b.t || a.i - b.i))
+      .map(x => x.l)
+
+    if (lines.length === 0) {
+      // A run whose log has expired reduces to nothing. Dropping it quietly would leave a `why`
+      // sentence on the page with no output under it, which is the shape of a claim with no
+      // evidence — the one thing this component exists not to be.
+      console.error(`snapshot-build-log: run ${entry.runId} reduced to 0 lines. Its log may have expired.`)
+      console.error(`  ${run.html_url}`)
+      console.error('Refusing to publish a pinned run with nothing under it.')
+      process.exit(1)
+    }
+
+    const shown = lines.length
+    let omitted = 0
+    if (shown > perRun) {
+      const head = Math.floor(perRun * 0.5)
+      const tail = perRun - head - 1
+      omitted = shown - head - tail
+      lines = [
+        ...lines.slice(0, head),
+        { text: `… ${omitted} more lines in this run`, level: 'meta', job: null, at: null },
+        ...lines.slice(shown - tail),
+      ]
+    }
+
+    const started = run.run_started_at ?? run.created_at
+    out.push({
+      why: entry.why,
+      run: {
+        repo,
+        workflow: gotWorkflow,
+        runId: run.id,
+        runNumber: run.run_number,
+        attempt: run.run_attempt ?? 1,
+        url: run.html_url,
+        conclusion: run.conclusion,
+        title: run.head_commit?.message?.split('\n')[0] ?? run.display_title ?? null,
+        headSha: run.head_sha,
+        startedAt: started,
+        endedAt: run.updated_at ?? started,
+        durationSeconds: Math.max(0, Math.round((Date.parse(run.updated_at ?? started) - Date.parse(started)) / 1000)),
+      },
+      linesShown: lines.length,
+      linesOmitted: omitted,
+      linesInLog: inLog,
+      lines,
+    })
+    console.error(`  ${gotWorkflow} #${run.run_number} (${run.conclusion}): ${lines.length} lines kept`)
+  }
+
+  const outcomes = new Set(out.map(r => r.run.conclusion))
+  if (!outcomes.has('success') || !outcomes.has('failure')) {
+    console.error(`snapshot-build-log: the pinned set is all ${[...outcomes].join('/')}.`)
+    console.error('It must contain at least one success AND at least one failure. A console that has')
+    console.error('only ever been green — or only ever been red — reads as staged, and would be.')
+    process.exit(1)
+  }
+
+  // Newest first: a reader arriving from the latest run above reads backwards in time, which is the
+  // order these actually happened in and the order the story makes sense in.
+  out.sort((a, b) => Date.parse(b.run.startedAt) - Date.parse(a.run.startedAt))
+
+  const payload = {
+    $comment: 'Generated by auros-web/tools/snapshot-build-log.mjs --notable from the real runs pinned in tools/notable-runs.manifest.json. Do not hand-edit: every line here was printed by a GitHub Actions runner and can be read in context at run.url.',
+    schema: 1,
+    generatedAt: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
+    runs: out,
+  }
+  const text = JSON.stringify(payload, null, 2) + '\n'
+  const dest = resolve(process.cwd(), OPT.notableOut)
+
+  if (OPT.check) {
+    if (!existsSync(dest)) { console.error(`snapshot-build-log: ${dest} is missing`); process.exit(1) }
+    const onDisk = JSON.parse(readFileSync(dest, 'utf8'))
+    // `generatedAt` moves on every run and says nothing about what the page shows. Everything else
+    // is compared in full, so a reducer change that silently altered a published line is a red CI.
+    const strip = o => JSON.stringify({ schema: o.schema, runs: o.runs })
+    if (strip(onDisk) === strip(payload)) {
+      console.log(`snapshot-build-log: pinned set up to date (${out.length} runs).`)
+      process.exit(0)
+    }
+    console.error('snapshot-build-log: the committed pinned set is not what this tool would write.')
+    console.error(`  on disk: ${(onDisk.runs ?? []).map(r => r.run?.runId).join(', ')}`)
+    console.error(`  would write: ${out.map(r => r.run.runId).join(', ')}`)
+    process.exit(1)
+  }
+
+  mkdirSync(dirname(dest), { recursive: true })
+  writeFileSync(dest, text)
+  console.log(`snapshot-build-log: ${out.length} pinned runs → ${dest}`)
+  for (const r of out) console.log(`  ${r.run.conclusion === 'success' ? '✓' : '✗'} ${r.run.workflow} #${r.run.runNumber}  ${r.run.url}`)
+  process.exit(0)
+}
+
+if (OPT.notable) await buildNotable()
 
 // ── build the snapshot ──────────────────────────────────────────────────────────────────────────
 const run = await latestCompletedRun()
