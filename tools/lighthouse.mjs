@@ -156,6 +156,12 @@ function failingAudits(report, categoryId) {
 }
 
 async function main() {
+  // `rm -rf` on a path the caller supplied. Refuse the two that would delete real work: the repo
+  // itself and the directory being measured. Cheap, and the alternative is a --out typo removing
+  // dist/ or src/ with no confirmation.
+  if (outDir === REPO || outDir === root || REPO.startsWith(`${outDir}/`) || root.startsWith(`${outDir}/`)) {
+    throw new Error(`--out ${outDir} would delete the repository or the directory being measured`)
+  }
   await rm(outDir, { recursive: true, force: true })
   await mkdir(outDir, { recursive: true })
 
