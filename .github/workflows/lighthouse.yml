@@ -131,6 +131,11 @@ jobs:
         with:
           name: lighthouse-reports
           path: .lighthouse/
+          # `.lighthouse` is a DOT directory, and actions/upload-artifact treats dot-prefixed paths
+          # as hidden and skips them by default (v4.4+). The first run that produced reports
+          # uploaded nothing and reported "No files were found with the provided path", which reads
+          # like the measurement never ran. It had; the reports were sitting right there.
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 14
 
