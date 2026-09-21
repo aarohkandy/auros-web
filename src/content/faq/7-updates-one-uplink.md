@@ -16,15 +16,17 @@ runner sitting on a datacentre uplink. A night that changes a low layer is `3.5 
 On `180` machines that is a `630 GB` morning on your line, and your line is not a datacentre
 uplink. That is not a theoretical concern. It is a Tuesday.
 
-Four things make it less bad, and they are real today.
+Three things make it less bad, and they are real today.
 
-- Images are flattened when published, so the packages your recipe removed are bytes your
-  machines never download. A smaller image is a smaller pull, every night, forever.
 - Machines pull and stage in the background. The update applies on the next restart. Nobody
   waits at a login screen for a download.
 - Machines are not synchronised. They pull on their own schedule rather than all at nine.
 - An image only ships after it has passed the check matrix, so you are not pulling nightly
   churn. You are pulling changes that were tested.
+
+One thing does not help, although you might expect it to. Your recipe's image is published as
+a layer on top of the base, so the packages your recipe removed are still in the lower layers.
+Your machines download those bytes and then discard them.
 
 The thing that actually solves it for 180 machines is a caching mirror inside your building: one
 pull over the uplink, then 179 pulls over your own switch. We have not built it. It is a design

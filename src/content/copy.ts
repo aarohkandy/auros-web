@@ -194,7 +194,7 @@ export const configurator = {
   outputPanelTitle: "Your recipe",
   outputPanelSubtitleMono: "recipe.yaml",
   removeBlockNote:
-    "The remove block is the product. Everything named there is deleted from the image, so it is not bytes your machines download and not something anyone can open.",
+    "The remove block is the product. Everything named there is deleted from the image, so it is not something anyone can open.",
   emptyState:
     "Nothing chosen yet. As you answer, this file fills in, and it is the file we build.",
   submitLabel: "Open this as a pull request",
@@ -268,7 +268,7 @@ export const buildConsole = {
     "check S3        prune assertions · 0 survivors",
     "check S4        keep assertions · 11 present",
     "check B4        locale mr_IN · keyboard us",
-    "check S8        signed · cosign keyless",
+    "check S8        signed · cosign, with our key",
     "published       only because every check above passed",
   ],
   /**
@@ -344,7 +344,7 @@ export const replaceable = {
 export const migrationSafety = {
   title: "The order is not negotiable",
   steps: [
-    { label: "Inventory", value: "files · browser profiles · wi-fi · printers · account" },
+    { label: "Inventory", value: "files · browser profiles" },
     { label: "Show you what cannot come", value: "read from this machine's installed programs list" },
     { label: "Copy", value: "to a disk that is not the system disk" },
     { label: "Verify", value: "file count and per-file hash" },

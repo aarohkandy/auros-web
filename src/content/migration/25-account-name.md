@@ -1,16 +1,14 @@
 ---
 title: The account name
-verdict: comes
-oneLine: The person who used the machine logs in as themselves, with their own name on the screen.
+verdict: does-not
+oneLine: The Windows account name is not carried over. The account is created again during first-boot setup.
 examples:
   - "The local account name and display name"
 onLanding: false
 order: 25
 ---
 
-Small, and it matters more than it sounds. A machine that greets somebody by name on the first
-boot reads as their machine, repaired. A machine that asks a stranger to invent a username reads
-as a different machine that took their old one away.
+The installer does not read the Windows account name, so the new machine does not know it. The
+person who will use the machine types their name during first-boot setup.
 
-The password is set during first-boot setup, because we never see the old one and would not want
-to.
+The password is set there too, because we never see the old one and would not want to.

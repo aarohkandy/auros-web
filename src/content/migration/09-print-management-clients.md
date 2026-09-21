@@ -1,7 +1,7 @@
 ---
 title: Print management and follow-me printing
 verdict: conditional
-oneLine: The printer itself comes across. The client software that charges pupils for printing and releases jobs at the machine may not.
+oneLine: The printer itself is usually not the problem. The client software that charges pupils for printing and releases jobs at the machine may not.
 examples:
   - "Follow-me and secure-release printing clients"
   - "Print quota and charging systems"
@@ -14,8 +14,9 @@ onLanding: false
 order: 9
 ---
 
-Printing itself is not the problem. Your printers get carried over by the installer and a modern
-copier on the network usually prints from Linux without anything being installed.
+Printing itself is not the problem. The installer does not carry your printers over (see the
+Printers entry), but a modern copier on the network usually prints from Linux without anything
+being installed.
 
 The part that needs checking is the layer on top: the thing that holds a job until somebody taps
 a card at the machine, or counts pages against a pupil's allowance. That is vendor software, it
