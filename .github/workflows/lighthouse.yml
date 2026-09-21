@@ -70,6 +70,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The control repository, checked out INSIDE this one as `.auros-meta/`.
+      #
+      # `pnpm build` runs tools/configurator-a11y.test.mjs, and that suite asserts against SPEC.md,
+      # DECISIONS.md and BLOCKED.md — which live in the control repo. A GitHub Actions workspace is
+      # one checkout with no siblings, so the suite's `resolve(WEB, "..")` found an empty directory
+      # and the build died in 26 seconds on "BLOCKED.md is missing". Nobody had seen it because no
+      # workflow in this repository had ever run `pnpm build`: `./verify` runs it from the control
+      # repo, where the sibling does exist. The first run of THIS workflow found it by building.
+      #
+      # `.auros-meta/` is the convention auros-recipes/src/config.ts already uses for the same
+      # problem, and the suite now looks there first and at `..` second.
+      - uses: actions/checkout@v4
+        with:
+          repository: aarohkandy/auros
+          path: .auros-meta
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -93,10 +109,14 @@ jobs:
       # Three runs per page, and the MEDIAN is what the gate reads. Not the best of three: reporting
       # the best run is how a flaky 94 becomes a 96 in a report and a 94 for the visitor.
       - name: Measure
+        id: measure
         run: pnpm run lighthouse:ci
 
+      # Only when the measurement actually ran. `if: always()` alone made a failed BUILD produce a
+      # second red — "No files were found with the provided path" — which reads like a broken
+      # workflow and is really just the first failure, reported twice.
       - name: Upload the reports
-        if: always()
+        if: always() && steps.measure.conclusion != 'skipped'
         uses: actions/upload-artifact@v4
         with:
           name: lighthouse-reports
@@ -110,6 +130,11 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      # See the `measure` job: without this, `pnpm build` cannot run in this repository's own CI.
+      - uses: actions/checkout@v4
+        with:
+          repository: aarohkandy/auros
+          path: .auros-meta
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -136,6 +161,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      # See the `measure` job: without this, `pnpm build` cannot run in this repository's own CI.
+      - uses: actions/checkout@v4
+        with:
+          repository: aarohkandy/auros
+          path: .auros-meta
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

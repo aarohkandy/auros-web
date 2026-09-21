@@ -12,3 +12,4 @@ dist/
 # score, and committing them would make every measurement a diff nobody reads.
 .lighthouse/
 .lighthouse-prove-red/
+.auros-meta/

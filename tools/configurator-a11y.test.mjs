@@ -27,7 +27,23 @@ const WEB = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const SRC = join(WEB, "src");
 const DIST = join(WEB, "dist");
 const CFG = join(SRC, "components", "configurator");
-const META = resolve(WEB, "..");
+/**
+ * The control repository (SPEC.md, DECISIONS.md, BLOCKED.md). Two places, in order:
+ *
+ *   1. `.auros-meta/` inside this repo — a checkout placed here by CI, which is the convention
+ *      `auros-recipes/src/config.ts` already uses for exactly this problem.
+ *   2. the parent directory — the working layout, where all five repos sit side by side.
+ *
+ * Resolving only to `..` is what this file did until 2026-09-20, and it meant **`pnpm build` could
+ * not run in auros-web's own CI at all**: a GitHub Actions workspace is a single checkout with no
+ * siblings, so `read(META, "BLOCKED.md")` failed and took the whole build with it. Nobody had
+ * noticed because no workflow in this repository had ever run `pnpm build` — `./verify` runs it
+ * from the control repo, where the sibling exists. Found by the first Lighthouse workflow run
+ * (D40), in 26 seconds, by trying to build.
+ */
+const META = [join(WEB, ".auros-meta"), resolve(WEB, "..")].find((d) =>
+  existsSync(join(d, "SPEC.md")) || existsSync(join(d, "BLOCKED.md")),
+) ?? resolve(WEB, "..");
 
 const built = existsSync(DIST);
 
@@ -36,7 +52,10 @@ function read(...parts) {
   assert.ok(
     existsSync(p),
     `${relative(META, p)} is missing. A finding is not resolved by deleting the file it was found in; ` +
-      "if this file legitimately moved, move the assertion with it.",
+      "if this file legitimately moved, move the assertion with it.\n" +
+      `Resolved the control repository to: ${META}\n` +
+      `It contains: ${existsSync(META) ? readdirSync(META).slice(0, 25).join(" ") : "(the directory itself does not exist)"}\n` +
+      "In CI, check the control repo out to auros-web/.auros-meta/ (see .github/workflows/lighthouse.yml).",
   );
   return readFileSync(p, "utf8");
 }
