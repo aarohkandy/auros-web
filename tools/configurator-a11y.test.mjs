@@ -434,6 +434,38 @@ describe("minor — the panel's incremental-paint claim, and the copy button's l
   });
 });
 
+describe("major — the screen layout question offers exactly what the recipe schema accepts", () => {
+  const enumOf = () =>
+    JSON.parse(read(WEB, "schema", "recipe.schema.json")).properties.desktop.properties.layout?.enum ?? [];
+
+  test("the choices on the form are the schema's closed list, no more and no fewer", () => {
+    const catalogue = read(SRC, "lib", "catalogue.ts");
+    const block = catalogue.slice(catalogue.indexOf("export const LAYOUTS"));
+    assert.ok(catalogue.includes("export const LAYOUTS"), "catalogue.ts has no LAYOUTS list for the form to offer");
+    const offered = [...block.slice(0, block.indexOf("];")).matchAll(/id:\s*"([^"]+)"/g)].map((m) => m[1]);
+    assert.deepEqual([...offered].sort(), [...enumOf()].sort(),
+      "The form offers a layout the vendored schema refuses, or hides one it accepts. Re-sync the schema " +
+        "(node schema/sync.mjs) and make LAYOUTS match desktop.layout's enum.");
+  });
+
+  test("the question is not asked of a kiosk, which has no desktop to lay out", () => {
+    const form = read(CFG, "AnswerForm.astro");
+    const at = form.indexOf('name="layout"');
+    assert.notEqual(at, -1, "the form has no layout control");
+    const opener = form.lastIndexOf("data-when-policy=", at);
+    assert.match(form.slice(opener, opener + 50), /^data-when-policy="open managed locked"/,
+      "The layout choice must sit in a block shown only for open, managed and locked. The schema refuses " +
+        "any desktop block under kiosk, so offering it there builds a recipe CI rejects.");
+  });
+
+  test("the recipe carries a layout only when it is not the default and the machine is not a kiosk", () => {
+    const render = read(SRC, "lib", "recipe-render.ts");
+    assert.match(render, /!kiosk && a\.layout !== "windows"/,
+      "recipe-render.ts must write desktop.layout only for a non-windows layout outside kiosk: windows is " +
+        "what an omitted field means, and kiosk refuses a desktop block outright.");
+  });
+});
+
 function skipUnbuilt() {
   return built ? false : "no dist/ — run `astro build` first; these findings were all measured on the built page";
 }

@@ -284,6 +284,21 @@ export const POLICIES: PolicyOption[] = [
 ];
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
+// Where things are on screen. The recipe schema's desktop.layout enum, in plain words; the
+// a11y test asserts these ids and that enum are the same list.
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+export type Layout = "windows" | "browser-first" | "simple" | "mac";
+export type LayoutOption = { id: Layout; label: string; note: string };
+
+export const LAYOUTS: LayoutOption[] = [
+  { id: "windows", label: "Like Windows", note: "A bar along the bottom with a start menu. The default." },
+  { id: "browser-first", label: "Like a school Chromebook", note: "The launcher at the left and pinned apps in the middle." },
+  { id: "simple", label: "As simple as possible", note: "One tall bar with three big buttons, for young children and first-time users." },
+  { id: "mac", label: "Like a Mac", note: "A bar along the top and a dock of apps along the bottom." },
+];
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
 // The things a recipe may not do.
 //
 // This list is not a warning label. It is the control that makes the refusal REACHABLE: pick

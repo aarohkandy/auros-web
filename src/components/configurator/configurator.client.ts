@@ -19,7 +19,7 @@
  */
 
 import { defaultAnswers, slug, type Answers, type OrgKind, type Policy } from "../../lib/answers";
-import { languageByName } from "../../lib/catalogue";
+import { languageByName, type Layout } from "../../lib/catalogue";
 import { renderRecipe } from "../../lib/recipe-render";
 import { validateRecipe } from "../../lib/recipe-validate";
 import { tierFor } from "../../lib/pricing";
@@ -144,6 +144,7 @@ function readAnswers(form: HTMLFormElement): Answers {
     kioskForgetMinutes: integer(form, "kioskForgetMinutes") ?? base.kioskForgetMinutes,
     kioskPrinting: checked(form, "kioskPrinting"),
     kioskRestartAt: text(form, "kioskRestartAt") || base.kioskRestartAt,
+    layout: (radio(form, "layout") as Layout | null) ?? base.layout,
 
     windowsApps: checked(form, "windowsApps"),
     acknowledgedMigration: checked(form, "acknowledgedMigration"),
