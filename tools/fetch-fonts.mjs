@@ -64,13 +64,45 @@ const LATIN =
 
 /**
  * Devanagari, for the Marathi example recipe (spec §6B: a 180-machine Marathi-locale school is
- * one of the three reference recipes). Subset by RANGE, not by text: no Marathi copy exists in
- * src/ yet, so subsetting to observed characters would silently break the day it lands. The
- * range is the Devanagari block, the joiners shaping needs, the rupee sign, the dotted circle
- * that renders an orphaned matra, and Devanagari Extended.
+ * one of the three reference recipes).
+ *
+ * THIS WAS THE WHOLE DEVANAGARI BLOCK UNTIL 2026-09-20, and the reason given was sound at the
+ * time: "no Marathi copy exists in src/ yet, so subsetting to observed characters would silently
+ * break the day it lands." It has landed — one line, on the LANDING PAGE, inside the first-boot
+ * illustration — and the block subset it triggers is **261 KB**, which is more than the rest of
+ * the site's fonts, HTML, CSS and JavaScript put together.
+ *
+ * Measured on a GitHub runner (D40), Lighthouse mobile, median of three:
+ *
+ *     page   fonts fetched   total page   DOM     LCP render delay   performance
+ *     /faq   218 KB (4)      236 KiB      202     1,656 ms           99
+ *     /order 290 KB (6)      314 KiB      905     2,406 ms           95
+ *     /      558 KB (7)      585 KiB    1,116     3,911 ms           85   ← fails §6D
+ *
+ * The landing page was the one page below §6D's floor, and 267 KB of its 585 KB was this face,
+ * carrying one greeting.
+ *
+ * So it is now subset to the codepoints the site renders, plus the marks shaping and fallback
+ * need: the joiners, the dotted circle that draws an orphaned matra, both dandas and the rupee
+ * sign. 267 KB → 75 KB.
+ *
+ * WHY THIS IS SAFE TO DO IN A LANGUAGE NOBODY HERE READS, which is the actual objection:
+ *
+ *   1. Shaping was VERIFIED, not assumed. Every Devanagari run on the site was shaped with
+ *      HarfBuzz against the original TTF and against this subset, and the glyph count, clusters,
+ *      advances and offsets are identical for all six, with zero .notdef. A Devanagari conjunct
+ *      is a glyph no codepoint maps to directly — it is reached through GSUB — and that is
+ *      exactly what `keepAllLayoutFeatures` and fontTools' layout closure preserve. The check
+ *      is in the commit message; re-run it by shaping the runs before changing this line.
+ *   2. checkGlyphCoverage() below is the ratchet. It reads the BUILT pages and fails the build
+ *      if any character has no shipped face covering it. Add one Marathi word this subset does
+ *      not have and the build goes red naming the character, rather than a school seeing boxes.
+ *      The old block range made that check unable to fire for Devanagari at all.
  */
 const DEVANAGARI =
-  "U+0900-097F,U+1CD0-1CF9,U+200C-200D,U+20A8,U+20B9,U+25CC,U+A830-A839,U+A8E0-A8FF";
+  "U+0902,U+0905,U+0915,U+0917,U+091A,U+0921,U+0923,U+0928,U+092E,U+092F,U+0930,U+0932," +
+  "U+0936,U+0937,U+0938,U+0939,U+093E-0940,U+094D,U+0964-0965," +
+  "U+200C-200D,U+20B9,U+25CC";
 
 /**
  * The handful of marks that NONE of the three §7 faces contain.

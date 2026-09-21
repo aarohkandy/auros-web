@@ -13,7 +13,7 @@
       "upstreamSha256": "498efd461f6ddfcb7a111bf9a565709d2085d48201d501ead960d93e84ffbb88",
       "instance": null,
       "bytes": 48136,
-      "sha256": "c839013eaf0612ac806650ceea746dffdbe03992fc28c83f1c1661b5f0c10d61"
+      "sha256": "93263557438d5233cfe7708c301953bf476228ac5f6f2c2ef784cf6449c9102f"
     },
     {
       "file": "instrument-serif-400-italic.woff2",
@@ -25,7 +25,7 @@
       "upstreamSha256": "08939b8bdf534afec24ae0ef5e03f948940cd9a8fe08e7fecbad040e62327385",
       "instance": null,
       "bytes": 50404,
-      "sha256": "7f362ba85cd67a2c2e781e25cecbd540ad3a828f421ff1b0fea40d79e6e13e1b"
+      "sha256": "b5cb52d4d1e48cafb0b39ea3ffe4d8e61bcd2ebdacf1b11970c9730c4399f46c"
     },
     {
       "file": "ibm-plex-sans-400.woff2",
@@ -40,7 +40,7 @@
         "wdth": 100
       },
       "bytes": 54888,
-      "sha256": "f88911f43b1f235595cb82deac1287915dab71a5fcb97c139151d731461999fb"
+      "sha256": "e02ec963453f16b5cada097b1e91a4fca1b4cffc6f3053adc7af28f0a409e4e2"
     },
     {
       "file": "ibm-plex-sans-600.woff2",
@@ -55,7 +55,7 @@
         "wdth": 100
       },
       "bytes": 54864,
-      "sha256": "7f7dd01278661b8f7eaba6273663c577e698b4119eb76d78087d7693d765fe58"
+      "sha256": "0ccf67d38ace6331130a4296a2b32e17d4d738eeba471e516303a133ac5c34b4"
     },
     {
       "file": "ibm-plex-mono-400.woff2",
@@ -67,7 +67,7 @@
       "upstreamSha256": "6a3412f058c7d8dfd9170c41e85ade48e5156ecb89356110ca57a0a27734af46",
       "instance": null,
       "bytes": 60024,
-      "sha256": "d905d98fabebc16533a0fbaa4c76787d8e946aca948870061e7049ac3531657e"
+      "sha256": "1b7d0f082d2e73801af4aa7d7c1997cc126bb4030454782bb404fe49edff1355"
     },
     {
       "file": "ibm-plex-mono-600.woff2",
@@ -79,7 +79,7 @@
       "upstreamSha256": "d3c38e55c78f5b0f28009fddba4834ec503278936a5986032424c9bd2d23aa46",
       "instance": null,
       "bytes": 63340,
-      "sha256": "fa95751dd38a889f3706208b767f73386e170e78fe5e1d6e975513976a6d037a"
+      "sha256": "cd464de7709b061c3c965366632ee6142ed808e2d0fa75f0c064d9cd70009854"
     },
     {
       "file": "noto-sans-symbols-2-400.woff2",
@@ -91,7 +91,7 @@
       "upstreamSha256": "7d5fb73b7ca67a6798101741f5d280a3d016a56a197afcd4199dbb57b4b82a21",
       "instance": null,
       "bytes": 7348,
-      "sha256": "c627a231612d8f4de6b805893793513c24417ab78ff6bcd524df41331321c3df"
+      "sha256": "c78a0b753079bee54e06ea665358f48b39e164a09c8fc9c5ab8b88b8efe9d01a"
     },
     {
       "file": "ibm-plex-sans-devanagari-400.woff2",
@@ -102,8 +102,8 @@
       "upstream": "ibmplexsansdevanagari/IBMPlexSansDevanagari-Regular.ttf",
       "upstreamSha256": "9a309796ffbe3b6827591eb4e6e7f13e273c38d37b40d12a5ac695172571e88b",
       "instance": null,
-      "bytes": 267528,
-      "sha256": "d15656f053cdaae0e53e53412100807da26057c1ba65ad80b3182975b50f668b"
+      "bytes": 74704,
+      "sha256": "351dc130bdd1c68d2e71604731510f57e1dd9706fc21c65ecda503b4ea1d096f"
     }
   ]
 }

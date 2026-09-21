@@ -106,6 +106,18 @@
    visitor's machine happens to have, which on a 2014 Windows laptop is often nothing, and
    renders Marathi as a row of empty boxes on the page that claims to ship the customer's own
    language. A proportional face that renders is more honest than a monospaced one that does not.
+
+   THE RANGE IS THE CHARACTERS THIS SITE RENDERS, NOT THE DEVANAGARI BLOCK (2026-09-20, D40).
+   The block subset was 261 KB, on the LANDING PAGE, for one greeting — more than the rest of the
+   site's fonts, HTML, CSS and JavaScript together, and the reason `/` measured 85 on a runner
+   against §6D's floor of 95 while every other page passed. Now 75 KB.
+
+   Adding a Marathi character this list does not have does NOT produce a silent fallback: the
+   glyph-coverage check in tools/fetch-fonts.mjs reads the built pages and fails the build naming
+   the character. Regenerate with `pnpm run fonts`, which also refuses to finish until this
+   declaration matches what it subsetted to. Shaping was verified with HarfBuzz against the
+   original TTF before this was narrowed — identical glyphs, clusters, advances and offsets on
+   every Devanagari run on the site — because a conjunct is a glyph no codepoint maps to directly.
    ============================================================================================= */
 @font-face {
   font-family: "IBM Plex Sans";
@@ -113,8 +125,9 @@
   font-weight: 400;
   font-display: swap;
   src: url("/fonts/ibm-plex-sans-devanagari-400.woff2") format("woff2");
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839,
-    U+A8E0-A8FF;
+  unicode-range: U+0902, U+0905, U+0915, U+0917, U+091A, U+0921, U+0923, U+0928, U+092E,
+    U+092F, U+0930, U+0932, U+0936, U+0937, U+0938, U+0939, U+093E-0940, U+094D, U+0964-0965,
+    U+200C-200D, U+20B9, U+25CC;
 }
 
 @font-face {
@@ -123,8 +136,9 @@
   font-weight: 400;
   font-display: swap;
   src: url("/fonts/ibm-plex-sans-devanagari-400.woff2") format("woff2");
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839,
-    U+A8E0-A8FF;
+  unicode-range: U+0902, U+0905, U+0915, U+0917, U+091A, U+0921, U+0923, U+0928, U+092E,
+    U+092F, U+0930, U+0932, U+0936, U+0937, U+0938, U+0939, U+093E-0940, U+094D, U+0964-0965,
+    U+200C-200D, U+20B9, U+25CC;
 }
 
 @font-face {
@@ -133,8 +147,9 @@
   font-weight: 400;
   font-display: swap;
   src: url("/fonts/ibm-plex-sans-devanagari-400.woff2") format("woff2");
-  unicode-range: U+0900-097F, U+1CD0-1CF9, U+200C-200D, U+20A8, U+20B9, U+25CC, U+A830-A839,
-    U+A8E0-A8FF;
+  unicode-range: U+0902, U+0905, U+0915, U+0917, U+091A, U+0921, U+0923, U+0928, U+092E,
+    U+092F, U+0930, U+0932, U+0936, U+0937, U+0938, U+0939, U+093E-0940, U+094D, U+0964-0965,
+    U+200C-200D, U+20B9, U+25CC;
 }
 
 /* =============================================================================================

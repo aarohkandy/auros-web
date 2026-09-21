@@ -144,16 +144,35 @@ const { Content } = await renderEntry(page);
         a line of — `hero.firstBoot.sourceMono` and `recipeExcerpt.sourceMono` are the same path, and
         the two were four screens apart. `lang="mr"` because the string is Marathi and the browser
         should say so to a screen reader and to the font stack: `src/styles/fonts.css` gates the
-        261 KB Devanagari subset behind a unicode-range, so this is the only string on the site that
-        fetches it.
+        75 KB Devanagari subset behind a unicode-range, so this is the only string on the site that
+        fetches it. That face was 261 KB until D40 narrowed it to the characters this line uses —
+        it was 267 KB of the landing page's 585 KB, and the reason `/` measured 85 against §6D's
+        floor of 95 on a runner.
       -->
-      <figure class="first-boot">
+      <!--
+        ON A PANEL, and that is §7 rather than layout preference: "All body text sits on opaque
+        panels — the background never reduces text contrast."
+
+        This figure was the one block of reading text on the landing page that was not. Bare on the
+        page it inherited whatever `<html>` was painted, and once `src/terrain/parallax.ts` mounts
+        it adds `.auros-terrain-active`, which makes `body` transparent and paints `<html>` with
+        `--auros-terrain-deep` — bedrock, #24231F. Four paragraphs of `--ink-muted` (#5A4E40) on
+        that measures **1.94:1** where WCAG AA wants 4.5.
+
+        It was a RACE, which is why it survived: axe only sees it if the terrain has mounted before
+        the audit runs. On this laptop it had not, and every local run said accessibility 100. On a
+        GitHub runner it had, three times out of three, and `/` came back at 97 with four
+        color-contrast failures naming this figure. The site's own contrast tool measured 1,614
+        pairs and missed it too, because it reads the static cascade and this background is one
+        JavaScript installs at mount.
+      -->
+      <Panel tone="panel" as="figure" class="first-boot">
         <figcaption class="first-boot-lead">{hero.firstBoot.lead}</figcaption>
         <blockquote class="first-boot-message" lang="mr">{hero.firstBoot.messageMono}</blockquote>
         <p class="first-boot-gloss">{hero.firstBoot.gloss}</p>
         <p class="first-boot-source">{hero.firstBoot.sourceMono}</p>
         <p class="first-boot-note">{hero.firstBoot.note}</p>
-      </figure>
+      </Panel>
     </div>
   </div>
 
@@ -290,8 +309,9 @@ const { Content } = await renderEntry(page);
   .first-boot {
     max-width: calc(var(--measure, 38rem) + 4rem);
     margin: 1.5rem 0 0;
-    padding-top: 1.25rem;
-    border-top: 1px solid var(--rule, #8a7358);
+    /* No `border-top` and no `padding-top` here any more: this is a <Panel> now, and the panel
+       already draws the hairline and owns the padding. Two borders one pixel apart is the shape
+       of a rule that was moved and not removed. */
   }
   .first-boot-lead,
   .first-boot-note {

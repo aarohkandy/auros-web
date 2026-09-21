@@ -51,20 +51,35 @@ disagree with it, the manifest is right.
 | `ibm-plex-mono-400.woff2` | IBM Plex Mono | 400 | 60,024 | no |
 | `ibm-plex-mono-600.woff2` | IBM Plex Mono | 600 | 63,340 | no |
 | `noto-sans-symbols-2-400.woff2` | Noto Sans Symbols 2 | 400 | 7,348 | no |
-| `ibm-plex-sans-devanagari-400.woff2` | IBM Plex Sans Devanagari | 400 | 267,528 | no |
+| `ibm-plex-sans-devanagari-400.woff2` | IBM Plex Sans Devanagari | 400 | 74,704 | no |
 
 Exact bytes and the SHA-256 of every file, plus the SHA-256 of the upstream TTF each was cut from,
 are in `public/fonts/MANIFEST.json`. Each family's `OFL.txt` ships beside them.
 
 **Only two faces are preloaded**, and that restraint is the point: preloading a face the first
-screen does not use is a request competing with one it does. The Devanagari face in particular must
-stay lazy — it is 261 KB, larger than everything else combined.
+screen does not use is a request competing with one it does.
 
 **Measured, and it corrects an earlier claim in this file.** The landing page *does* fetch the
 Devanagari face, because `copy.ts` prints the Marathi school's real first-boot message
 (`नमस्कार! काही अडचण असल्यास शिक्षकांना सांगा.`). That is `unicode-range` working: the face is
 fetched where Devanagari is rendered and nowhere else. "An English reader never downloads it" was
 written here before anyone opened a browser, and it was wrong.
+
+**And then it corrects the correction (2026-09-20, D40).** This file also said the Devanagari face
+"must stay lazy — it is 261 KB, larger than everything else combined", which was true and was the
+wrong conclusion. Lazy was never the problem. The landing page renders Marathi, so it fetches the
+face, so "lazy" bought nothing there; what the landing page actually paid was 261 KB for one
+greeting. Measured on a GitHub runner, Lighthouse mobile, median of three:
+
+| page | fonts fetched | total page | DOM | LCP render delay | performance |
+|---|---|---|---|---|---|
+| `/faq` | 218 KB (4 faces) | 236 KiB | 202 | 1,656 ms | 99 |
+| `/order` | 290 KB (6 faces) | 314 KiB | 905 | 2,406 ms | 95 |
+| `/` | 558 KB (7 faces) | 585 KiB | 1,116 | 3,911 ms | **85** |
+
+`/` was the one page under §6D's floor of 95, and 267 KB of its 585 KB was this one face. It is now
+subset to the characters the site renders rather than to the Devanagari block: **74,704 bytes**.
+The whole font payload is 414 KB, down from 606 KB.
 
 ---
 
@@ -101,12 +116,34 @@ the first time someone types a different line character.
 The box-drawing rule is the most common non-ASCII character on the site, because it is what draws <!-- auros-allow: a count over this repository's own files, produced by the coverage tool printed above. Not a claim about machines, customers or the world. -->
 the margin labels: `── bedrock ──`.
 
-**Devanagari** — the Devanagari block, the joiners shaping needs, Devanagari Extended, the rupee
-sign and the dotted circle. Subset **by range, not by text**: there is no Marathi copy in `src/`
-yet, so subsetting to observed characters would produce a font that silently breaks on the day the
-Marathi reference recipe (§6B) lands. All GSUB/GPOS features are retained for this face — dropping
-a shaping feature does not fail a build, it produces text that is wrong in a language nobody
-reviewing it reads.
+**Devanagari** — the twenty codepoints `copy.ts` renders, plus the joiners, both dandas, the rupee
+sign and the dotted circle that draws an orphaned matra. All GSUB/GPOS features are retained for
+this face — dropping a shaping feature does not fail a build, it produces text that is wrong in a
+language nobody reviewing it reads.
+
+This used to be subset **by range**, on the reasoning that "there is no Marathi copy in `src/` yet,
+so subsetting to observed characters would produce a font that silently breaks on the day the
+Marathi reference recipe (§6B) lands." The Marathi copy landed. The range subset cost the landing
+page 261 KB and §6D's Lighthouse floor with it. Two things make the text subset safe rather than a
+trade:
+
+1. **Shaping was verified, not assumed.** Every Devanagari run on the site was shaped with
+   HarfBuzz against the original `IBMPlexSansDevanagari-Regular.ttf` and against this subset:
+   identical glyph counts, clusters, advances and offsets on all six runs, zero `.notdef`. That is
+   the check that matters, because a conjunct — `स्क`, `क्ष`, `ल्य` — is a glyph no codepoint maps
+   to directly. It is reached through GSUB, and it survives only because fontTools closes over the
+   layout tables and `keepAllLayoutFeatures` keeps them.
+2. **The coverage check is the ratchet, and it can now fire.** `fetch-fonts.mjs --verify` reads the
+   BUILT pages and fails the build naming any character no shipped face covers. Against the old
+   block range it could never fire for Devanagari; against this one it does. Watched failing:
+   adding `घ` and `औ` to a built page produces
+
+       fonts: these characters appear in dist and are in NONE of the shipped faces:
+           U+0918 "घ" (1 occurrence(s))
+           U+0914 "औ" (1 occurrence(s))
+
+   So the day a second Marathi sentence lands, the build stops and says which character to add —
+   rather than a school seeing a row of boxes.
 
 ### Measured coverage, including what is missing
 
