@@ -92,6 +92,16 @@ jobs:
 
       - run: corepack enable && pnpm install --frozen-lockfile
 
+      # `pnpm build` ends in `verify:built`, whose glyph-coverage check opens every committed woff2
+      # with fontTools and fails closed when it cannot. It could not: the runner has python3 and no
+      # fontTools, so the build died on `ModuleNotFoundError` AFTER the site had already built —
+      # the second thing the first real run of this workflow found. Pinned to the version the
+      # subsets in public/fonts were generated with (MANIFEST.json records it), because a different
+      # fontTools reads a different cmap and this check's whole job is to be believable. brotli is
+      # what lets it decompress woff2 at all.
+      - name: fontTools, for the glyph-coverage check at the end of the build
+        run: python3 -m pip install --break-system-packages 'fonttools==4.60.2' 'brotli==1.2.0'
+
       # The runner's Chrome, named rather than assumed. `--help`-style probing instead of a
       # remembered path: three base builds in this project were lost to a remembered layout, and an
       # empty CHROME_PATH makes Lighthouse fall back to a download we did not pin.
@@ -139,6 +149,16 @@ jobs:
         with:
           node-version: '22'
       - run: corepack enable && pnpm install --frozen-lockfile
+
+      # `pnpm build` ends in `verify:built`, whose glyph-coverage check opens every committed woff2
+      # with fontTools and fails closed when it cannot. It could not: the runner has python3 and no
+      # fontTools, so the build died on `ModuleNotFoundError` AFTER the site had already built —
+      # the second thing the first real run of this workflow found. Pinned to the version the
+      # subsets in public/fonts were generated with (MANIFEST.json records it), because a different
+      # fontTools reads a different cmap and this check's whole job is to be believable. brotli is
+      # what lets it decompress woff2 at all.
+      - name: fontTools, for the glyph-coverage check at the end of the build
+        run: python3 -m pip install --break-system-packages 'fonttools==4.60.2' 'brotli==1.2.0'
       - run: pnpm build
 
       # No browser. The bytes are fetched over HTTP from the same server Lighthouse uses and parsed,
@@ -170,6 +190,16 @@ jobs:
         with:
           node-version: '22'
       - run: corepack enable && pnpm install --frozen-lockfile
+
+      # `pnpm build` ends in `verify:built`, whose glyph-coverage check opens every committed woff2
+      # with fontTools and fails closed when it cannot. It could not: the runner has python3 and no
+      # fontTools, so the build died on `ModuleNotFoundError` AFTER the site had already built —
+      # the second thing the first real run of this workflow found. Pinned to the version the
+      # subsets in public/fonts were generated with (MANIFEST.json records it), because a different
+      # fontTools reads a different cmap and this check's whole job is to be believable. brotli is
+      # what lets it decompress woff2 at all.
+      - name: fontTools, for the glyph-coverage check at the end of the build
+        run: python3 -m pip install --break-system-packages 'fonttools==4.60.2' 'brotli==1.2.0'
       - name: Which Chrome this runner has
         run: |
           google-chrome --version
