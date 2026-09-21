@@ -425,7 +425,13 @@ export const recipeExcerpt = {
     { label: "machines", value: "180 · dell-latitude-e6440, hp-probook-650-g1, lenovo-thinkpad-t440" },
     { label: "language", value: "Marathi · second script Marathi (InScript)" },
     { label: "switch scripts with", value: "Windows key + Spacebar" },
-    { label: "updates", value: "install_between 21:00-05:00" },
+    // D38 measured that this field reaches the image as NOTHING: the update agent clears
+    // `OnCalendar=` deliberately, because check U1 requires a fleet to take a rebuild inside its
+    // own window, at whatever hour the rebuild publishes. A quiet window and that guarantee are
+    // in tension and which wins is §9-reserved. Until somebody decides, the site shows the field
+    // with the same words `explain` now prints into the pull request the customer agrees to —
+    // showing the time alone would advertise a behaviour the machine does not have.
+    { label: "updates", value: "install_between 21:00-05:00 · RECORDED, NOT YET APPLIED" },
     { label: "size budget", value: "9 GB" },
     { label: "policy", value: "managed" },
     { label: "approved by", value: "A. Deshmukh · IT Coordinator · 2026-09-18" },

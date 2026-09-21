@@ -210,7 +210,17 @@ export function explain (recipe, ctx = {}) {
   out.push('')
   out.push(`Hardware profile: ${list(recipe.hardware.models.map(m => `\`${m}\``))}${recipe.hardware.also_test?.length ? `, additionally tested against ${list(recipe.hardware.also_test.map(p => `\`${p}\``))}` : ''}.`)
   out.push(`Size budget: ${recipe.size_budget_gb} GB. The build fails if the image comes out larger, rather than quietly shipping something that will not fit.`)
-  if (recipe.updates?.install_between) out.push(`Updates install between ${recipe.updates.install_between}, local time.`)
+  // D38 measured that this field reaches the image as NOTHING: the update agent clears `OnCalendar=`
+  // deliberately so a fleet takes a rebuild inside check U1's window, whatever hour it publishes. A
+  // quiet window and that requirement are in tension and which wins is §9-reserved. This sentence
+  // goes into the pull request body a customer READS AND AGREES TO, so it says what is true — and it
+  // is worded exactly as `auros-recipes/src/explain.ts` words it, because the two had drifted and a
+  // customer reading both should not find two different answers.
+  if (recipe.updates?.install_between) {
+    out.push(`Your quiet window: ${recipe.updates.install_between} -- RECORDED, NOT YET APPLIED. ` +
+      'The machine checks for updates on a fixed cadence so that a rebuild reaches the fleet inside ' +
+      'check U1\'s window at whatever hour it publishes; no quiet window is applied either way.')
+  }
   out.push(`Approved by ${inline(recipe.approved_by.name)} (${inline(recipe.approved_by.role)}) on ${inline(recipe.approved_by.date)}.`)
   out.push('')
 
