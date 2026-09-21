@@ -123,6 +123,13 @@ const canonical = Astro.site ? new URL(canonicalPath, Astro.site).href : undefin
     <meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#171c24" media="(prefers-color-scheme: dark)" />
 
+    <!--
+      An icon link, because without one the browser asks for /favicon.ico on EVERY page, gets a 404,
+      and that 404 is a console error Lighthouse counts against best-practices. Measured: 96 on all
+      nine pages with no icon. Local SVG, no remote asset (§4.5), §7's palette.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+
     <link rel="preload" as="font" type="font/woff2" href="/fonts/instrument-serif-400.woff2" crossorigin />
     <link rel="preload" as="font" type="font/woff2" href="/fonts/ibm-plex-sans-400.woff2" crossorigin />
 

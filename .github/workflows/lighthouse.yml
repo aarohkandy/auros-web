@@ -1,0 +1,153 @@
+# ─────────────────────────────────────────────────────────────────────────────────────────────────
+# lighthouse — spec §6D's two unmeasured sentences, measured.
+#
+# §6D ends with: "Lighthouse ≥ 95 on mobile. Full keyboard operation. Works with JS disabled down to
+# a mailto fallback." Until this workflow existed, the first and the third had never been executed
+# even once. That is the state D19 names: a requirement nobody can fail is not a requirement, it is
+# a sentence.
+#
+# WHAT RUNNING IT FOUND, the first time, on a site with 205 passing tests, 1,554 measured contrast
+# pairs and a keyboard pass already done:
+#   · every page 404'd on /favicon.ico, because there was no icon link. Nine console errors, nine
+#     best-practices scores of 96.
+#   · `role="log"` sat on an <ol>, which ARIA does not allow there, and in overriding the implicit
+#     `list` role it orphaned every <li> as well — two accessibility audits red on three pages.
+#   · the configurator's one <select> had a <legend> and a hint and no <label>, so a screen reader
+#     announced "combo box" with no name. Nothing else on the site had that defect.
+# None of those are exotic. All of them survived review, and all of them were found in one run.
+#
+# WHY THE SCORE IS MEASURED AGAINST A SERVER WE WROTE
+#   `tools/serve-dist.mjs`, not `npx serve`: a Lighthouse number is only worth reporting if the
+#   serving behaviour matches production. Cloudflare Pages serves `faq.html` at `/faq`, compresses
+#   text, and sets long cache lifetimes on hashed assets. A server doing none of that would score a
+#   page no visitor ever receives — 90 KB of HTML instead of 19 KB, and ~450 ms of TTFB under
+#   simulated 4G that nobody pays.
+#
+# WHY THE GATE IS performance AND accessibility, AND NOT ALL FOUR CATEGORIES
+#   Those two are the promise §6D makes: the buyer is on a slow connection and the reader may be on
+#   a keyboard or a screen reader. best-practices and SEO are measured and printed — a regression is
+#   visible — but they are not gates, because both contain audits that move with the browser's
+#   deprecation list. A gate that goes red because Chrome deprecated an API is a gate people learn
+#   to ignore, and then the gate that matters is ignored with it.
+#
+# WHY LIGHTHOUSE IS PINNED EXACTLY (package.json: lighthouse 12.8.2, in the lockfile)
+#   Lighthouse changes its scoring curve between minors. On a floating version "we regressed" and
+#   "they reweighted" produce the same red, and a gate that cannot tell those apart is worse than no
+#   gate: it teaches the team that red means nothing. Moving the pin is a reviewable commit with the
+#   before-and-after scores in it.
+#
+# WHY prove-red IS A JOB AND NOT A COMMENT
+#   D34, and D37 more sharply. A Lighthouse gate is unusually easy to write green-forever — point it
+#   at the wrong directory, or a route list that resolves to nothing, or compare a score against
+#   `undefined`. `tools/prove-red.mjs` breaks nine specific things and requires each gate to go red
+#   FOR THE STATED REASON, so red-by-accident is not scored as a catch. It also runs both gates
+#   unmutated and requires green, which is D34's direction audit.
+# ─────────────────────────────────────────────────────────────────────────────────────────────────
+name: lighthouse
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# D19, and it is not decoration here: every job below runs a build and then reads a number out of
+# it. A pipeline whose exit status belonged to its last stage is exactly how `verify` reported PASS
+# on failing suites for an afternoon (D37).
+defaults:
+  run:
+    shell: bash -euo pipefail {0}
+
+jobs:
+  measure:
+    name: Lighthouse mobile, every page, ≥ 95
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - run: corepack enable && pnpm install --frozen-lockfile
+
+      # The runner's Chrome, named rather than assumed. `--help`-style probing instead of a
+      # remembered path: three base builds in this project were lost to a remembered layout, and an
+      # empty CHROME_PATH makes Lighthouse fall back to a download we did not pin.
+      - name: Which Chrome this runner has
+        run: |
+          which google-chrome
+          google-chrome --version
+          echo "CHROME_PATH=$(which google-chrome)" >> "$GITHUB_ENV"
+
+      # The full site build, including the existing gates: palette lint, ink lint, astro check,
+      # the terrain invariants, the configurator a11y test, then contrast and font verification
+      # against the BUILT pages. Lighthouse measures what those gates already agreed to ship.
+      - run: pnpm build
+
+      # Three runs per page, and the MEDIAN is what the gate reads. Not the best of three: reporting
+      # the best run is how a flaky 94 becomes a 96 in a report and a 94 for the visitor.
+      - name: Measure
+        run: pnpm run lighthouse:ci
+
+      - name: Upload the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouse/
+          if-no-files-found: error
+          retention-days: 14
+
+  nojs:
+    name: The no-JavaScript path, and what content pages ship
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # No browser. The bytes are fetched over HTTP from the same server Lighthouse uses and parsed,
+      # and nothing executes them — which is the only implementation of "scripts disabled" that does
+      # not come down to trusting a browser to tell us what a browser does.
+      - name: Verify it
+        run: pnpm run nojs
+
+      # §6D's other unchecked sentence: "No client-side framework for content pages." Signature-
+      # matched against the built bundles, not asserted in a comment. It also refuses a
+      # render-blocking <script src> and a <canvas> in the served HTML — §7's terrain is generated
+      # after parse precisely so it cannot be laid out before first paint, and that is now a check
+      # rather than a property of how the file happens to be written today.
+      - name: No framework, no blocking script, inside the JavaScript budget
+        run: pnpm run content-js
+
+  prove-red:
+    name: Both gates, watched failing
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - name: Which Chrome this runner has
+        run: |
+          google-chrome --version
+          echo "CHROME_PATH=$(which google-chrome)" >> "$GITHUB_ENV"
+      - run: pnpm build
+
+      # Thirteen mutations. Each one breaks exactly one thing, runs the gate that owns it, and requires
+      # both a non-zero exit AND that the complaint names the reason. A mutation that trips a gate
+      # by accident — a crash, a missing file — is a FAILURE of this job, not a catch.
+      - name: Break them on purpose
+        run: pnpm run prove-red

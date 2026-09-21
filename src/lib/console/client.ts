@@ -129,6 +129,14 @@ function relativeDay(d: Date, now: Date): string {
 
 function mount(root: HTMLElement): void {
   const log = root.querySelector<HTMLElement>("[data-console-log]");
+  /*
+   * The scroll box is the REGION, not the <ol>. They were the same element until axe's
+   * `aria-allowed-role` refused `role="log"` on an <ol> and, in overriding the implicit `list`
+   * role, orphaned every <li> as well. Lines are appended to `log`; scrolling is read and written
+   * on `region`. Falling back to `log` keeps this working against markup that has not been
+   * rebuilt rather than silently never following the tail again.
+   */
+  const region = root.querySelector<HTMLElement>("[data-console-region]") ?? null;
   const statusEl = root.querySelector<HTMLElement>("[data-console-status]");
   const wireNote = root.querySelector<HTMLElement>("[data-console-note]");
   if (!log || !statusEl) return;
@@ -215,7 +223,8 @@ function mount(root: HTMLElement): void {
    * `prefers-reduced-motion` nothing scrolls at all, and nothing transitions in either mode.
    */
   function appendLine(text: string, level: string): void {
-    const atTail = log!.scrollHeight - log!.scrollTop - log!.clientHeight < 24;
+    const box = region ?? log!;
+    const atTail = box.scrollHeight - box.scrollTop - box.clientHeight < 24;
     const li = document.createElement("li");
     li.className = "line";
     li.dataset["level"] = level;
@@ -229,7 +238,7 @@ function mount(root: HTMLElement): void {
     log!.appendChild(li);
     wireLines += 1;
     while (log!.childElementCount > MAX_LINES) log!.removeChild(log!.firstElementChild!);
-    if (!reduceMotion && atTail) log!.scrollTop = log!.scrollHeight;
+    if (!reduceMotion && atTail) box.scrollTop = box.scrollHeight;
   }
 
   /**

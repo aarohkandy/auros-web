@@ -298,6 +298,15 @@ const secondScripts = [...new Set(LANGUAGES.map((l) => l.secondScript).filter(Bo
     <!-- ── the thing a recipe may not do ──────────────────────────────────────────────── -->
     <fieldset class="cfg-fieldset">
       <legend class="cfg-legend">Is there anything else you need?</legend>
+      {/*
+         This control was the ONE field on the form with no <label for>. It had a <legend> and an
+         `aria-describedby`, which is why it read as finished: the fieldset is named and the hint is
+         announced, but the combo box itself had no accessible name, so a screen-reader user heard
+         "combo box, collapsed" and had to infer the question from the group it was in. Found by
+         axe (`select-name`) in the first Lighthouse run this site has ever had — 205 tests and a
+         keyboard pass had gone over it. Label first, then hint, which is the order every other
+         field on this form already uses. */}
+      <label class="cfg-label" for="cfg-asking">Pick a request</label>
       <p class="cfg-hint" id="cfg-asking-hint">
         These are the requests the validator has a considered answer for. Pick one and the panel shows you
         what it says about it. Some of the answers are no, and the reason a no is worth reading is that it is the same

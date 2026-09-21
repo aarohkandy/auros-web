@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges" role="img" aria-label="Auros">
+  <!--
+    AUROS favicon. §7's cross-section, at 16 blocks square: sky, soil, two strata, bedrock, and one
+    ore block at a layer boundary. Palette values are §7's own, no others. Drawn as flat rects, not
+    a gradient, because §7 forbids gradients and because a gradient at 16px is a smudge.
+
+    Local, hand-written, and an SVG: §4.5 bans remote assets, and the measured reason this file
+    exists at all is that without an icon link Chrome requests /favicon.ico, gets a 404, and
+    Lighthouse scores that as a console error on every page (best-practices 96 -> 100).
+
+    prefers-color-scheme is honoured inside the SVG so the icon matches the browser chrome that
+    `theme-color` already sets. Safari ignores it and takes the light sky, which is correct there.
+  -->
+  <style>
+    .sky { fill: #c9d6de }
+    @media (prefers-color-scheme: dark) { .sky { fill: #171c24 } }
+  </style>
+  <rect class="sky" width="16" height="16"/>
+  <rect y="5" width="16" height="2" fill="#7d8a63"/>
+  <rect y="7" width="16" height="3" fill="#8a7358"/>
+  <rect y="10" width="16" height="3" fill="#5a4e40"/>
+  <rect y="13" width="16" height="3" fill="#33302a"/>
+  <rect x="10" y="10" width="2" height="2" fill="#be3a12"/>
+  <rect x="3" y="7" width="2" height="2" fill="#6f5c46"/>
+</svg>

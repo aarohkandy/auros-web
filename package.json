@@ -3,30 +3,40 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
-  "description": "auros.org \u2014 static site. Astro, static output, no client framework for content pages (spec \u00a76D).",
+  "description": "auros.org — static site. Astro, static output, no client framework for content pages (spec §6D).",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
     "dev": "astro dev",
     "//build": "Gates in the order that makes a failure cheap to read. `lint` reads the sources and needs no build. `astro check` is types. Then the build. Then `verify:built`, which MUST run last because both of its checks measure the BUILT pages: contrast resolves the real cascade over the real DOM, and the font check reads the characters a browser is actually asked to render.",
-    "//test": "src/terrain/terrain.test.ts asserts the \u00a77 properties the terrain module\u2019s own comments say are proved rather than believed: the 18-colour ceiling against the real output buffer, the ore budget, the fixed seed, Math.random being unreachable, and window-crop determinism. It was referenced by no script, no workflow and no line of /verify, and could not be executed at all \u2014 its relative imports were extensionless, so `node --experimental-strip-types` could not resolve them. A gate nobody runs is a gate that does not exist. It now runs here, and `build` runs it BEFORE astro build so a broken invariant costs seconds rather than a full build.",
+    "//test": "src/terrain/terrain.test.ts asserts the §7 properties the terrain module’s own comments say are proved rather than believed: the 18-colour ceiling against the real output buffer, the ore budget, the fixed seed, Math.random being unreachable, and window-crop determinism. It was referenced by no script, no workflow and no line of /verify, and could not be executed at all — its relative imports were extensionless, so `node --experimental-strip-types` could not resolve them. A gate nobody runs is a gate that does not exist. It now runs here, and `build` runs it BEFORE astro build so a broken invariant costs seconds rather than a full build.",
     "test": "node --experimental-strip-types --test src/terrain/terrain.test.ts tools/configurator-a11y.test.mjs tools/build-console.test.mjs",
     "build": "pnpm run lint && astro check --minimumSeverity error && pnpm run test && astro build && pnpm run verify:built",
     "lint": "node tools/palette-lint.mjs && node tools/ink-lint.mjs",
     "check": "astro check --minimumSeverity error",
     "contrast": "node tools/contrast.mjs",
     "snapshot:build-log": "node tools/snapshot-build-log.mjs",
-    "//snapshot": "Two committed snapshots, both written only from logs fetched from the GitHub Actions API. `snapshot:build-log` re-cuts the LATEST completed run; `snapshot:notable` re-cuts the PINNED set in tools/notable-runs.manifest.json, which is what keeps the console from being whatever today happened to be. Neither can run without a token and neither writes a line it did not fetch. `tools/build-console.test.mjs` runs in `test` and needs no network: it reads what those two committed, and breaks each property on purpose to watch the refusal fire (D34, D37).",
     "snapshot:build-log:check": "node tools/snapshot-build-log.mjs --check",
-    "snapshot:notable": "node tools/snapshot-build-log.mjs --notable",
-    "snapshot:notable:check": "node tools/snapshot-build-log.mjs --notable --check",
     "audit:a11y": "node tools/contrast.mjs --write",
     "fonts": "node tools/fetch-fonts.mjs",
     "preview": "astro preview",
     "astro": "astro",
     "fonts:verify": "node tools/fetch-fonts.mjs --verify",
-    "verify:built": "node tools/contrast.mjs && node tools/fetch-fonts.mjs --verify"
+    "//lighthouse": "Spec \u00a76D: Lighthouse \u2265 95 on mobile. Measured against dist/ served by tools/serve-dist.mjs, with the lighthouse pinned in devDependencies. `lighthouse` is one run, for iterating; `lighthouse:ci` is the median of three, which is what the gate reads \u2014 never the best of three.",
+    "lighthouse": "node tools/lighthouse.mjs",
+    "lighthouse:ci": "node tools/lighthouse.mjs --runs 3 --threshold 95",
+    "//nojs": "Spec \u00a76D: works with JS disabled down to a mailto fallback. Fetches every built page over HTTP and PARSES it \u2014 nothing executes \u2014 then asserts the argument survives, no large block waits on a script, and a mailto to the address copy.ts owns is reachable by links that exist in the served bytes.",
+    "nojs": "node tools/nojs.mjs",
+    "nojs:write": "node tools/nojs.mjs --write",
+    "//content-js": "\u00a76D: no client-side framework for content pages. Signature-matches the built bundles and the inline scripts, refuses a render-blocking <script src>, refuses a <canvas> in the served HTML (\u00a77's terrain is generated after parse so it cannot be laid out before first paint), and holds each page to a committed gzipped JavaScript budget.",
+    "content-js": "node tools/content-js.mjs",
+    "content-js:write": "node tools/content-js.mjs --write",
+    "//prove-red": "D34/D37. Breaks nine specific things and requires the gate that owns each to go red FOR THE STATED REASON, plus both gates green unmutated. Without this, a Lighthouse gate pointed at an empty directory passes forever.",
+    "prove-red": "node tools/prove-red.mjs",
+    "verify:built": "node tools/contrast.mjs && node tools/fetch-fonts.mjs --verify && node tools/nojs.mjs && node tools/content-js.mjs",
+    "snapshot:notable": "node tools/snapshot-build-log.mjs --notable",
+    "snapshot:notable:check": "node tools/snapshot-build-log.mjs --notable --check"
   },
   "dependencies": {
     "@astrojs/mdx": "8.0.1",
@@ -35,6 +45,8 @@
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
     "@types/node": "^26.6.2",
+    "lighthouse": "12.8.2",
     "typescript": "^5.9.2"
-  }
+  },
+  "//snapshot": "Two committed snapshots, both written only from logs fetched from the GitHub Actions API. `snapshot:build-log` re-cuts the LATEST completed run; `snapshot:notable` re-cuts the PINNED set in tools/notable-runs.manifest.json, which is what keeps the console from being whatever today happened to be. Neither can run without a token and neither writes a line it did not fetch. `tools/build-console.test.mjs` runs in `test` and needs no network: it checks what those two committed, and breaks each property on purpose to watch the refusal fire (D34, D37)."
 }

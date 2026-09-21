@@ -1,0 +1,14 @@
+{
+  "note": "Floors for tools/nojs.mjs N2: 90% of the words of <main> that survived with JavaScript off when this was written. Regenerate with `node tools/nojs.mjs --write`. A number going DOWN here is the thing to look at in review.",
+  "pages": {
+    "/404": 31,
+    "/configure": 1499,
+    "/faq": 2241,
+    "/how-it-works": 3709,
+    "/": 5012,
+    "/order": 2906,
+    "/pricing": 1789,
+    "/replaceable": 1575,
+    "/what-doesnt-come-across": 5118
+  }
+}

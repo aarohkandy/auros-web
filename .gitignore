@@ -7,3 +7,8 @@ dist/
 # Upstream TTFs downloaded by tools/fetch-fonts.mjs. The SUBSETS in public/fonts are committed
 # (the site must build with no network); the 1.3 MB of source TTFs are not.
 .font-cache/
+# Lighthouse reports. They are ~600 KB of JSON per page per run and they are an ARTIFACT of a run,
+# not a record of one: the workflow uploads them so a reviewer can open the exact report behind a
+# score, and committing them would make every measurement a diff nobody reads.
+.lighthouse/
+.lighthouse-prove-red/

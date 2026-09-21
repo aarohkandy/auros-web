@@ -1,0 +1,14 @@
+{
+  "note": "Gzipped JavaScript bytes per page, as measured when written, plus 15% headroom. Regenerate with `node tools/content-js.mjs --write`. A number going UP here is the reviewable event — §6D keeps content pages framework-free, and this is where that stops being a promise.",
+  "pages": {
+    "/404": 8508,
+    "/configure": 41032,
+    "/faq": 8508,
+    "/how-it-works": 10646,
+    "/": 10646,
+    "/order": 10646,
+    "/pricing": 9025,
+    "/replaceable": 8508,
+    "/what-doesnt-come-across": 8508
+  }
+}
