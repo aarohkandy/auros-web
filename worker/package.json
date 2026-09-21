@@ -4,6 +4,7 @@
   "type": "module",
   "description": "The one Cloudflare Worker behind the Auros order flow. Plain ESM JavaScript with JSDoc types, deliberately: `node --test` then exercises THE CODE THAT SHIPS, with no transpile step in between that could mask a drift between the tested source and the deployed bundle.",
   "scripts": {
-    "test": "node --test test/"
+    "test": "node --test 'test/*.test.js'",
+    "//test": "`node --test test/` is NOT the same command as `node --test 'test/*.test.js'` on Node 22: the first resolves `test/` as a MODULE path and dies with MODULE_NOT_FOUND before a single test runs. It was written that way, and nothing ran it, so nobody found out — 233 tests, including the one that asserts this Worker validates with the byte-identical schema auros-recipes uses in CI, were unreachable by their own package script. The glob is load-bearing."
   }
 }

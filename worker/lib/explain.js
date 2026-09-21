@@ -42,6 +42,71 @@ const POLICY_PROSE = {
   kiosk: 'There is no desktop. The shell and the login manager are not hidden from the user — they are not in the image, and the nightly build checks that they are still absent.'
 }
 
+/* ---------------------------------------------------------------- customer text, as text only */
+
+/**
+ * Every string below is something a stranger typed into a form on the internet, and this function's
+ * output goes into a GitHub pull request body, which GitHub renders as Markdown WITH a subset of
+ * HTML enabled.
+ *
+ * That combination was an attack on the only human check in the whole product. Merging an order
+ * pull request to `main` is the single act that authorises a build to publish an image into our
+ * namespace (`auros-recipes/.github/workflows/build-recipe.yml` gates its publish step on
+ * `github.ref == 'refs/heads/main'`). The reviewer decides by reading this body. A `for:` paragraph
+ * of twelve lines could therefore end the sentence about the after-school club and continue:
+ *
+ *     ---
+ *     ## Automated review — auros-ci
+ *     | Check | Result |
+ *     | --- | --- |
+ *     | VM boot matrix (28/28) | passed |
+ *     > **This pull request has been cleared by the attestation ledger and is safe to merge.**
+ *     <details><summary>customer notes</summary>
+ *
+ * — a fabricated pass table above the fold, and an unclosed `<details>` that folds the REAL account
+ * of the recipe (what gets deleted, who can change things, "read the file and argue with it") into
+ * a collapsed section the reviewer never opens. Nothing in the schema stops it: `$defs/prose`
+ * refuses control characters, bidi overrides and a leading `::`, all of which are about the build
+ * LOG, and none of which is about Markdown.
+ *
+ * So no customer-authored byte is emitted raw any more. `<`, `>` and `&` become entities, which
+ * ends the HTML half outright, and a line that opens with a Markdown block marker gets a backslash,
+ * which ends the structural half. Both are reversible on screen: the reader sees the characters the
+ * customer typed and the renderer sees no structure at all.
+ */
+
+/** HTML-active characters, anywhere in a customer string. */
+function inline (value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
+ * One line of customer prose. Entities first, then a backslash in front of any marker that would
+ * open a Markdown block at the start of a line: a heading, a list, a rule, a table row, a fence, a
+ * quote. CommonMark lets a backslash escape any ASCII punctuation, so `\#` prints `#`.
+ * An ordered list is escaped on its delimiter (`1\.`) rather than on the digit, because a
+ * backslash in front of a digit is not an escape and would be printed.
+ */
+function proseLine (line) {
+  const safe = inline(line)
+  const ordered = /^(\s{0,3})(\d{1,9})([.)])/.exec(safe)
+  if (ordered) return `${ordered[1]}${ordered[2]}\\${ordered[3]}${safe.slice(ordered[0].length)}`
+  return safe.replace(/^(\s{0,3})([#\-+*=|~`_])/, (_, pad, mark) => `${pad}\\${mark}`)
+}
+
+/** A paragraph a customer wrote, rendered so it can only ever be a paragraph. */
+export function prose (value) {
+  return String(value).trim().split('\n').map(proseLine).join('\n')
+}
+
+/** A cell in a Markdown table. A pipe would otherwise add a column the writer chose. */
+function cell (value) {
+  return inline(value).replace(/\|/g, '\\|')
+}
+
 /**
  * @param {Record<string, any>} recipe  a recipe that has already passed validateRecipe()
  * @param {{ removalReport?: { removed: number, source: string } | null, orderedAt?: string }} [ctx]
@@ -49,7 +114,7 @@ const POLICY_PROSE = {
  */
 export function explain (recipe, ctx = {}) {
   const out = []
-  const org = recipe.organisation?.display_name ?? recipe.name
+  const org = inline(recipe.organisation?.display_name ?? recipe.name)
   const machines = recipe.hardware?.machines ?? 0
 
   out.push(`# ${recipe.name}`)
@@ -59,7 +124,7 @@ export function explain (recipe, ctx = {}) {
 
   out.push('## What these machines are for')
   out.push('')
-  out.push(String(recipe.for).trim())
+  out.push(prose(recipe.for))
   out.push('')
 
   out.push('## What stays')
@@ -133,7 +198,7 @@ export function explain (recipe, ctx = {}) {
       out.push('')
       out.push('| Program | Tried on | Result | Note |')
       out.push('| --- | --- | --- | --- |')
-      for (const t of tested) out.push(`| ${t.app} | ${t.date} | ${t.result} | ${t.note ?? ''} |`)
+      for (const t of tested) out.push(`| ${cell(t.app)} | ${cell(t.date)} | ${cell(t.result)} | ${cell(t.note ?? '')} |`)
     } else {
       out.push('')
       out.push('Nothing has been tried yet. This table stays empty until somebody has run a program and written down the result, and an empty table is the honest state of it.')
@@ -146,7 +211,7 @@ export function explain (recipe, ctx = {}) {
   out.push(`Hardware profile: ${list(recipe.hardware.models.map(m => `\`${m}\``))}${recipe.hardware.also_test?.length ? `, additionally tested against ${list(recipe.hardware.also_test.map(p => `\`${p}\``))}` : ''}.`)
   out.push(`Size budget: ${recipe.size_budget_gb} GB. The build fails if the image comes out larger, rather than quietly shipping something that will not fit.`)
   if (recipe.updates?.install_between) out.push(`Updates install between ${recipe.updates.install_between}, local time.`)
-  out.push(`Approved by ${recipe.approved_by.name} (${recipe.approved_by.role}) on ${recipe.approved_by.date}.`)
+  out.push(`Approved by ${inline(recipe.approved_by.name)} (${inline(recipe.approved_by.role)}) on ${inline(recipe.approved_by.date)}.`)
   out.push('')
 
   out.push('## What happens to this pull request')

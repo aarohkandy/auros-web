@@ -141,3 +141,25 @@ describe('the live guard (§9: anything touching a real card is the human\'s dec
     await assert.rejects(() => billNow(OFF, { mode: 'subscription' }, 'k'), /cannot be billed/)
   })
 })
+
+/**
+ * `tier` is a raw string from an order body. `TIERS` is an object literal, so every name on
+ * `Object.prototype` used to resolve to a truthy value here — bypassing the per-device minimum,
+ * skipping Checkout entirely, and writing an order record with no tier and no mode. Watched failing
+ * against `const tier = TIERS[tierId]`.
+ */
+describe('a tier name is a tier, not any property an object happens to have', () => {
+  for (const inherited of ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__', 'isPrototypeOf']) {
+    test(`"${inherited}" is refused`, () => {
+      const r = tierFor(inherited, 1)
+      assert.equal(r.ok, false, `"${inherited}" was accepted as a tier`)
+      assert.match(r.reason, new RegExp(`there is no "${inherited.replace(/[$]/g, '\\$&')}" tier`))
+    })
+  }
+
+  test('the real tiers still resolve, and still enforce their floor', () => {
+    assert.equal(tierFor('school', 25).ok, true)
+    assert.equal(tierFor('school', 24).ok, false)
+    assert.equal(tierFor('one-machine', 1).ok, true)
+  })
+})

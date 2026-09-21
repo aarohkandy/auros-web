@@ -235,7 +235,15 @@ export async function releaseNow (cfg, order, idempotencyKey) {
  * @param {string} tierId @param {number} devices
  */
 export function tierFor (tierId, devices) {
-  const tier = TIERS[tierId]
+  // `Object.hasOwn`, not `TIERS[tierId]`. `TIERS` is an object literal, so it inherits
+  // `constructor`, `toString`, `valueOf`, `hasOwnProperty` and `__proto__` — every one of which is
+  // truthy. `{"tier":"toString"}` in an order body therefore passed this function with
+  // `minimumQuantity` undefined (so `devices < undefined` is false and the per-device FLOOR is not
+  // applied), `unitAmount` undefined (so `tier.unitAmount > 0` is false and routes/order.js creates
+  // NO Stripe Checkout at all), and `id`/`mode` undefined (so the KV order record is written without
+  // them and `/build-result` can never settle it). The visitor was then told, in writing, "the
+  // self-serve tier is $0" for a tier they did not choose. One own-property check closes all three.
+  const tier = Object.hasOwn(TIERS, tierId) ? TIERS[tierId] : undefined
   if (!tier) return { ok: /** @type {const} */ (false), reason: `there is no "${tierId}" tier` }
   if (devices < tier.minimumQuantity) {
     return { ok: /** @type {const} */ (false), reason: `the ${tier.label} tier starts at ${tier.minimumQuantity} devices and this order is for ${devices}` }

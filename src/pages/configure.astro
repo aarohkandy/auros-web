@@ -23,6 +23,29 @@ const configuratorModules = import.meta.glob("../components/configurator/Configu
   eager: true,
 }) as Record<string, { default?: any }>;
 const Configurator = Object.values(configuratorModules)[0]?.default;
+
+/**
+ * THE TURNSTILE SITEKEY, WHICH HAD NO WAY OF EVER BEING THE REAL ONE.
+ *
+ * `AnswerForm.astro` takes a `sitekey` prop and defaults it to Cloudflare's published TEST key,
+ * with a comment saying "a deployment passes the real key down from the page". This page is that
+ * page, and it passed nothing — `<Configurator />`, no prop — so the default was not a default, it
+ * was the value, and `dist/configure.html` shipped `data-sitekey="1x00000000000000000000AA"`.
+ *
+ * That is not an open door. The Worker is the control: it refuses the always-passes TEST SECRET on
+ * any host that is reachable or that holds a GitHub App key (`worker/lib/turnstile.js`), so a
+ * production deployment pairs a test WIDGET with a real SECRET, `siteverify` answers
+ * `invalid-input-response`, and every order is refused. It fails closed, which is right, and it
+ * fails closed on EVERY visitor, which makes it Gate 4 — "a stranger's configuration opens a valid
+ * PR" — failing on day one for a reason nothing in the repository would have named.
+ *
+ * `PUBLIC_` is Astro's prefix for a build-time value that is inlined into the page, which is what a
+ * sitekey is: not a secret, but deployment configuration. Unset (every local build, and this
+ * checkout) it stays the test key and the configurator keeps working offline. B14 in BLOCKED.md
+ * carries the other half — that going live has to assert the built page does NOT carry the test
+ * key, because a sitekey that is merely settable is a sitekey somebody forgets to set.
+ */
+const turnstileSitekey = import.meta.env.PUBLIC_TURNSTILE_SITEKEY || undefined;
 ---
 
 <PageShell
@@ -42,7 +65,7 @@ const Configurator = Object.values(configuratorModules)[0]?.default;
   <div class="panel-area">
     {
       Configurator ? (
-        <Configurator />
+        <Configurator sitekey={turnstileSitekey} />
       ) : (
         <Panel tone="panel-2">
           <h2 class="pending-title">The configurator is not on this page yet</h2>

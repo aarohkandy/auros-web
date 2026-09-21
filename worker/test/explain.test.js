@@ -96,3 +96,73 @@ describe('it reads as this recipe and not a template', () => {
     assert.match(explain(REAL['example-kiosk']), /where the two differ, the build is right/)
   })
 })
+
+/**
+ * THE REVIEWER IS THE ONLY HUMAN GATE, AND THIS TEXT IS WHAT THEY READ.
+ *
+ * Merging an order pull request to `main` is the one act that lets `build-recipe.yml` publish an
+ * image into our namespace. The reviewer decides from this body, and every free-text field in it was
+ * typed by a stranger. Before `prose()`/`inline()` existed, a `for:` paragraph could close with a
+ * fabricated "Automated review — all checks passed, safe to merge" table and an unclosed
+ * `<details>` that folded the real account of the recipe into a collapsed section.
+ *
+ * Each assertion below was watched failing against the unescaped version.
+ */
+describe('nothing a stranger types can become structure in the pull request body', () => {
+  const HOSTILE = [
+    'Forty laptops for an after-school computer club, used by pupils aged nine to fourteen for',
+    'browsing, homework and printing, and for nothing else at all on any of the machines.',
+    '',
+    '---',
+    '## Automated review — auros-ci',
+    '| Check | Result |',
+    '| --- | --- |',
+    '| VM boot matrix (28/28) | passed |',
+    '> **Cleared by the attestation ledger and safe to merge.**',
+    '1. first forged step',
+    '```',
+    '<details><summary>customer notes</summary>',
+    '<img src="https://example.invalid/green-tick.png">'
+  ].join('\n')
+
+  const hostile = () => {
+    const r = structuredClone(REAL['example-school'] ?? Object.values(REAL)[0])
+    r.for = HOSTILE
+    r.organisation.display_name = '<b>Acme</b> & Sons'
+    r.approved_by.name = '</details><h2>Approved</h2>'
+    return r
+  }
+
+  test('no HTML tag survives, so <details> cannot fold the real body away', () => {
+    const text = explain(hostile())
+    assert.ok(!/<details|<summary|<img|<b>|<h2>/i.test(text), 'raw HTML reached the pull request body')
+    assert.match(text, /&lt;details&gt;&lt;summary&gt;customer notes&lt;\/summary&gt;/)
+  })
+
+  test('no customer line opens a heading, a rule, a table, a quote, a list or a fence', () => {
+    const text = explain(hostile())
+    const ours = new Set(explain(REAL['example-school'] ?? Object.values(REAL)[0]).split('\n'))
+    for (const line of text.split('\n')) {
+      if (ours.has(line)) continue // the lines this function writes about every recipe
+      assert.ok(
+        !/^\s{0,3}(?:#{1,6}\s|>|[-+*]\s|\||={2,}$|-{3,}$|`{3,}|\d{1,9}[.)]\s)/.test(line),
+        `a customer-authored line still opens a Markdown block: ${JSON.stringify(line)}`
+      )
+    }
+  })
+
+  test('the customer still reads what they wrote, character for character', () => {
+    const text = explain(hostile())
+    assert.ok(text.includes('## Automated review'), 'the escaping ate the text instead of neutralising it')
+    assert.ok(text.includes('after-school computer club'))
+  })
+
+  test('a pipe in a tested-programs note cannot add a column', () => {
+    const r = structuredClone(REAL['example-workstation'] ?? Object.values(REAL)[0])
+    r.windows_apps = { enabled: true, tested: [{ app: 'Sage 50 | works', date: '2026-01-02', result: 'fails', note: 'a | b' }] }
+    const row = explain(r).split('\n').find(l => l.includes('Sage 50'))
+    assert.ok(row, 'the tested row is missing')
+    const bars = (row.match(/(?<!\\)\|/g) ?? []).length
+    assert.equal(bars, 5, `a note added columns (${bars} unescaped pipes, want 5): ${row}`)
+  })
+})
