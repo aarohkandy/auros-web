@@ -166,3 +166,12 @@ describe('nothing a stranger types can become structure in the pull request body
     assert.equal(bars, 5, `a note added columns (${bars} unescaped pipes, want 5): ${row}`)
   })
 })
+
+describe('the screen layout is stated when the recipe chooses one', () => {
+  test('a chosen layout is named in the body', () => {
+    assert.match(explain(REAL['example-school']), /Screen layout: browser-first\./)
+  })
+  test('no layout line when the recipe leaves it to the default', () => {
+    assert.ok(!/Screen layout/.test(explain(REAL['example-workstation'])))
+  })
+})

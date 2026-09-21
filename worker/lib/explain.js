@@ -172,6 +172,7 @@ export function explain (recipe, ctx = {}) {
     const off = Object.entries(d).filter(([, v]) => v === false).map(([k]) => k.replace(/_/g, ' '))
     if (on.length) out.push(`On: ${list(on)}.`)
     if (off.length) out.push(`Off: ${list(off)}.`)
+    if (typeof d.layout === 'string') out.push(`Screen layout: ${d.layout}. Every new user starts with it; windows is what leaving it out means.`)
   }
   out.push('')
 

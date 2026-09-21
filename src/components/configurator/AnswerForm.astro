@@ -20,7 +20,7 @@
  * rendering a widget nothing loads. The reasoning, the one constant that turns it back on, and
  * the §4.5 decision it is waiting on are in `human-check.ts` and BLOCKED.md B11.
  */
-import { ACTIVITIES, AGE_BANDS, COMMON_TIMEZONES, LANGUAGES, POLICIES, SPECIAL_REQUESTS, SWITCH_COMBINATIONS } from "../../lib/catalogue";
+import { ACTIVITIES, AGE_BANDS, COMMON_TIMEZONES, LANGUAGES, LAYOUTS, POLICIES, SPECIAL_REQUESTS, SWITCH_COMBINATIONS } from "../../lib/catalogue";
 import { configurator, site } from "../../content/copy";
 import MigrationDisclosure from "./MigrationDisclosure.astro";
 import { HUMAN_CHECK_DEPLOYED, HUMAN_CHECK_NOTICE, TURNSTILE_TEST_SITEKEY } from "./human-check";
@@ -265,6 +265,23 @@ const secondScripts = [...new Set(LANGUAGES.map((l) => l.secondScript).filter(Bo
           <span class="cfg-choice__text"><span class="cfg-choice__label">People at the machine may print</span></span>
         </label>
       </div>
+
+      <fieldset class="cfg-subfield" data-when-policy="open managed locked" hidden>
+        <legend class="cfg-label">Where should things be on screen?</legend>
+        <div class="cfg-choices cfg-choices--stack">
+          {
+            LAYOUTS.map((layout) => (
+              <label class="cfg-choice cfg-choice--wide">
+                <input type="radio" name="layout" value={layout.id} checked={layout.id === "windows"} />
+                <span class="cfg-choice__text">
+                  <span class="cfg-choice__label">{layout.label}</span>
+                  <span class="cfg-choice__note">{layout.note}</span>
+                </span>
+              </label>
+            ))
+          }
+        </div>
+      </fieldset>
     </fieldset>
 
     <!-- ── the disclosure, which is not a question ────────────────────────────────────── -->

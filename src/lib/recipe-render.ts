@@ -165,6 +165,8 @@ export function renderRecipe(a: Answers, opts: { now?: Date } = {}): RenderResul
 
   if (a.policy === "open") recipe.desktop = { can_install_apps: true };
   if (a.policy === "locked") recipe.desktop = { can_install_apps: false, can_reach_a_terminal: false };
+  // windows is what an omitted field means, and a kiosk refuses any desktop block at all.
+  if (!kiosk && a.layout !== "windows") recipe.desktop = { ...(recipe.desktop as object | undefined), layout: a.layout };
 
   if (kiosk) {
     const sites = splitList(a.kioskSites).map((s) => s.trim().toLowerCase());
@@ -343,10 +345,10 @@ export function renderRecipe(a: Answers, opts: { now?: Date } = {}): RenderResul
     L.push(pending("policy", "policy", "who is allowed to change things"));
   }
 
-  const desktop = recipe.desktop as Record<string, boolean> | undefined;
+  const desktop = recipe.desktop as Record<string, boolean | string> | undefined;
   if (desktop) {
     L.push(
-      flowMap("desktop", "desktop", Object.entries(desktop) as [string, boolean][], { indent: 0 }),
+      flowMap("desktop", "desktop", Object.entries(desktop), { indent: 0 }),
     );
   }
 

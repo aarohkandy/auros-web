@@ -137,6 +137,9 @@
       "must_remove_at_least": 240
     },
     "policy": "managed",
+    "desktop": {
+      "layout": "browser-first"
+    },
     "windows_apps": {
       "enabled": true,
       "we_promise_nothing_else": true,

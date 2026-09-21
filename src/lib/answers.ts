@@ -10,7 +10,7 @@
  * vocabulary in `catalogue.ts`.
  */
 
-import { AGE_BANDS, LANGUAGES, SWITCH_COMBINATIONS } from "./catalogue";
+import { AGE_BANDS, LANGUAGES, SWITCH_COMBINATIONS, type Layout } from "./catalogue";
 
 export type OrgKind = "school-or-nonprofit" | "business" | "just-me";
 export type Policy = "open" | "managed" | "locked" | "kiosk";
@@ -43,6 +43,8 @@ export type Answers = {
   kioskForgetMinutes: number;
   kioskPrinting: boolean;
   kioskRestartAt: string;
+  /** Where things are on screen. Not asked of a kiosk, which has no desktop. */
+  layout: Layout;
 
   // ── The disclosure, which is not a question ────────────────────────────────────────────
   /** Installs the compatibility layer. It does not make anybody's programs work. */
@@ -90,6 +92,7 @@ export function defaultAnswers(): Answers {
     kioskForgetMinutes: 8,
     kioskPrinting: false,
     kioskRestartAt: "03:30",
+    layout: "windows",
 
     windowsApps: false,
     acknowledgedMigration: false,
