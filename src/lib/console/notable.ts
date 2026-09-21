@@ -63,6 +63,7 @@ function isLine(value: unknown): value is BuildLine {
     typeof v["text"] === "string" &&
     typeof v["level"] === "string" &&
     LEVELS.has(v["level"]) &&
+    (v["display"] === undefined || typeof v["display"] === "string") &&
     (v["job"] === null || typeof v["job"] === "string") &&
     (v["at"] === null || typeof v["at"] === "string")
   );

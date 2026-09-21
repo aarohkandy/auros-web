@@ -91,9 +91,38 @@ const strings = {
   lastBuild: "last build · {time}",
   nothingNote:
     "We have no record of a completed run to show you here, and we would rather show you an empty console than a convincing one. Every build we have ever run is public: the workflows and their logs are in the repositories linked in the footer.",
-  noscript:
+  /**
+   * TWO SENTENCES, because two different things are true and the page knows which.
+   *
+   * `client.ts` returns before opening an EventSource unless the component was given a `recipe` or
+   * a `run` — the Worker refuses a request naming neither, deliberately, because "whatever is
+   * building right now" would leak which customers exist. Every page that mounts this console today
+   * (index, how-it-works, order) passes neither. So on every shipped page there is no live stream to
+   * miss, and "The live stream needs JavaScript" told a reader with script enabled that they were
+   * getting live output. It is the one sentence on this panel that overstated.
+   */
+  noscriptLive:
     "The live stream needs JavaScript. What you are reading above is the last build that actually ran, rendered into this page when the site was built.",
+  noscriptStatic:
+    "This panel is server-rendered: what you are reading above is the last build that actually ran, written into the page when the site was built. With JavaScript on, this page shows you exactly the same thing — it names no build to watch, so there is no live output you are missing.",
 };
+
+/**
+ * Whether this instance can stream at all. Not a guess about the reader's browser: it is the same
+ * condition `client.ts` uses to decide whether to open an EventSource.
+ */
+const canStream = Boolean(recipe || run);
+
+/**
+ * The subtitle's last clause depends on whether there is a run under it, so it is assembled here
+ * rather than printed whole. The unconditional version asserted "what is below is the last run that
+ * actually happened" directly above a panel saying we have no record of one.
+ */
+const subtitle = [
+  buildConsole.subtitle,
+  snap ? buildConsole.subtitleLastRun : buildConsole.subtitleNoRecord,
+  buildConsole.subtitleCoda,
+].join(" ");
 
 /** The footer sentence. Two versions because the run's outcome is a fact and it differs. */
 const outcomeNote = failed
@@ -155,7 +184,7 @@ const recordNote =
       {snap ? strings.lastBuild.replace("{time}", utcStamp(snap.run.startedAt)) : strings.nothing}
     </p>
   </header>
-  <p class="subtitle">{buildConsole.subtitle}</p>
+  <p class="subtitle">{subtitle}</p>
 
   {
     snap && (
@@ -197,7 +226,7 @@ const recordNote =
           <span class="at" aria-hidden="true">
             {snap ? elapsed(line.at, snap.run.startedAt) : ""}
           </span>
-          <span class="text">{line.text}</span>
+          <span class="text">{line.display ?? line.text}</span>
         </li>
       ))
     }
@@ -215,7 +244,9 @@ const recordNote =
   }
 
   <noscript>
-    <p class="note">{snap ? strings.noscript : strings.nothingNote}</p>
+    <p class="note">
+      {snap ? (canStream ? strings.noscriptLive : strings.noscriptStatic) : strings.nothingNote}
+    </p>
   </noscript>
 
   {
@@ -270,7 +301,7 @@ const recordNote =
                     <span class="at" aria-hidden="true">
                       {elapsed(line.at, item.run.startedAt)}
                     </span>
-                    <span class="text">{line.text}</span>
+                    <span class="text">{line.display ?? line.text}</span>
                   </li>
                 ))}
               </ol>

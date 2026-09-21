@@ -241,8 +241,21 @@ export const buildConsole = {
    * GATE.md has `auros-base:hardened` at Gate 1, in progress, never published. The panel is empty
    * because nothing has gone green yet, which is a different sentence and a more interesting one.
    */
+  /*
+   * Split on whether there IS a run below, the way `outcomeNote` in BuildConsole.astro already is.
+   * It used to be one unconditional string ending "…what is below is the last run that actually
+   * happened rather than a picture of a steady state" — printed directly above a panel that, with
+   * no snapshot committed, says in the next breath that we have no record of a completed run. True
+   * in one state, false in the other, printed in both.
+   */
   subtitle:
-    "The base rebuilds at 04:17 UTC and again whenever a recipe changes, and free CI runs its schedules late, so in practice it is a little after that. Nothing has gone green yet. auros-base:hardened has never published, so what is below is the last run that actually happened rather than a picture of a steady state. The day the first one passes, this line will say so and carry the date.",
+    "The base rebuilds at 04:17 UTC and again whenever a recipe changes, and free CI runs its schedules late, so in practice it is a little after that. Nothing has gone green yet. auros-base:hardened has never published, so",
+  /** …and there is a run under this line. */
+  subtitleLastRun:
+    "what is below is the last run that actually happened rather than a picture of a steady state.",
+  /** …and there is not. The absence is the sentence; it does not get dressed as a steady state either. */
+  subtitleNoRecord: "there is no run below for this line to describe.",
+  subtitleCoda: "The day the first one passes, this line will say so and carry the date.",
   /** ILLUSTRATION. Never presented as a build we ran for a customer. Mono, obviously. */
   sampleLinesMono: [
     "resolving base  ghcr.io/ublue-os/aurora:stable",

@@ -18,7 +18,10 @@
 //                                     [--run <id>] [--check]
 //
 //   --run       snapshot one specific run instead of the latest completed one.
-//   --check     exit 1 if the committed snapshot is not what this tool would write (for CI).
+//   --check     exit 1 if the committed snapshot is not, LINE FOR LINE, what this tool derives
+//               from the run that snapshot names. Not a run-id comparison: an id comparison is
+//               green for a file with lines in it that no runner ever printed, which is the one
+//               thing this tool exists to make impossible. Staleness is printed as a note.
 //   --notable   snapshot the PINNED set in tools/notable-runs.manifest.json instead, into
 //               src/lib/console/notable-runs.json. Combines with --check.
 //
@@ -29,6 +32,7 @@
 
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
+import { firstDifference, explainDifference, runIdSets } from './lib/snapshot-diff.mjs'
 
 const API = 'https://api.github.com'
 
@@ -196,14 +200,25 @@ function reduceJobLog (raw, jobName, extraKeep = [], extraDrop = []) {
     if (!text.trim()) continue
     if (drop.some(re => re.test(text))) continue
     if (!keep.some(re => re.test(text))) continue
-    // Classify BEFORE rewriting the runner's `##[error]` prefix into something readable — the
-    // prefix is the only thing marking a workflow-level failure, and stripping it first silently
-    // turned every one of them into an ordinary grey line.
+    // Classify BEFORE deriving the readable form of the runner's `##[error]` prefix — the prefix
+    // is the only thing marking a workflow-level failure, and stripping it first silently turned
+    // every one of them into an ordinary grey line.
     const level = classify(text)
-    text = text.replace(/^##\[(error|warning|notice)\]/, (_, k) => `${k}: `)
+    // `text` IS THE RUNNER'S LINE, byte for byte after the reductions above (timestamp, ANSI,
+    // trailing space). It used to be rewritten here: `##[error]X` was published as `error: X`, and
+    // the component's claim is that a reader "can open the run and find the same line" — but
+    // GitHub's UI renders the annotation rather than showing that string, so for those lines the
+    // string on our page was ours, not the runner's. Nine of them shipped.
+    //
+    // Everything else this reducer does is purely reductive: it drops lines and strips prefixes the
+    // runner added, never invents one. `display` keeps the readable form for the page WITHOUT
+    // making the published `text` something a reader cannot search for in the log.
+    const display = text.replace(/^##\[(error|warning|notice)\]/, (_, k) => `${k}: `)
     if (text === last) continue // "Login Succeeded!" three times is one fact
     last = text
-    out.push({ text, level, job: jobName, at })
+    const line = { text, level, job: jobName, at }
+    if (display !== text) line.display = display
+    out.push(line)
   }
   return out
 }
@@ -369,14 +384,24 @@ async function buildNotable () {
     const onDisk = JSON.parse(readFileSync(dest, 'utf8'))
     // `generatedAt` moves on every run and says nothing about what the page shows. Everything else
     // is compared in full, so a reducer change that silently altered a published line is a red CI.
-    const strip = o => JSON.stringify({ schema: o.schema, runs: o.runs })
-    if (strip(onDisk) === strip(payload)) {
+    const diff = firstDifference(onDisk, payload)
+    if (!diff) {
       console.log(`snapshot-build-log: pinned set up to date (${out.length} runs).`)
       process.exit(0)
     }
     console.error('snapshot-build-log: the committed pinned set is not what this tool would write.')
-    console.error(`  on disk: ${(onDisk.runs ?? []).map(r => r.run?.runId).join(', ')}`)
-    console.error(`  would write: ${out.map(r => r.run.runId).join(', ')}`)
+    // NOT two lists of run ids. The first version printed exactly that, and when a fabricated LINE
+    // was injected it printed the same list twice — a refusal that names a dimension which has not
+    // changed reads as a spurious failure, and the one check that worked was the one nobody would
+    // have believed. Name the run and the line, and print both texts.
+    for (const l of explainDifference(diff, { onDisk, wouldWrite: payload })) console.error(l)
+    const sets = runIdSets(onDisk, payload)
+    if (sets) {
+      console.error(`  the pinned SET also differs — on disk: ${sets.onDisk.join(', ')}`)
+      console.error(`                              would write: ${sets.wouldWrite.join(', ')}`)
+    }
+    console.error('  run `pnpm snapshot:notable` if the reducer or the manifest changed; if it did not,')
+    console.error('  the committed file has been edited by hand and the line above is the edit.')
     process.exit(1)
   }
 
@@ -390,6 +415,42 @@ async function buildNotable () {
 if (OPT.notable) await buildNotable()
 
 // ── build the snapshot ──────────────────────────────────────────────────────────────────────────
+//
+// `--check` re-derives THE RUN THE COMMITTED FILE NAMES, not the latest one. Two reasons, and the
+// first is the whole point of the check:
+//
+//   · The question `--check` has to answer is "is every line in this file a line that runner
+//     printed?" That is a question about run N, so it has to be asked of run N. Asked of whatever
+//     ran most recently, the answer is always "different run" and the content is never looked at —
+//     which is how two fabricated lines sat in this file while the check exited 0.
+//   · Staleness is a different question with a different answer ("run `pnpm snapshot`"), and it is
+//     not a dishonesty. Conflating them made the check red on every pull request that followed a new
+//     run, for a reason unrelated to the file, and a gate that is red for an unrelated reason is one
+//     people learn to skip (D40).
+//
+// Staleness is still reported, below, as a note that does not fail.
+let onDiskSnapshot = null
+if (OPT.check) {
+  if (!existsSync(OPT.out)) {
+    console.error(`snapshot-build-log: ${OPT.out} is missing`)
+    process.exit(1)
+  }
+  try { onDiskSnapshot = JSON.parse(readFileSync(OPT.out, 'utf8')) }
+  catch (e) { console.error(`snapshot-build-log: ${OPT.out} is not JSON: ${e.message}`); process.exit(1) }
+  const named = onDiskSnapshot?.run?.runId
+  if (named == null) {
+    console.error(`snapshot-build-log: ${OPT.out} names no run (run.runId is absent).`)
+    console.error('  A snapshot that does not say which run it came from cannot be checked against one.')
+    process.exit(1)
+  }
+  if (!OPT.run) OPT.run = String(named)
+  else if (String(OPT.run) !== String(named)) {
+    console.error(`snapshot-build-log: --run ${OPT.run} --check, but ${OPT.out} names run ${named}.`)
+    console.error('  Checking one run against a file written from another would compare two different builds.')
+    process.exit(1)
+  }
+}
+
 const run = await latestCompletedRun()
 const { jobs = [] } = await api(`/repos/${OPT.repo}/actions/runs/${run.id}/jobs?per_page=100`)
 
@@ -482,14 +543,36 @@ const snapshot = {
 const text = JSON.stringify(snapshot, null, 2) + '\n'
 
 if (OPT.check) {
-  if (!existsSync(OPT.out)) { console.error(`snapshot-build-log: ${OPT.out} is missing`); process.exit(1) }
-  const onDisk = JSON.parse(readFileSync(OPT.out, 'utf8'))
-  if (onDisk.run?.runId === snapshot.run.runId) {
-    console.log(`snapshot-build-log: up to date (run ${snapshot.run.runId}).`)
-    process.exit(0)
+  // The whole payload, not the run id. `generatedAt` and `$comment` are stripped by
+  // firstDifference; everything a reader can see is compared, so a line that no runner printed is a
+  // red build. This is what `--notable --check` already did, and the honesty-critical file — the one
+  // the landing page renders — was the one left comparing a single integer.
+  const diff = firstDifference(onDiskSnapshot, snapshot)
+  if (diff) {
+    console.error(`snapshot-build-log: ${OPT.out} is not what this tool derives from run ${snapshot.run.runId}.`)
+    for (const l of explainDifference(diff, { onDisk: onDiskSnapshot, wouldWrite: snapshot })) console.error(l)
+    console.error(`  the run: ${snapshot.run.url}`)
+    console.error('  run `pnpm snapshot` if the reducer changed; if it did not, the committed file has been')
+    console.error('  edited by hand and the line above is the edit.')
+    process.exit(1)
   }
-  console.error(`snapshot-build-log: stale. On disk: run ${onDisk.run?.runId}. Latest: ${snapshot.run.runId}.`)
-  process.exit(1)
+  console.log(`snapshot-build-log: up to date — every line matches run ${snapshot.run.runId} (${snapshot.lines.length} lines).`)
+  // Freshness is a NOTE. It says to run the tool; it does not claim the file is dishonest, because
+  // it is not. Wrapped because a failure to look up the latest run must not turn a passing content
+  // check into a red one — that would put us back where we started.
+  try {
+    const q = new URLSearchParams({ branch: OPT.branch, status: 'completed', per_page: '10' })
+    const { workflow_runs: runs = [] } = await api(
+      `/repos/${OPT.repo}/actions/workflows/${OPT.workflow}/runs?${q}`)
+    const newest = runs.find(r => r.conclusion === 'success' || r.conclusion === 'failure')
+    if (newest && newest.id !== snapshot.run.runId) {
+      console.log(`  note: a newer completed run exists (${newest.id}, ${newest.conclusion}). ` +
+        'The committed file is honest about the run it names; `pnpm snapshot` moves it forward.')
+    }
+  } catch (e) {
+    console.log(`  note: could not check whether a newer run exists (${e.message}). The content check above stands.`)
+  }
+  process.exit(0)
 }
 
 mkdirSync(dirname(OPT.out), { recursive: true })

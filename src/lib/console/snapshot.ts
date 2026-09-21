@@ -19,8 +19,20 @@
 export type LineLevel = "section" | "good" | "bad" | "warn" | "note" | "info" | "meta";
 
 export interface BuildLine {
+  /**
+   * THE RUNNER'S LINE, after the purely reductive steps the snapshot tool documents — timestamp,
+   * ANSI, trailing space. Nothing is rewritten into it. The component's claim is that a reader can
+   * open the run and find this same line, so this string has to be one they can search for.
+   */
   text: string;
   level: LineLevel;
+  /**
+   * The readable form, present only where the runner's line carries a workflow annotation prefix:
+   * `##[error]Process completed` → `error: Process completed`. GitHub's own UI renders the
+   * annotation rather than showing that prefix, so publishing the rewritten string as `text` made
+   * nine lines unsearchable in the log we link to. The page shows `display`; the file keeps `text`.
+   */
+  display?: string;
   /** The job the line came from, or null for a line this site added about the log itself. */
   job: string | null;
   /** ISO timestamp the runner stamped on the line. */
@@ -78,6 +90,7 @@ function isLine(value: unknown): value is BuildLine {
     typeof v["text"] === "string" &&
     typeof v["level"] === "string" &&
     LEVELS.has(v["level"]) &&
+    (v["display"] === undefined || typeof v["display"] === "string") &&
     (v["job"] === null || typeof v["job"] === "string") &&
     (v["at"] === null || typeof v["at"] === "string")
   );
